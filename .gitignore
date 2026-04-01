@@ -97,3 +97,6 @@ npm-debug.log*
 
 # Optional
 .cache/
+
+!frontend-web/src/lib/
+!frontend-web/src/lib/**
