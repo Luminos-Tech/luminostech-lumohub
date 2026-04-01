@@ -1,6 +1,7 @@
 import axios from "axios";
 
-const BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api/v1";
+/** Same-origin proxy via next.config.js rewrites → avoids calling localhost from the browser in production. */
+const BASE_URL = "/api/v1";
 
 export const api = axios.create({
   baseURL: BASE_URL,

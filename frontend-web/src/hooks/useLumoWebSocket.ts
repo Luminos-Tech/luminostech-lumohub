@@ -1,8 +1,7 @@
 "use client";
 import { useEffect, useRef, useCallback } from "react";
 import { useNotificationStore } from "@/store/notificationStore";
-
-const WS_URL = process.env.NEXT_PUBLIC_WS_URL || "ws://localhost:8000";
+import { getWebSocketBaseUrl } from "@/lib/publicApi";
 
 export function useLumoWebSocket(userId: number | undefined) {
   const wsRef = useRef<WebSocket | null>(null);
@@ -13,7 +12,8 @@ export function useLumoWebSocket(userId: number | undefined) {
     const token = localStorage.getItem("access_token");
     if (!token) return;
 
-    const ws = new WebSocket(`${WS_URL}/ws/lumo/${userId}?token=${token}`);
+    const wsUrl = getWebSocketBaseUrl();
+    const ws = new WebSocket(`${wsUrl}/ws/lumo/${userId}?token=${token}`);
     wsRef.current = ws;
 
     ws.onopen = () => {
