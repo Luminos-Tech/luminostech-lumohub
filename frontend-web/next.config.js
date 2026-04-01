@@ -1,23 +1,12 @@
 /** @type {import('next').NextConfig} */
-const internalApi = (process.env.INTERNAL_API_URL || "http://127.0.0.1:8000").replace(
-  /\/$/,
-  ""
-);
-
 const nextConfig = {
   output: "standalone",
   reactStrictMode: true,
   images: {
     domains: ["localhost", "api.lumohub.com"],
   },
-  async rewrites() {
-    return [
-      {
-        source: "/api/v1/:path*",
-        destination: `${internalApi}/api/v1/:path*`,
-      },
-    ];
-  },
+  // API proxy: dùng app/api/v1/[...path]/route.ts để đọc INTERNAL_API_URL lúc chạy (Docker),
+  // tránh rewrite bị bake sai lúc build (127.0.0.1 trong container).
 };
 
 module.exports = nextConfig;

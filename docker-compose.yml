@@ -45,12 +45,13 @@ services:
     build:
       context: ./frontend-web
       dockerfile: Dockerfile
-      args:
-        INTERNAL_API_URL: http://backend:8000
     container_name: lumohub_frontend
     restart: unless-stopped
     depends_on:
       - backend
+    environment:
+      # Bắt buộc lúc chạy: proxy API đọc biến này (không chỉ lúc build)
+      INTERNAL_API_URL: http://backend:8000
     ports:
       - "3000:3000"
 

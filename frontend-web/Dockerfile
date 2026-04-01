@@ -11,8 +11,6 @@ RUN npm ci --legacy-peer-deps 2>/dev/null || npm install --legacy-peer-deps
 # builder chỉ cần build source, không cần deps (đã có .next từ local)
 FROM node:20-alpine AS builder
 WORKDIR /app
-ARG INTERNAL_API_URL=http://127.0.0.1:8000
-ENV INTERNAL_API_URL=$INTERNAL_API_URL
 COPY . .
 ENV NEXT_TELEMETRY_DISABLED=1
 RUN npm ci --legacy-peer-deps 2>/dev/null || npm install --legacy-peer-deps
