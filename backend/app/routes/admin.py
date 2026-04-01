@@ -3,9 +3,9 @@ from sqlalchemy.orm import Session
 from typing import List
 from app.db.session import get_db
 from app.schemas.user import UserResponse, AdminUserUpdateRequest
-from app.schemas.admin import SystemLogResponse
+from app.schemas.admin import SystemLogResponse, AdminCreateUserRequest, AdminResetPasswordRequest
 from app.schemas.event import EventResponse
-from app.crud.user import get_all_users, get_user_by_id, set_user_active, set_user_role
+from app.crud.user import get_all_users, get_user_by_id, set_user_active, set_user_role, create_user, change_password, get_user_by_email
 from app.crud.log import get_system_logs, log_admin_action
 from app.crud.event import get_all_events
 from app.services.deps import get_current_admin
@@ -19,6 +19,32 @@ def list_users(skip: int = 0, limit: int = 50,
                db: Session = Depends(get_db),
                admin: User = Depends(get_current_admin)):
     return get_all_users(db, skip=skip, limit=limit)
+
+
+@router.post("/users", response_model=UserResponse, status_code=201)
+def admin_create_user(body: AdminCreateUserRequest,
+                       db: Session = Depends(get_db),
+                       admin: User = Depends(get_current_admin)):
+    if get_user_by_email(db, body.email):
+        raise HTTPException(status_code=400, detail="Email already registered")
+    user = create_user(db, body.full_name, body.email, body.password, body.role)
+    log_admin_action(db, admin_user_id=admin.id, action="create_user",
+                     target_type="user", target_id=user.id,
+                     note=f"email={body.email}, role={body.role}")
+    return user
+
+
+@router.patch("/users/{user_id}/password", status_code=204)
+def admin_reset_password(user_id: int,
+                          body: AdminResetPasswordRequest,
+                          db: Session = Depends(get_db),
+                          admin: User = Depends(get_current_admin)):
+    user = get_user_by_id(db, user_id)
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    change_password(db, user, body.new_password)
+    log_admin_action(db, admin_user_id=admin.id, action="reset_password",
+                     target_type="user", target_id=user_id)
 
 
 @router.patch("/users/{user_id}/lock", response_model=UserResponse)
