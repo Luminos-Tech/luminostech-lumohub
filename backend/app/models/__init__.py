@@ -5,8 +5,9 @@ from app.models.notification import Notification
 from app.models.system_log import SystemLog
 from app.models.user_session import UserSession
 from app.models.admin_action import AdminAction
+from app.models.device import Device
 
 __all__ = [
     "User", "Event", "Reminder", "Notification",
-    "SystemLog", "UserSession", "AdminAction"
+    "SystemLog", "UserSession", "AdminAction", "Device"
 ]

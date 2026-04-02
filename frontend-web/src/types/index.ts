@@ -64,3 +64,12 @@ export interface TokenResponse {
   refresh_token: string;
   token_type: string;
 }
+
+export interface Device {
+  id: number;
+  user_id: number;
+  device_id: string;  // 4-digit code
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+}

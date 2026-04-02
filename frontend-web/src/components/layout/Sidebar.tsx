@@ -4,7 +4,7 @@ import { usePathname } from "next/navigation";
 import { useAuthStore } from "@/store/authStore";
 import {
   LayoutDashboard, Calendar, ListChecks, Bell,
-  Settings, Users, ScrollText, LogOut, Zap,
+  Settings, Users, ScrollText, LogOut, Zap, Smartphone,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -14,6 +14,7 @@ const navItems = [
   { href: "/events",         label: "Sự kiện",      icon: ListChecks },
   { href: "/notifications",  label: "Thông báo",    icon: Bell },
   { href: "/settings",       label: "Cài đặt",      icon: Settings },
+  { href: "/settings/devices", label: "Thiết bị", icon: Smartphone },
 ];
 
 const adminItems = [
