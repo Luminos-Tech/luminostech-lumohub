@@ -14,6 +14,9 @@
 static const char *TAG = "WS_CLIENT";
 
 #define SEND_QUEUE_SIZE  4
+// WebSocket opcodes
+#define WS_OPCODE_TEXT   0x1
+#define WS_OPCODE_BINARY 0x2
 
 // ─────────────────────────────────────────────────────────────
 // Internal state
@@ -34,7 +37,6 @@ static QueueHandle_t s_json_queue = NULL;
 static ws_done_cb_t s_done_cb = NULL;
 static volatile atomic_bool s_connected = ATOMIC_VAR_INIT(false);
 static volatile atomic_bool s_running = ATOMIC_VAR_INIT(false);
-static char s_ws_uri[256] = {0};
 
 // ─────────────────────────────────────────────────────────────
 // Base64 encode (inline, no external lib)
@@ -59,7 +61,7 @@ static size_t b64_encode(const uint8_t *in, size_t in_len, char *out)
 }
 
 // ─────────────────────────────────────────────────────────────
-// Fast JSON parser: extract "type" and "message" fields
+// Fast JSON parser: extract "type" and "message"/"stt" fields
 // ─────────────────────────────────────────────────────────────
 static void parse_json_reply(const char *raw, char *type_out, size_t type_size,
                              char *msg_out, size_t msg_size)
@@ -88,8 +90,10 @@ static void parse_json_reply(const char *raw, char *type_out, size_t type_size,
         }
     }
 
-    // tìm "message"
+    // tìm "message" hoặc "stt"
     const char *mp = strstr(p, "\"message\"");
+    if (!mp)
+        mp = strstr(p, "\"stt\"");
     if (mp)
     {
         const char *colon = strchr(mp, ':');
@@ -106,33 +110,13 @@ static void parse_json_reply(const char *raw, char *type_out, size_t type_size,
             msg_out[mi] = '\0';
         }
     }
-
-    // tìm "stt"
-    if (!msg_out[0])
-    {
-        const char *sp = strstr(p, "\"stt\"");
-        if (sp)
-        {
-            const char *colon = strchr(sp, ':');
-            if (colon)
-            {
-                const char *val = colon + 1;
-                while (*val && (isspace((unsigned char)*val) || *val == '"'))
-                    val++;
-                size_t mi = 0;
-                while (*val && !isspace((unsigned char)*val) &&
-                       *val != ',' && *val != '}' && *val != '"' &&
-                       mi + 1 < msg_size)
-                    msg_out[mi++] = *val++;
-                msg_out[mi] = '\0';
-            }
-        }
-    }
 }
 
 // ─────────────────────────────────────────────────────────────
-// WebSocket event handler — chạy trên lõi ESP-IDF
-// Dùng event->opcode để phân biệt binary vs text
+// WebSocket event handler — chạy trên lõi ESP-IDF (FreeRTOS)
+// Dùng opcode để phân biệt binary vs text frame:
+//   opcode 0x1 = text frame  (JSON done/error)
+//   opcode 0x2 = binary frame (PCM audio)
 // ─────────────────────────────────────────────────────────────
 static void ws_event_handler(void *handler_args,
                              esp_event_base_t event_base,
@@ -156,18 +140,13 @@ static void ws_event_handler(void *handler_args,
 
     case WEBSOCKET_EVENT_DATA:
     {
+        // event_data là esp_websocket_event_data_t*
         esp_websocket_event_data_t *data = (esp_websocket_event_data_t *)event_data;
 
         if (!data->data_ptr || data->data_len == 0)
             break;
 
-        // Phân biệt binary vs text frame qua opcode
-        // WEBSOCKET_EVENT_DATA không chứa opcode trực tiếp trên mọi IDF version.
-        // Heuristic: bắt đầu bằng '{' → JSON text frame
-        char first = ((const char *)data->data_ptr)[0];
-        bool looks_like_json = (first == '{' || first == '[');
-
-        if (looks_like_json)
+        if (data->op_code == WS_OPCODE_TEXT)
         {
             // ── Text frame: JSON (done/error) ─────────────────
             size_t len = data->data_len;
@@ -177,7 +156,6 @@ static void ws_event_handler(void *handler_args,
             memcpy(copy, data->data_ptr, len);
             copy[len] = '\0';
 
-            // Log ngắn
             if (len < 200)
                 ESP_LOGI(TAG, "WS JSON: %s", copy);
             else
@@ -188,12 +166,10 @@ static void ws_event_handler(void *handler_args,
             else
                 free(copy);
         }
-        else
+        else if (data->op_code == WS_OPCODE_BINARY)
         {
-            // ── Binary frame: PCM audio chunk ──────────────────
-            // Backend gửi raw WAV PCM 24kHz mono 16-bit
-            // Gửi vào audio stream queue — phát ngay!
-            if (s_audio_queue)
+            // ── Binary frame: PCM audio chunk ─────────────────
+            if (s_audio_queue && data->data_len > 0)
             {
                 uint8_t *copy = malloc(data->data_len);
                 if (copy)
@@ -201,13 +177,13 @@ static void ws_event_handler(void *handler_args,
                     memcpy(copy, data->data_ptr, data->data_len);
                     if (xQueueSend(s_audio_queue, &copy, 0) != pdTRUE)
                     {
-                        ESP_LOGW(TAG, "audio queue full, dropping %lu bytes",
+                        ESP_LOGW(TAG, "audio q full, drop %lu bytes",
                                  (unsigned long)data->data_len);
                         free(copy);
                     }
                     else
                     {
-                        ESP_LOGD(TAG, "WS audio → stream q: %lu bytes",
+                        ESP_LOGD(TAG, "WS audio → stream: %lu bytes",
                                  (unsigned long)data->data_len);
                     }
                 }
@@ -245,8 +221,8 @@ static void ws_task(void *arg)
             if (ok == pdTRUE && msg)
             {
                 int len = strlen(msg);
-                int sent = esp_websocket_client_send(
-                    s_client, (const char *)msg, len, pdMS_TO_TICKS(5000));
+                int sent = esp_websocket_client_send_text(
+                    s_client, msg, len, pdMS_TO_TICKS(5000));
                 if (sent < 0)
                     ESP_LOGE(TAG, "WS send failed: %d", sent);
                 else
@@ -262,10 +238,10 @@ static void ws_task(void *arg)
             if (ok == pdTRUE && audio_chunk)
             {
                 // Nhận raw PCM 24kHz mono 16-bit
-                // audio_stream_play sẽ tự convert sang stereo và gửi I2S
-                esp_err_t err = audio_stream_play(audio_chunk, 1024);  // 1024 bytes/frame
+                // audio_stream_play() tự convert sang stereo
+                esp_err_t err = audio_stream_play(audio_chunk, 1024);
                 if (err != ESP_OK)
-                    ESP_LOGW(TAG, "audio_stream_play: queue may be full");
+                    ESP_LOGW(TAG, "audio_stream_play: %s", esp_err_to_name(err));
                 free(audio_chunk);
                 audio_chunk = NULL;
             }
@@ -282,8 +258,7 @@ static void ws_task(void *arg)
                 char msg_buf[256] = {0};
                 parse_json_reply(json_msg, type_buf, sizeof(type_buf),
                                  msg_buf, sizeof(msg_buf));
-                ESP_LOGI(TAG, "WS callback: type='%s' msg='%s'",
-                         type_buf, msg_buf);
+                ESP_LOGI(TAG, "WS done-cb: type='%s' msg='%s'", type_buf, msg_buf);
                 if (s_done_cb)
                     s_done_cb(type_buf, msg_buf[0] ? msg_buf : NULL);
                 free(json_msg);
@@ -307,8 +282,6 @@ esp_err_t ws_client_init(const char *uri, ws_done_cb_t done_callback)
     s_done_cb = done_callback;
     atomic_store(&s_running, true);
 
-    strncpy(s_ws_uri, uri, sizeof(s_ws_uri) - 1);
-
     s_send_queue  = xQueueCreate(SEND_QUEUE_SIZE, sizeof(char *));
     s_audio_queue = xQueueCreate(SEND_QUEUE_SIZE * 4, sizeof(uint8_t *));
     s_json_queue  = xQueueCreate(SEND_QUEUE_SIZE, sizeof(char *));
@@ -318,7 +291,7 @@ esp_err_t ws_client_init(const char *uri, ws_done_cb_t done_callback)
 
     esp_websocket_client_config_t cfg = {
         .uri = uri,
-        .use_ssl = true,
+        .transport = WEBSOCKET_TRANSPORT_OVER_SSL,
         .crt_bundle_attach = esp_crt_bundle_attach,
         .task_stack = 8192,
         .task_prio = 5,
