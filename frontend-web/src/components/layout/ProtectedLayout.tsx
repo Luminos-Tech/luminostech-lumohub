@@ -5,6 +5,7 @@ import { useAuthStore } from "@/store/authStore";
 import { useLumoWebSocket } from "@/hooks/useLumoWebSocket";
 import Sidebar from "./Sidebar";
 import Topbar from "./Topbar";
+import Footer from "./Footer";
 import Spinner from "@/components/common/Spinner";
 
 export default function ProtectedLayout({ children }: { children: React.ReactNode }) {
@@ -39,6 +40,7 @@ export default function ProtectedLayout({ children }: { children: React.ReactNod
       <div className="flex-1 flex flex-col min-w-0">
         <Topbar />
         <main className="flex-1 overflow-auto">{children}</main>
+        <Footer />
       </div>
     </div>
   );

@@ -30,7 +30,7 @@ export default function CalendarView() {
   }));
 
   return (
-    <div className="card p-4 h-[calc(100vh-160px)]">
+    <div className="flex flex-col h-[calc(100vh-160px)] bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
       <FullCalendar
         plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin, listPlugin]}
         initialView="dayGridMonth"
@@ -45,6 +45,12 @@ export default function CalendarView() {
         height="100%"
         selectable
         editable={false}
+        slotMinTime="06:00:00"
+        slotMaxTime="23:00:00"
+        allDaySlot={false}
+        nowIndicator
+        dayMaxEvents={3}
+        eventDisplay="block"
         select={(info) => {
           setDefaultDate({ start: info.startStr, end: info.endStr });
           setShowForm(true);
