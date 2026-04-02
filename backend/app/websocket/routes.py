@@ -18,5 +18,8 @@ async def lumo_websocket(
             data = await websocket.receive_text()
             if data == "ping":
                 await websocket.send_text("pong")
+            else:
+                # ESP32 gửi online/offline/event → ack, giữ kết nối
+                await websocket.send_text("ok")
     except WebSocketDisconnect:
         manager.disconnect(device_id)
