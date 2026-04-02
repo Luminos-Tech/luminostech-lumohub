@@ -221,11 +221,11 @@ async def _stream_tts(text: str, websocket: WebSocket, device_id: str):
         all_pcm = b""
         chunk_count = 0
 
-        async for pcm_chunk in _stream():
+        # _stream() là generator đồng bộ — không dùng async for (cần __aiter__)
+        for pcm_chunk in _stream():
             if pcm_chunk:
                 all_pcm += pcm_chunk
                 chunk_count += 1
-                # Gửi binary chunk ngay cho ESP32
                 await websocket.send_bytes(pcm_chunk)
 
         lumo_logger.info(f"LUMO TTS stream: {device_id} | text_len={len(text)} | chunks={chunk_count} | total_bytes={len(all_pcm)}")
@@ -261,8 +261,18 @@ async def ws_tts_stream(websocket: WebSocket, device_id: str = Query(...)):
 
     try:
         while True:
-            raw = await websocket.receive_bytes()
-            
+            # Python websockets gửi JSON dạng TEXT frame; ESP32 có thể gửi BINARY.
+            # receive_bytes() chỉ nhận binary → text frame gây RuntimeError và đóng socket mã 1000.
+            incoming = await websocket.receive()
+            if incoming["type"] != "websocket.receive":
+                break
+            if "text" in incoming:
+                raw = incoming["text"].encode("utf-8")
+            elif "bytes" in incoming:
+                raw = incoming["bytes"]
+            else:
+                continue
+
             # Thử parse JSON (UTF-8)
             try:
                 text = raw.decode("utf-8")

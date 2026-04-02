@@ -9,7 +9,8 @@ class LumoConnectionManager:
         self.active_connections: Dict[str, WebSocket] = {}
 
     async def connect(self, device_id: str, websocket: WebSocket):
-        await websocket.accept()
+        # Không gọi accept() ở đây — route /ws/lumo đã accept 1 lần rồi.
+        # Gọi accept() 2 lần sẽ làm lỗi và đóng kết nối bất thường.
         self.active_connections[device_id] = websocket
         print(f"🔌 LUMO connected: device_id={device_id}")
 
