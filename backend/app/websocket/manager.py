@@ -30,6 +30,18 @@ class LumoConnectionManager:
                 self.disconnect(device_id)
         return False
 
+    async def send_text(self, device_id: str, text: str) -> bool:
+        """Forward raw text đến thiết bị qua WebSocket đang kết nối."""
+        ws = self.active_connections.get(device_id)
+        if ws:
+            try:
+                await ws.send_text(text)
+                return True
+            except Exception as e:
+                print(f"⚠️ Failed to send to device {device_id}: {e}")
+                self.disconnect(device_id)
+        return False
+
     async def broadcast(self, message: dict):
         disconnected = []
         for device_id, ws in self.active_connections.items():

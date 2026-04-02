@@ -14,4 +14,6 @@ export const adminApi = {
   events: () => api.get<Event[]>("/admin/events"),
   notifyDevice: (device_id: string, title: string, body: string) =>
     api.post("/admin/device/notify", { device_id, title, body }),
+  sendTextToDevice: (device_id: string, text: string) =>
+    api.post("/admin/device/send", { device_id, text }),
 };

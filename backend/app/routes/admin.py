@@ -117,3 +117,24 @@ def notify_device(body: DeviceNotificationRequest,
     background_tasks.add_task(manager.send_reminder, body.device_id, message)
     return {"sent": True, "device_id": body.device_id}
 
+
+class DeviceSendTextRequest(BaseModel):
+    device_id: str
+    text: str
+
+
+@router.post("/device/send")
+async def send_text_to_device(body: DeviceSendTextRequest,
+                               admin: User = Depends(get_current_admin)):
+    """
+    Gửi raw text đến ESP32 đang kết nối qua WebSocket.
+    Endpoint này dùng để website → ESP32 (ví dụ: hiển thị thông báo trên màn hình).
+    """
+    sent = await manager.send_text(body.device_id, body.text)
+    if not sent:
+        raise HTTPException(
+            status_code=404,
+            detail=f"Thiết bị {body.device_id} không online hoặc không kết nối WebSocket"
+        )
+    return {"sent": True, "device_id": body.device_id}
+

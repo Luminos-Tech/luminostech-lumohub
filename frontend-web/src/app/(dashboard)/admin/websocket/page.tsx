@@ -1,9 +1,8 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
 import { useDeviceStore } from "@/store/deviceStore";
-import { getWebSocketBaseUrl } from "@/lib/publicApi";
-import { useAuthStore } from "@/store/authStore";
-import { Wifi, WifiOff, ArrowUpRight, ArrowDownLeft, Send, Trash2 } from "lucide-react";
+import { adminApi } from "@/features/admin/api";
+import { Wifi, WifiOff, ArrowDownLeft, Trash2, Send } from "lucide-react";
 import { toast } from "sonner";
 
 interface WsMessage {
@@ -14,13 +13,10 @@ interface WsMessage {
 
 export default function AdminWsPage() {
   const { devices, fetchDevices } = useDeviceStore();
-  const { user } = useAuthStore();
   const [selectedDevice, setSelectedDevice] = useState<string>("");
-  const [status, setStatus] = useState<"disconnected" | "connecting" | "connected">("disconnected");
   const [messages, setMessages] = useState<WsMessage[]>([]);
   const [manualMsg, setManualMsg] = useState("");
-  const wsRef = useRef<WebSocket | null>(null);
-  const pingRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const [sending, setSending] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -28,69 +24,24 @@ export default function AdminWsPage() {
   }, [fetchDevices]);
 
   useEffect(() => {
-    return () => {
-      wsRef.current?.close();
-      if (pingRef.current) clearInterval(pingRef.current);
-    };
-  }, []);
-
-  useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
-  const connect = () => {
-    if (!selectedDevice) {
-      toast.error("Chọn thiết bị trước");
-      return;
-    }
-    wsRef.current?.close();
-
-    const wsUrl = getWebSocketBaseUrl();
-    const ws = new WebSocket(`${wsUrl}/ws/lumo?device_id=${selectedDevice}`);
-    wsRef.current = ws;
-    setStatus("connecting");
-    addMsg("out", `CONNECT → /ws/lumo?device_id=${selectedDevice}`);
-
-    ws.onopen = () => {
-      setStatus("connected");
-      addMsg("in", "✓ Connected");
-      pingRef.current = setInterval(() => {
-        if (ws.readyState === WebSocket.OPEN) {
-          ws.send("ping");
-          addMsg("out", "ping");
-        }
-      }, 30000);
-    };
-
-    ws.onmessage = (e) => {
-      addMsg("in", e.data);
-    };
-
-    ws.onerror = () => {
-      setStatus("disconnected");
-      addMsg("in", "✗ Error");
-    };
-
-    ws.onclose = () => {
-      setStatus("disconnected");
-      addMsg("in", "✗ Disconnected");
-      if (pingRef.current) clearInterval(pingRef.current);
-    };
-  };
-
-  const disconnect = () => {
-    wsRef.current?.close();
-    wsRef.current = null;
-    setStatus("disconnected");
-    if (pingRef.current) clearInterval(pingRef.current);
-  };
-
-  const sendText = () => {
+  const sendText = async () => {
     const text = manualMsg.trim();
-    if (!text || !wsRef.current || wsRef.current.readyState !== WebSocket.OPEN) return;
-    wsRef.current.send(text);
-    addMsg("out", text);
-    setManualMsg("");
+    if (!text || !selectedDevice) return;
+    setSending(true);
+    try {
+      await adminApi.sendTextToDevice(selectedDevice, text);
+      addMsg("out", text);
+      setManualMsg("");
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err);
+      toast.error(msg || "Gửi thất bại — thiết bị có thể chưa kết nối");
+      addMsg("out", `✗ ${msg}`);
+    } finally {
+      setSending(false);
+    }
   };
 
   const addMsg = (dir: "in" | "out", data: string) => {
@@ -98,35 +49,28 @@ export default function AdminWsPage() {
     setMessages((prev) => [...prev.slice(-199), { time, dir, data }]);
   };
 
-  const statusColor = status === "connected" ? "text-green-600" : status === "connecting" ? "text-yellow-500" : "text-gray-400";
-  const statusLabel = status === "connected" ? "Đã kết nối" : status === "connecting" ? "Đang kết nối..." : "Chưa kết nối";
-  const StatusIcon = status === "connected" ? Wifi : WifiOff;
-
-  const canNotify = user?.role === "admin";
-
   return (
     <div className="p-6 max-w-2xl mx-auto space-y-4">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-xl font-bold text-gray-900">WebSocket Debug</h1>
+          <h1 className="text-xl font-bold text-gray-900">ESP32 Debug</h1>
           <p className="text-sm text-gray-500 mt-1">
-            Kết nối trực tiếp đến thiết bị qua WS để xem log & gửi test.
+            Gửi text đến ESP32 đang kết nối — server sẽ forward qua WebSocket.
           </p>
         </div>
-        <div className={`flex items-center gap-2 text-sm font-medium ${statusColor}`}>
-          <StatusIcon size={16} />
-          {statusLabel}
+        <div className="flex items-center gap-2 text-sm text-gray-400">
+          <Wifi size={14} />
+          <span>REST → WS → ESP32</span>
         </div>
       </div>
 
-      {/* Device selector + connect */}
+      {/* Device selector */}
       <div className="card p-4 space-y-3">
         <div className="flex gap-2">
           <select
             value={selectedDevice}
             onChange={(e) => setSelectedDevice(e.target.value)}
             className="input-field flex-1"
-            disabled={status === "connected"}
           >
             <option value="">— Chọn thiết bị —</option>
             {devices.map((d) => (
@@ -135,16 +79,10 @@ export default function AdminWsPage() {
               </option>
             ))}
           </select>
-          {status === "connected" ? (
-            <button onClick={disconnect} className="btn-danger">
-              Ngắt
-            </button>
-          ) : (
-            <button onClick={connect} disabled={!selectedDevice} className="btn-primary">
-              Kết nối
-            </button>
-          )}
         </div>
+        <p className="text-xs text-gray-400">
+          ESP32 phải đang kết nối <code>/ws/lumo?device_id=&lt;id&gt;</code> thì mới nhận được.
+        </p>
       </div>
 
       {/* Message log */}
@@ -171,7 +109,7 @@ export default function AdminWsPage() {
             messages.map((m, i) => (
               <div key={i} className={`flex gap-2 ${m.dir === "in" ? "text-green-400" : "text-blue-400"}`}>
                 <span className="text-gray-500 shrink-0">{m.time}</span>
-                <span className="shrink-0">{m.dir === "in" ? <ArrowDownLeft size={11} /> : <ArrowUpRight size={11} />}</span>
+                <span className="shrink-0">{m.dir === "in" ? <ArrowDownLeft size={11} /> : <Send size={11} />}</span>
                 <span className="break-all">{m.data}</span>
               </div>
             ))
@@ -182,30 +120,27 @@ export default function AdminWsPage() {
 
       {/* Send message */}
       <div className="card p-4">
-        <p className="text-sm font-medium text-gray-700 mb-2">Gửi text (device nhận được JSON)</p>
+        <p className="text-sm font-medium text-gray-700 mb-2">
+          Gửi text đến ESP32 (server forward qua WebSocket)
+        </p>
         <div className="flex gap-2">
           <input
             value={manualMsg}
             onChange={(e) => setManualMsg(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && sendText()}
             className="input-field flex-1 font-mono text-sm"
-            placeholder={'{"title":"...","body":"..."}'}
-            disabled={status !== "connected"}
+            placeholder="Nhập text để gửi đến ESP32..."
+            disabled={!selectedDevice || sending}
           />
           <button
             onClick={sendText}
-            disabled={status !== "connected" || !manualMsg.trim()}
+            disabled={!selectedDevice || !manualMsg.trim() || sending}
             className="btn-primary flex items-center gap-1"
           >
             <Send size={14} />
             Gửi
           </button>
         </div>
-        {canNotify && (
-          <p className="text-xs text-gray-400 mt-2">
-            Hoặc dùng nút 🔔 trong trang Thiết bị để gửi notification đúng format.
-          </p>
-        )}
       </div>
     </div>
   );
