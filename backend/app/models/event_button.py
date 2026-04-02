@@ -1,5 +1,5 @@
 from sqlalchemy import BigInteger, TIMESTAMP, ForeignKey, Index
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.sql import func
 from app.db.session import Base
 
@@ -21,3 +21,5 @@ class EventButton(Base):
     created_at: Mapped[object] = mapped_column(
         TIMESTAMP(timezone=True), nullable=False, server_default=func.now()
     )
+
+    device: Mapped["Device"] = relationship("Device", back_populates="event_buttons")

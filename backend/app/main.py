@@ -5,6 +5,7 @@ from contextlib import asynccontextmanager
 from app.core.config import settings
 from app.routes import api_router
 from app.websocket.routes import router as ws_router
+from app.websocket import api_router as ws_api_router
 from app.tasks.scheduler import start_scheduler, stop_scheduler
 from app.db.init_db import init_db
 
@@ -34,6 +35,7 @@ app.add_middleware(
 
 app.include_router(api_router)
 app.include_router(ws_router)
+app.include_router(ws_api_router)
 
 
 @app.get("/health", tags=["Health"])

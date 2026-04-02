@@ -18,3 +18,5 @@ class Device(Base):
     updated_at: Mapped[object] = mapped_column(
         TIMESTAMP, nullable=False, server_default=func.now(), onupdate=func.now()
     )
+
+    event_buttons: Mapped[list["EventButton"]] = relationship("EventButton", back_populates="device")
