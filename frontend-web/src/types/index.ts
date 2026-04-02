@@ -73,3 +73,18 @@ export interface Device {
   created_at: string;
   updated_at: string;
 }
+
+export interface EventButton {
+  id: number;
+  device_id: number;
+  device_code: string;
+  user_id: number;
+  time_button_click: string;
+  created_at: string;
+}
+
+export interface TodayButtonStatus {
+  clicked_today: boolean;
+  last_click_at: string | null;
+  total_today: number;
+}

@@ -2,19 +2,22 @@
 import { useEffect } from "react";
 import { useEventStore } from "@/store/eventStore";
 import { useAuthStore } from "@/store/authStore";
-import { format, startOfDay, endOfDay, addDays } from "date-fns";
+import { useEventButtonStore } from "@/store/eventButtonStore";
+import { format, startOfDay, endOfDay, addDays, parseISO } from "date-fns";
 import { vi } from "date-fns/locale";
-import { Calendar, Bell, CheckCircle, Clock } from "lucide-react";
+import { Calendar, Bell, CheckCircle, Clock, Activity, CheckCircle2, XCircle } from "lucide-react";
 import Link from "next/link";
 
 export default function DashboardPage() {
   const { user } = useAuthStore();
   const { events, fetchEvents } = useEventStore();
+  const { todayStatus, fetchTodayStatus } = useEventButtonStore();
 
   useEffect(() => {
     const now = new Date();
     fetchEvents(startOfDay(now), endOfDay(addDays(now, 7)));
-  }, [fetchEvents]);
+    fetchTodayStatus();
+  }, [fetchEvents, fetchTodayStatus]);
 
   const today = events.filter((e) => {
     const s = new Date(e.start_time);
@@ -41,11 +44,18 @@ export default function DashboardPage() {
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {[
           { label: "Hôm nay", value: today.length, icon: Calendar, color: "text-primary-600 bg-primary-50" },
           { label: "Sắp tới (7 ngày)", value: upcoming.length, icon: Clock, color: "text-lumo bg-indigo-50" },
           { label: "Tổng sự kiện", value: events.length, icon: CheckCircle, color: "text-green-600 bg-green-50" },
+          {
+            label: "Nút bấm hôm nay",
+            value: todayStatus?.total_today ?? "–",
+            icon: todayStatus?.clicked_today ? CheckCircle2 : XCircle,
+            color: todayStatus?.clicked_today ? "text-emerald-600 bg-emerald-50" : "text-gray-400 bg-gray-100",
+            sub: todayStatus?.clicked_today ? "Đã bấm hôm nay" : "Chưa bấm hôm nay",
+          },
         ].map((stat) => (
           <div key={stat.label} className="card p-5 flex items-center gap-4">
             <div className={`p-3 rounded-xl ${stat.color}`}>
@@ -54,6 +64,9 @@ export default function DashboardPage() {
             <div>
               <p className="text-2xl font-bold text-gray-900">{stat.value}</p>
               <p className="text-sm text-gray-500">{stat.label}</p>
+              {"sub" in stat && stat.sub && (
+                <p className="text-xs text-gray-400 mt-0.5">{stat.sub}</p>
+              )}
             </div>
           </div>
         ))}

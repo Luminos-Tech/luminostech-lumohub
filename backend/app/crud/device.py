@@ -1,15 +1,28 @@
 from sqlalchemy.orm import Session
 from sqlalchemy import select
+from typing import Optional
 from app.models.device import Device
+
+
+def normalize_device_code(code: str) -> str:
+    s = code.strip()
+    if s.isdigit() and len(s) <= 4:
+        return s.zfill(4)
+    return s
 
 
 def get_device_by_id(db: Session, device_id: int) -> Device | None:
     return db.get(Device, device_id)
 
 
-def get_device_by_code(db: Session, user_id: int, device_id: str) -> Device | None:
+def get_device_by_code(db: Session, user_id: Optional[int], device_code: str) -> Device | None:
+    code = normalize_device_code(device_code)
+    if user_id is not None:
+        return db.execute(
+            select(Device).where(Device.user_id == user_id, Device.device_id == code)
+        ).scalar_one_or_none()
     return db.execute(
-        select(Device).where(Device.user_id == user_id, Device.device_id == device_id)
+        select(Device).where(Device.device_id == code).limit(1)
     ).scalar_one_or_none()
 
 

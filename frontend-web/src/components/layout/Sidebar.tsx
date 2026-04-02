@@ -4,17 +4,18 @@ import { usePathname } from "next/navigation";
 import { useAuthStore } from "@/store/authStore";
 import {
   LayoutDashboard, Calendar, ListChecks, Bell,
-  Settings, Users, ScrollText, LogOut, Zap, Smartphone,
+  Settings, Users, ScrollText, LogOut, Zap, Smartphone, Activity,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const navItems = [
-  { href: "/dashboard",      label: "Tổng quan",    icon: LayoutDashboard },
-  { href: "/calendar",       label: "Lịch",         icon: Calendar },
-  { href: "/events",         label: "Sự kiện",      icon: ListChecks },
-  { href: "/notifications",  label: "Thông báo",    icon: Bell },
-  { href: "/settings",       label: "Cài đặt",      icon: Settings },
-  { href: "/settings/devices", label: "Thiết bị", icon: Smartphone },
+  { href: "/dashboard",            label: "Tổng quan",      icon: LayoutDashboard },
+  { href: "/calendar",             label: "Lịch",            icon: Calendar },
+  { href: "/events",               label: "Sự kiện",         icon: ListChecks },
+  { href: "/notifications",        label: "Thông báo",       icon: Bell },
+  { href: "/settings",             label: "Cài đặt",         icon: Settings },
+  { href: "/settings/devices",     label: "Thiết bị",        icon: Smartphone },
+  { href: "/settings/event-buttons", label: "Nhật ký nút",   icon: Activity },
 ];
 
 const adminItems = [
