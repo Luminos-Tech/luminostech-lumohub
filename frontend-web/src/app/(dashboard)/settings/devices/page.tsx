@@ -1,8 +1,9 @@
 "use client";
 import { useEffect, useState } from "react";
 import { useDeviceStore } from "@/store/deviceStore";
+import { adminApi } from "@/features/admin/api";
 import type { Device } from "@/types";
-import { Trash2, Smartphone, Plus, X } from "lucide-react";
+import { Trash2, Smartphone, Plus, X, Bell } from "lucide-react";
 import { toast } from "sonner";
 
 export default function DevicesPage() {
@@ -11,6 +12,10 @@ export default function DevicesPage() {
   const [code, setCode] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [deletingId, setDeletingId] = useState<number | null>(null);
+  const [notifyTarget, setNotifyTarget] = useState<Device | null>(null);
+  const [notifyTitle, setNotifyTitle] = useState("");
+  const [notifyBody, setNotifyBody] = useState("");
+  const [sending, setSending] = useState(false);
 
   useEffect(() => {
     fetchDevices();
@@ -81,6 +86,17 @@ export default function DevicesPage() {
                 {device.device_id}
               </span>
               <button
+                onClick={() => {
+                  setNotifyTarget(device);
+                  setNotifyTitle("");
+                  setNotifyBody("");
+                }}
+                className="p-2 text-indigo-500 hover:bg-indigo-50 rounded-md transition-colors"
+                title="Gửi thông báo"
+              >
+                <Bell size={16} />
+              </button>
+              <button
                 onClick={() => handleDelete(device.id)}
                 disabled={deletingId === device.id}
                 className="p-2 text-red-400 hover:bg-red-50 rounded-md transition-colors disabled:opacity-50"
@@ -113,6 +129,67 @@ export default function DevicesPage() {
               />
               <button type="submit" disabled={submitting} className="btn-primary w-full">
                 {submitting ? "Đang thêm..." : "Thêm"}
+              </button>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {notifyTarget && (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
+          <div className="bg-white rounded-xl shadow-xl w-full max-w-sm p-6">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-lg font-semibold text-gray-900">
+                Gửi thông báo — {notifyTarget.device_id}
+              </h2>
+              <button onClick={() => setNotifyTarget(null)} className="text-gray-400 hover:text-gray-600">
+                <X size={20} />
+              </button>
+            </div>
+            <form
+              onSubmit={async (e) => {
+                e.preventDefault();
+                if (!notifyTitle.trim() || !notifyBody.trim()) {
+                  toast.error("Nhập đủ tiêu đề và nội dung");
+                  return;
+                }
+                setSending(true);
+                try {
+                  await adminApi.notifyDevice(notifyTarget.device_id, notifyTitle.trim(), notifyBody.trim());
+                  toast.success("Đã gửi thông báo");
+                  setNotifyTarget(null);
+                } catch {
+                  toast.error("Gửi thất bại");
+                } finally {
+                  setSending(false);
+                }
+              }}
+              className="space-y-3"
+            >
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Tiêu đề</label>
+                <input
+                  value={notifyTitle}
+                  onChange={(e) => setNotifyTitle(e.target.value)}
+                  className="input-field"
+                  placeholder="Nhắc nhở lịch học"
+                  autoFocus
+                  required
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Nội dung</label>
+                <textarea
+                  value={notifyBody}
+                  onChange={(e) => setNotifyBody(e.target.value)}
+                  className="input-field resize-none"
+                  rows={3}
+                  placeholder="Bạn có lịch học vào 14:00"
+                  required
+                />
+              </div>
+              <button type="submit" disabled={sending} className="btn-primary w-full">
+                {sending ? "Đang gửi..." : "Gửi ngay"}
               </button>
             </form>
           </div>

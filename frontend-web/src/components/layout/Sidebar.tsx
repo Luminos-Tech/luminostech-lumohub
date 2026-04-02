@@ -4,7 +4,7 @@ import { usePathname } from "next/navigation";
 import { useAuthStore } from "@/store/authStore";
 import {
   LayoutDashboard, Calendar, ListChecks, Bell,
-  Settings, Users, ScrollText, LogOut, Zap, Smartphone, Activity,
+  Settings, Users, ScrollText, LogOut, Zap, Smartphone, Activity, Wifi,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -19,8 +19,9 @@ const navItems = [
 ];
 
 const adminItems = [
-  { href: "/admin/users",  label: "Người dùng", icon: Users },
-  { href: "/admin/logs",   label: "Logs",        icon: ScrollText },
+  { href: "/admin/users",      label: "Người dùng", icon: Users },
+  { href: "/admin/logs",       label: "Logs",        icon: ScrollText },
+  { href: "/admin/websocket", label: "WebSocket",   icon: Wifi },
 ];
 
 export default function Sidebar() {

@@ -5,39 +5,39 @@ import json
 
 class LumoConnectionManager:
     def __init__(self):
-        # user_id -> WebSocket
-        self.active_connections: Dict[int, WebSocket] = {}
+        # device_id (str) -> WebSocket
+        self.active_connections: Dict[str, WebSocket] = {}
 
-    async def connect(self, user_id: int, websocket: WebSocket):
+    async def connect(self, device_id: str, websocket: WebSocket):
         await websocket.accept()
-        self.active_connections[user_id] = websocket
-        print(f"🔌 LUMO connected for user {user_id}")
+        self.active_connections[device_id] = websocket
+        print(f"🔌 LUMO connected: device_id={device_id}")
 
-    def disconnect(self, user_id: int):
-        if user_id in self.active_connections:
-            del self.active_connections[user_id]
-            print(f"❌ LUMO disconnected for user {user_id}")
+    def disconnect(self, device_id: str):
+        if device_id in self.active_connections:
+            del self.active_connections[device_id]
+            print(f"❌ LUMO disconnected: device_id={device_id}")
 
-    async def send_reminder(self, user_id: int, message: dict):
-        ws = self.active_connections.get(user_id)
+    async def send_reminder(self, device_id: str, message: dict):
+        ws = self.active_connections.get(device_id)
         if ws:
             try:
                 await ws.send_text(json.dumps(message))
                 return True
             except Exception as e:
-                print(f"⚠️ Failed to send to user {user_id}: {e}")
-                self.disconnect(user_id)
+                print(f"⚠️ Failed to send to device {device_id}: {e}")
+                self.disconnect(device_id)
         return False
 
     async def broadcast(self, message: dict):
         disconnected = []
-        for user_id, ws in self.active_connections.items():
+        for device_id, ws in self.active_connections.items():
             try:
                 await ws.send_text(json.dumps(message))
             except Exception:
-                disconnected.append(user_id)
-        for uid in disconnected:
-            self.disconnect(uid)
+                disconnected.append(device_id)
+        for did in disconnected:
+            self.disconnect(did)
 
 
 manager = LumoConnectionManager()

@@ -36,8 +36,8 @@
 //  HARDCODE — thay đổi ở đây khi cần
 // ─────────────────────────────────────────────────────────────
 #define DEVICE_CODE        "0001"
-#define WS_URI             "wss://lumohub.luminostech.tech/ws/stream/0001"
-#define EVENT_BUTTONS_URL  "https://lumohub.luminostech.tech/api/v1/event-buttons"
+#define WS_URI             "wss://api.luminostech.tech/ws/stream?device_id=0001"
+#define EVENT_BUTTONS_URL  "https://api.luminostech.tech/api/v1/event-buttons"
 
 static const char *TAG = "MAIN";
 
@@ -386,9 +386,9 @@ void app_main(void)
         // ── Mic monitoring (không làm gì với dữ liệu audio) ──
         size_t samples_read = 0;
         esp_err_t mic_err = mic_read_frame(pcm, frame_samples, &samples_read);
-        if (mic_err != ESP_OK)
+        if (mic_err != ESP_OK || samples_read == 0)
         {
-            vTaskDelay(pdMS_TO_TICKS(200));
+            vTaskDelay(pdMS_TO_TICKS(10));
             continue;
         }
 

@@ -8,14 +8,14 @@ from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime
 from pathlib import Path
 
-from fastapi import APIRouter, WebSocket, WebSocketDisconnect
+from fastapi import APIRouter, WebSocket, WebSocketDisconnect, Query
 from google import genai
 import google.genai.types as gtypes
 import requests
 from groq import Groq
 
 from app.core.config import settings
-from app.crud.device import get_device_by_code, normalize_device_code
+from app.crud.device import get_device_by_code
 
 router = APIRouter(prefix="/ws", tags=["WebSocket"])
 
@@ -181,7 +181,7 @@ async def _run_llm(text: str) -> str:
 
 # ─── STREAMING TTS (Gemini → binary chunks → WebSocket) ───────────────────
 
-async def _stream_tts(text: str, websocket: WebSocket, device_code: str):
+async def _stream_tts(text: str, websocket: WebSocket, device_id: str):
     loop = asyncio.get_running_loop()
 
     def _stream():
@@ -228,7 +228,7 @@ async def _stream_tts(text: str, websocket: WebSocket, device_code: str):
                 # Gửi binary chunk ngay cho ESP32
                 await websocket.send_bytes(pcm_chunk)
 
-        lumo_logger.info(f"LUMO TTS stream: {device_code} | text_len={len(text)} | chunks={chunk_count} | total_bytes={len(all_pcm)}")
+        lumo_logger.info(f"LUMO TTS stream: {device_id} | text_len={len(text)} | chunks={chunk_count} | total_bytes={len(all_pcm)}")
 
         if chunk_count == 0:
             await websocket.send_text(json.dumps({"type": "error", "message": "No audio generated"}))
@@ -242,23 +242,22 @@ async def _stream_tts(text: str, websocket: WebSocket, device_code: str):
 
 # ─── WEB SOCKET ROUTE ──────────────────────────────────────────────────────
 
-@router.websocket("/stream/{device_code}")
-async def ws_tts_stream(websocket: WebSocket, device_code: str):
+@router.websocket("/stream")
+async def ws_tts_stream(websocket: WebSocket, device_id: str = Query(...)):
     """
     WebSocket endpoint cho LUMO TTS streaming.
-    
-    ESP32 kết nối và gửi JSON:
-      { "action": "tts", "text": "xin chào" }
-      HOẶC
+
+    ESP32 ket noi va gui JSON:
+      { "action": "tts", "text": "xin chao" }
+      HOAC
       { "action": "stt_tts", "audio_b64": "<base64 wav>" }
-    
-    Server phản hồi:
-      - Binary frames: raw PCM (24kHz mono 16-bit) ← phát ngay
+
+    Server phan hoi:
+      - Binary frames: raw PCM (24kHz mono 16-bit) ← phat ngay
       - JSON: { "type": "done" } | { "type": "error", "message": "..." }
     """
     await websocket.accept()
-    device_code = normalize_device_code(device_code)
-    print(f"[WS] Device '{device_code}' connected")
+    print(f"[WS] Device '{device_id}' connected")
 
     try:
         while True:
@@ -284,15 +283,15 @@ async def ws_tts_stream(websocket: WebSocket, device_code: str):
                 answer = await _run_llm(text_input)
                 lumo_logger.info(f"Lumo: {answer}")
 
-                await _stream_tts(answer, websocket, device_code)
+                await _stream_tts(answer, websocket, device_id)
                 await websocket.send_text(json.dumps({"type": "done"}))
 
             elif action == "stt_tts":
                 # Nhận base64 WAV → STT → LLM → TTS stream
                 import base64
                 audio_b64 = msg.get("audio_b64", "")
-                tmp_in = f"/tmp/ws_stt_{device_code}.wav"
-                tmp_out = f"/tmp/ws_tts_{device_code}.wav"
+                tmp_in = f"/tmp/ws_stt_{device_id}.wav"
+                tmp_out = f"/tmp/ws_tts_{device_id}.wav"
 
                 try:
                     audio_bytes = base64.b64decode(audio_b64)
@@ -309,7 +308,7 @@ async def ws_tts_stream(websocket: WebSocket, device_code: str):
                     lumo_logger.info(f"Lumo: {answer}")
 
                     # Stream TTS về ESP32
-                    await _stream_tts(answer, websocket, device_code)
+                    await _stream_tts(answer, websocket, device_id)
                     await websocket.send_text(json.dumps({"type": "done", "stt": stt_text}))
 
                 except Exception as e:
@@ -325,9 +324,9 @@ async def ws_tts_stream(websocket: WebSocket, device_code: str):
                 await websocket.send_text(json.dumps({"type": "error", "message": f"Unknown action: {action}"}))
 
     except WebSocketDisconnect:
-        print(f"[WS] Device '{device_code}' disconnected")
+        print(f"[WS] Device '{device_id}' disconnected")
     except Exception as e:
-        print(f"[WS] Error with '{device_code}': {e}")
+        print(f"[WS] Error with '{device_id}': {e}")
         try:
             await websocket.close()
         except Exception:

@@ -209,11 +209,16 @@ esp_err_t mic_read_frame(int16_t *buffer, size_t samples_capacity, size_t *sampl
         raw_buffer,
         raw_bytes_needed,
         &bytes_read,
-        portMAX_DELAY);
+        pdMS_TO_TICKS(5));  // non-blocking: chỉ đọc data hiện có, không block
 
-    if (err != ESP_OK)
+    if (err != ESP_OK || bytes_read == 0)
     {
         free(raw_buffer);
+        if (bytes_read == 0)
+        {
+            *samples_read = 0;
+            return ESP_OK;  // No data yet, non-blocking read — not an error
+        }
         ESP_LOGE(TAG, "i2s_channel_read failed: %s", esp_err_to_name(err));
         return err;
     }

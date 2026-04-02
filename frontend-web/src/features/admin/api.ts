@@ -12,4 +12,6 @@ export const adminApi = {
   setRole: (id: number, role: string) => api.patch<User>(`/admin/users/${id}/role`, { role }),
   logs: () => api.get<SystemLog[]>("/admin/logs"),
   events: () => api.get<Event[]>("/admin/events"),
+  notifyDevice: (device_id: string, title: string, body: string) =>
+    api.post("/admin/device/notify", { device_id, title, body }),
 };

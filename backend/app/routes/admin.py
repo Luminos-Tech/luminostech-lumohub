@@ -1,4 +1,5 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException
+from pydantic import BaseModel
 from sqlalchemy.orm import Session
 from typing import List
 from app.db.session import get_db
@@ -8,6 +9,7 @@ from app.schemas.event import EventResponse
 from app.crud.user import get_all_users, get_user_by_id, set_user_active, set_user_role, create_user, change_password, get_user_by_email
 from app.crud.log import get_system_logs, log_admin_action
 from app.crud.event import get_all_events
+from app.websocket.manager import manager
 from app.services.deps import get_current_admin
 from app.models.user import User
 
@@ -99,3 +101,19 @@ def view_all_events(skip: int = 0, limit: int = 100,
                      db: Session = Depends(get_db),
                      admin: User = Depends(get_current_admin)):
     return get_all_events(db, skip=skip, limit=limit)
+
+
+class DeviceNotificationRequest(BaseModel):
+    device_id: str
+    title: str
+    body: str
+
+
+@router.post("/device/notify")
+def notify_device(body: DeviceNotificationRequest,
+                  background_tasks: BackgroundTasks,
+                  admin: User = Depends(get_current_admin)):
+    message = {"title": body.title, "body": body.body}
+    background_tasks.add_task(manager.send_reminder, body.device_id, message)
+    return {"sent": True, "device_id": body.device_id}
+

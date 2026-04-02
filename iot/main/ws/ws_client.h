@@ -36,7 +36,7 @@ extern "C"
     /**
      * @brief Khởi tạo WS client. Gọi 1 lần lúc start-up.
      *
-     * @param uri            Full WS URI (wss://lumohub.luminostech.tech/ws/stream/0001)
+     * @param uri            Full WS URI (wss://api.luminostech.tech/ws/lumo?device_id=0001)
      * @param done_callback  Callback khi nhận done/error (có thể NULL)
      */
     esp_err_t ws_client_init(const char *uri, ws_done_cb_t done_callback);

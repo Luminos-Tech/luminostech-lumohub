@@ -1,57 +1,81 @@
 "use client";
-import { useEffect, useRef, useCallback } from "react";
-import { useNotificationStore } from "@/store/notificationStore";
+import { useEffect, useRef, useState, useCallback } from "react";
 import { getWebSocketBaseUrl } from "@/lib/publicApi";
+import { useDeviceStore } from "@/store/deviceStore";
 
-export function useLumoWebSocket(userId: number | undefined) {
+interface WsMessage {
+  time: string;
+  dir: "in" | "out";
+  data: string;
+}
+
+export function useLumoWebSocket() {
   const wsRef = useRef<WebSocket | null>(null);
-  const { fetchNotifications } = useNotificationStore();
+  const reconnectTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [status, setStatus] = useState<"disconnected" | "connecting" | "connected">("disconnected");
+  const [messages, setMessages] = useState<WsMessage[]>([]);
 
-  const connect = useCallback(() => {
-    if (!userId) return;
-    const token = localStorage.getItem("access_token");
-    if (!token) return;
-
+  const connect = useCallback((deviceId: string) => {
+    if (wsRef.current) {
+      wsRef.current.close();
+    }
+    setStatus("connecting");
     const wsUrl = getWebSocketBaseUrl();
-    const ws = new WebSocket(`${wsUrl}/ws/lumo/${userId}?token=${token}`);
+    const ws = new WebSocket(`${wsUrl}/ws/lumo?device_id=${deviceId}`);
     wsRef.current = ws;
 
     ws.onopen = () => {
-      console.log("🔌 LUMO WebSocket connected");
-      // Keepalive ping every 30s
+      setStatus("connected");
+      addMsg("out", "ping");
       const interval = setInterval(() => {
-        if (ws.readyState === WebSocket.OPEN) ws.send("ping");
+        if (ws.readyState === WebSocket.OPEN) {
+          ws.send("ping");
+          addMsg("out", "ping");
+        }
       }, 30000);
       ws.onclose = () => clearInterval(interval);
     };
 
     ws.onmessage = (e) => {
-      try {
-        const data = JSON.parse(e.data);
-        if (data.type === "reminder") {
-          // Re-fetch notifications so the bell updates
-          fetchNotifications();
-          // Optional: browser notification
-          if (Notification.permission === "granted") {
-            new Notification(`⏰ ${data.title}`, { body: data.message });
-          }
-        }
-      } catch {}
+      addMsg("in", e.data);
     };
 
-    ws.onerror = () => console.warn("LUMO WS error");
-    ws.onclose = () => {
-      console.log("❌ LUMO WS closed — reconnecting in 5s");
-      setTimeout(connect, 5000);
+    ws.onerror = () => {
+      setStatus("disconnected");
     };
-  }, [userId, fetchNotifications]);
+
+    ws.onclose = () => {
+      setStatus("disconnected");
+      if (!wsRef.current) return;
+      reconnectTimer.current = setTimeout(() => connect(deviceId), 5000);
+    };
+  }, []);
+
+  const disconnect = useCallback(() => {
+    if (reconnectTimer.current) clearTimeout(reconnectTimer.current);
+    wsRef.current?.close();
+    wsRef.current = null;
+    setStatus("disconnected");
+  }, []);
+
+  const sendMessage = useCallback((data: string) => {
+    if (wsRef.current?.readyState === WebSocket.OPEN) {
+      wsRef.current.send(data);
+      addMsg("out", data);
+    }
+  }, []);
+
+  const addMsg = (dir: "in" | "out", data: string) => {
+    const time = new Date().toLocaleTimeString();
+    setMessages((prev) => [...prev.slice(-99), { time, dir, data }]);
+  };
 
   useEffect(() => {
-    connect();
-    // Request browser notification permission
-    if (typeof Notification !== "undefined" && Notification.permission === "default") {
-      Notification.requestPermission();
-    }
-    return () => wsRef.current?.close();
-  }, [connect]);
+    return () => {
+      if (reconnectTimer.current) clearTimeout(reconnectTimer.current);
+      wsRef.current?.close();
+    };
+  }, []);
+
+  return { status, messages, connect, disconnect, sendMessage };
 }

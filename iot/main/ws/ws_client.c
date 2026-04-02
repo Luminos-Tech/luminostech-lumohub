@@ -213,32 +213,12 @@ static void ws_task(void *arg)
 
     while (atomic_load(&s_running))
     {
-        // ── Gửi message từ send_queue ───────────────────────
-        if (s_send_queue && atomic_load(&s_connected))
-        {
-            char *msg = NULL;
-            BaseType_t ok = xQueueReceive(s_send_queue, &msg, pdMS_TO_TICKS(10));
-            if (ok == pdTRUE && msg)
-            {
-                int len = strlen(msg);
-                int sent = esp_websocket_client_send_text(
-                    s_client, msg, len, pdMS_TO_TICKS(5000));
-                if (sent < 0)
-                    ESP_LOGE(TAG, "WS send failed: %d", sent);
-                else
-                    ESP_LOGI(TAG, "WS sent %d bytes", sent);
-                free(msg);
-            }
-        }
-
-        // ── Đọc audio chunk → gửi vào I2S DMA ──────────────
+        // ── Ưu tiên: đọc audio từ server → gửi vào I2S (không blocking) ──
         if (s_audio_queue)
         {
-            BaseType_t ok = xQueueReceive(s_audio_queue, &audio_chunk, pdMS_TO_TICKS(10));
+            BaseType_t ok = xQueueReceive(s_audio_queue, &audio_chunk, pdMS_TO_TICKS(5));
             if (ok == pdTRUE && audio_chunk)
             {
-                // Nhận raw PCM 24kHz mono 16-bit
-                // audio_stream_play() tự convert sang stereo
                 esp_err_t err = audio_stream_play(audio_chunk, 1024);
                 if (err != ESP_OK)
                     ESP_LOGW(TAG, "audio_stream_play: %s", esp_err_to_name(err));
@@ -247,11 +227,11 @@ static void ws_task(void *arg)
             }
         }
 
-        // ── Đọc JSON message → gọi callback ─────────────────
+        // ── Xử lý JSON response từ server (done/error) ─────────────────
         if (s_json_queue)
         {
             char *json_msg = NULL;
-            BaseType_t ok = xQueueReceive(s_json_queue, &json_msg, pdMS_TO_TICKS(10));
+            BaseType_t ok = xQueueReceive(s_json_queue, &json_msg, 0);
             if (ok == pdTRUE && json_msg)
             {
                 char type_buf[32] = {0};
@@ -262,6 +242,24 @@ static void ws_task(void *arg)
                 if (s_done_cb)
                     s_done_cb(type_buf, msg_buf[0] ? msg_buf : NULL);
                 free(json_msg);
+            }
+        }
+
+        // ── Gửi message từ send_queue (không block queue audio) ────────
+        if (s_send_queue && atomic_load(&s_connected))
+        {
+            char *msg = NULL;
+            BaseType_t ok = xQueueReceive(s_send_queue, &msg, 0);
+            if (ok == pdTRUE && msg)
+            {
+                int len = strlen(msg);
+                int sent = esp_websocket_client_send_text(
+                    s_client, msg, len, pdMS_TO_TICKS(5000));
+                if (sent < 0)
+                    ESP_LOGE(TAG, "WS send failed: %d", sent);
+                else
+                    ESP_LOGI(TAG, "WS sent %d bytes", sent);
+                free(msg);
             }
         }
     }

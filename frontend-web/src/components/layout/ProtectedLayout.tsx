@@ -2,7 +2,6 @@
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useAuthStore } from "@/store/authStore";
-import { useLumoWebSocket } from "@/hooks/useLumoWebSocket";
 import Sidebar from "./Sidebar";
 import Topbar from "./Topbar";
 import Footer from "./Footer";
@@ -11,9 +10,6 @@ import Spinner from "@/components/common/Spinner";
 export default function ProtectedLayout({ children }: { children: React.ReactNode }) {
   const { isAuthenticated, user, fetchMe } = useAuthStore();
   const router = useRouter();
-
-  // Connect LUMO WebSocket for authenticated user
-  useLumoWebSocket(user?.id);
 
   useEffect(() => {
     const token = localStorage.getItem("access_token");

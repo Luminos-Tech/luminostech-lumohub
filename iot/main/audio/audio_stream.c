@@ -15,7 +15,7 @@
 static const char *TAG = "AUDIO_STR";
 
 #define STREAM_QUEUE_SIZE 8
-#define STREAM_TASK_STACK 4096
+#define STREAM_TASK_STACK 16384
 
 static i2s_chan_handle_t s_tx_handle = NULL;
 static TaskHandle_t s_task = NULL;
@@ -53,7 +53,9 @@ static void stream_task(void *arg)
 {
     (void)arg;
 
-    uint8_t buf[2048];  // workspace cho stereo
+    // static: không tốn stack space
+    static uint8_t buf[2048];
+    static_assert(sizeof(buf) >= 1024, "buf too small for audio chunks");
 
     while (!atomic_load(&s_stop))
     {
@@ -84,7 +86,7 @@ static void stream_task(void *arg)
                                                    buf,
                                                    stereo_bytes,
                                                    &written,
-                                                   pdMS_TO_TICKS(500));
+                                                   0);  // non-blocking: chỉ gửi data sẵn có, không block
                 if (ret != ESP_OK)
                     ESP_LOGE(TAG, "i2s write mono failed: %s", esp_err_to_name(ret));
             }
@@ -96,7 +98,7 @@ static void stream_task(void *arg)
                                                    chunk + 4,
                                                    pcm_bytes,
                                                    &written,
-                                                   pdMS_TO_TICKS(500));
+                                                   0);  // non-blocking
                 if (ret != ESP_OK)
                     ESP_LOGE(TAG, "i2s write stereo failed: %s", esp_err_to_name(ret));
             }
