@@ -1,3 +1,0 @@
-dependencies:
-  espressif/cjson: ^1.7.19
-  espressif/esp_websocket_client: '*'

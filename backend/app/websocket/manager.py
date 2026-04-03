@@ -42,6 +42,18 @@ class LumoConnectionManager:
                 self.disconnect(device_id)
         return False
 
+    async def send_bytes(self, device_id: str, data: bytes) -> bool:
+        """Forward PCM (binary) tới thiết bị /ws/lumo."""
+        ws = self.active_connections.get(device_id)
+        if ws:
+            try:
+                await ws.send_bytes(data)
+                return True
+            except Exception as e:
+                print(f"⚠️ Failed to send bytes to device {device_id}: {e}")
+                self.disconnect(device_id)
+        return False
+
     async def broadcast(self, message: dict):
         disconnected = []
         for device_id, ws in self.active_connections.items():

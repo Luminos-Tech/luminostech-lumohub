@@ -16,6 +16,13 @@ from groq import Groq
 
 from app.core.config import settings
 from app.crud.device import get_device_by_code
+from app.websocket.manager import manager
+
+# WAV format for ESP32 audio_stream
+# Gemini TTS: 24kHz mono 16-bit LINEAR16
+WAV_SAMPLE_RATE = 24000
+WAV_CHANNELS = 1
+WAV_SAMP_WIDTH = 2
 
 router = APIRouter(prefix="/ws", tags=["WebSocket"])
 
@@ -217,18 +224,45 @@ async def _stream_tts(text: str, websocket: WebSocket, device_id: str):
             if audio_bytes:
                 yield bytes(audio_bytes)
 
-    try:
-        all_pcm = b""
-        chunk_count = 0
+    all_pcm = b""
+    chunk_count = 0
+    wav_data = b""
 
-        # _stream() là generator đồng bộ — không dùng async for (cần __aiter__)
+    try:
+        def _make_wav_bytes(pcm_data: bytes) -> bytes:
+            """Build a complete WAV file from raw PCM bytes."""
+            data_len = len(pcm_data)
+            byte_rate = WAV_SAMPLE_RATE * WAV_CHANNELS * WAV_SAMP_WIDTH
+            block_align = WAV_CHANNELS * WAV_SAMP_WIDTH
+            header = bytearray()
+            def w32(v: int): header.extend(v.to_bytes(4, "little"))
+            def w16(v: int): header.extend(v.to_bytes(2, "little"))
+            header.extend(b"RIFF")
+            w32(36 + data_len)
+            header.extend(b"WAVE")
+            header.extend(b"fmt ")
+            w32(16)          # PCM format
+            w16(1)           # mono
+            w16(WAV_CHANNELS)
+            w32(WAV_SAMPLE_RATE)
+            w32(byte_rate)
+            w16(block_align)
+            w16(WAV_SAMP_WIDTH * 8)
+            header.extend(b"data")
+            w32(data_len)
+            return bytes(header) + pcm_data
+
+        # Buffer all PCM first, then send as one complete WAV
         for pcm_chunk in _stream():
             if pcm_chunk:
                 all_pcm += pcm_chunk
                 chunk_count += 1
-                await websocket.send_bytes(pcm_chunk)
 
-        lumo_logger.info(f"LUMO TTS stream: {device_id} | text_len={len(text)} | chunks={chunk_count} | total_bytes={len(all_pcm)}")
+        if all_pcm:
+            wav_data = _make_wav_bytes(all_pcm)
+            await websocket.send_bytes(wav_data)
+            await manager.send_bytes(device_id, wav_data)
+        lumo_logger.info(f"LUMO TTS stream: {device_id} | text_len={len(text)} | chunks={chunk_count} | total_wav_bytes={len(wav_data)}")
 
         if chunk_count == 0:
             await websocket.send_text(json.dumps({"type": "error", "message": "No audio generated"}))
