@@ -1,4 +1,5 @@
 import axios from "axios";
+import { toast } from "sonner";
 
 /** Same-origin proxy via next.config.js rewrites → avoids calling localhost from the browser in production. */
 const BASE_URL = "/api/v1";
@@ -17,12 +18,15 @@ api.interceptors.request.use((config) => {
   return config;
 });
 
-// Auto-refresh on 401
+// Auto-refresh on 401 & Global Error Handling
 api.interceptors.response.use(
   (res) => res,
   async (error) => {
     const original = error.config;
-    if (error.response?.status === 401 && !original._retry) {
+    const status = error.response?.status;
+
+    // Handle 401 Unauthorized (Token expired)
+    if (status === 401 && !original._retry) {
       original._retry = true;
       const refresh_token = localStorage.getItem("refresh_token");
       if (refresh_token) {
@@ -42,6 +46,16 @@ api.interceptors.response.use(
         window.location.href = "/login";
       }
     }
+
+    // Global stability: Toast for 500 errors or Network errors
+    if (typeof window !== "undefined") {
+      if (!error.response) {
+        toast.error("Lỗi kết nối. Vui lòng kiểm tra internet.");
+      } else if (status >= 500) {
+        toast.error("Lỗi máy chủ. Vui lòng thử lại sau.");
+      }
+    }
+
     return Promise.reject(error);
   }
 );

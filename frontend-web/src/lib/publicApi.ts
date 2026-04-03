@@ -1,11 +1,13 @@
+import { env as appEnv } from "./env";
+
 /**
  * Resolve WebSocket origin when the page is served on a public host but
  * NEXT_PUBLIC_WS_URL still points at localhost (typical tunnel / Docker misconfig).
  */
 export function getWebSocketBaseUrl(): string {
-  const env = process.env.NEXT_PUBLIC_WS_URL?.replace(/\/$/, "");
+  const env = appEnv.NEXT_PUBLIC_WS_URL.replace(/\/$/, "");
   if (typeof window === "undefined") {
-    return env || "ws://localhost:8000";
+    return env;
   }
 
   const host = window.location.hostname;

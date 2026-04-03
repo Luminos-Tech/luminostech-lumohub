@@ -1,3 +1,10 @@
+"""
+Admin action model
+- Lưu lại các hành động của admin
+
+"""
+
+
 from sqlalchemy import BigInteger, String, Text, TIMESTAMP, ForeignKey
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.sql import func

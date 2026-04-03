@@ -10,7 +10,7 @@ const links = [
 export default function Footer() {
   return (
     <footer className="bg-white border-t border-gray-200 px-6 py-4">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row items-center justify-between gap-3">
         {/* Branding */}
         <div className="flex items-center gap-2">
           <div className="w-7 h-7 rounded-md bg-primary-600 flex items-center justify-center">
@@ -20,8 +20,8 @@ export default function Footer() {
           <span className="text-xs text-gray-400 ml-1">© 2026</span>
         </div>
 
-        {/* Links */}
-        <div className="flex items-center gap-5">
+        {/* Links — hidden on mobile to keep it clean */}
+        <div className="hidden sm:flex items-center gap-5">
           {links.map((link) => (
             <a
               key={link.label}

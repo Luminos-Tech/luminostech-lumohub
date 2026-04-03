@@ -1,15 +1,23 @@
+"""
+Config file for the backend
+
+    - Giữ các biến cấu hình hệ thống tại đây
+    - Đọc giá trị từ .env file
+    - Gom lại thành một Object settings
+"""
+
 from pydantic_settings import BaseSettings
 from typing import List
 
 
 class Settings(BaseSettings):
-    DATABASE_URL: str = "postgresql://lumohub:lumohub123@localhost:5432/lumohub_db"
-    SECRET_KEY: str = "lumohub-secret-key-change-in-production-must-be-32-chars"
-    ALGORITHM: str = "HS256"
+    DATABASE_URL: str = ""
+    SECRET_KEY: str = ""
+    ALGORITHM: str = ""
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
     REFRESH_TOKEN_EXPIRE_DAYS: int = 7
     CORS_ORIGINS: str = "https://lumohub.luminostech.tech, https://api.luminostech.tech"
-    APP_ENV: str = "development"
+    APP_ENV: str = ""
 
     GEMINI_API_KEY: str = ""
     PERPLEXITY_API_KEY: str = ""

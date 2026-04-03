@@ -100,7 +100,7 @@ def start_scheduler():
     scheduler.add_job(check_reminders, IntervalTrigger(minutes=1), id="check_reminders", replace_existing=True)
     scheduler.add_job(cleanup_expired_sessions, IntervalTrigger(hours=1), id="cleanup_sessions", replace_existing=True)
     scheduler.start()
-    print("⏱️  Scheduler started.")
+    print("Scheduler started.")
 
 
 def stop_scheduler():
