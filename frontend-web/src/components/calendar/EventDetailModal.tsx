@@ -11,6 +11,7 @@ interface Props {
   event: Event;
   onClose: () => void;
   onEdit: (event: Event) => void;
+  onDuplicate: (event: Event) => void;
 }
 
 const priorityLabel: Record<string, string> = { low: "Thấp", normal: "Bình thường", high: "Cao" };
@@ -26,28 +27,14 @@ const statusClass: Record<string, string> = {
   scheduled: "bg-yellow-100 text-yellow-700",
 };
 
-export default function EventDetailModal({ event, onClose, onEdit }: Props) {
-  const { deleteEvent, createEvent } = useEventStore();
+export default function EventDetailModal({ event, onClose, onEdit, onDuplicate }: Props) {
+  const { deleteEvent } = useEventStore();
 
   const handleDelete = async () => {
     if (confirm("Xóa sự kiện này?")) {
       await deleteEvent(event.id);
       onClose();
     }
-  };
-
-  const handleDuplicate = async () => {
-    await createEvent({
-      title: `${event.title} (bản sao)`,
-      description: event.description,
-      location: event.location,
-      start_time: event.start_time,
-      end_time: event.end_time,
-      priority: event.priority,
-      color: event.color,
-      reminders: [],
-    } as Parameters<typeof createEvent>[0]);
-    onClose();
   };
 
   const eventColor = event.color || "#3b82f6";
@@ -139,7 +126,7 @@ export default function EventDetailModal({ event, onClose, onEdit }: Props) {
             <Trash2 size={14} /> Xóa
           </button>
           <button
-            onClick={handleDuplicate}
+            onClick={() => { onClose(); onDuplicate(event); }}
             className="flex items-center gap-1.5 px-3 py-2 text-sm text-gray-600 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
           >
             <Copy size={14} /> Nhân bản

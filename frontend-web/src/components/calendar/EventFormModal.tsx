@@ -24,27 +24,31 @@ const schema = z.object({
 type FormData = z.infer<typeof schema>;
 
 interface Props {
-  event?: Event | null;
+  event?: Event | null;          // existing event to EDIT
+  prefillFrom?: Event | null;    // source event to DUPLICATE (creates new)
   defaultStart?: string;
   defaultEnd?: string;
   onClose: () => void;
 }
 
 
-export default function EventFormModal({ event, defaultStart, defaultEnd, onClose }: Props) {
+export default function EventFormModal({ event, prefillFrom, defaultStart, defaultEnd, onClose }: Props) {
   const { createEvent, updateEvent } = useEventStore();
-  const isEdit = !!event;
+  const isEdit = !!event; // prefillFrom = duplicate (still isCreate)
+
+  // Source for pre-filling: edit > duplicate > empty
+  const src = event ?? prefillFrom ?? null;
 
   const { register, control, handleSubmit, formState: { errors, isSubmitting } } = useForm<FormData>({
     resolver: zodResolver(schema),
     defaultValues: {
-      title: event?.title || "",
-      description: event?.description || "",
-      location: event?.location || "",
-      start_time: utcIsoToLocal(event?.start_time) || (defaultStart ? utcIsoToLocal(defaultStart) || defaultStart.slice(0, 16) : ""),
-      end_time: utcIsoToLocal(event?.end_time) || (defaultEnd ? utcIsoToLocal(defaultEnd) || defaultEnd.slice(0, 16) : ""),
-      priority: event?.priority || "normal",
-      color: event?.color || "#3b82f6",
+      title: prefillFrom ? `${prefillFrom.title} (bản sao)` : (event?.title || ""),
+      description: src?.description || "",
+      location: src?.location || "",
+      start_time: utcIsoToLocal(src?.start_time) || (defaultStart ? utcIsoToLocal(defaultStart) || defaultStart.slice(0, 16) : ""),
+      end_time: utcIsoToLocal(src?.end_time) || (defaultEnd ? utcIsoToLocal(defaultEnd) || defaultEnd.slice(0, 16) : ""),
+      priority: src?.priority || "normal",
+      color: src?.color || "#3b82f6",
       reminders: event?.reminders?.map((r) => ({ remind_before_minutes: r.remind_before_minutes, channel: r.channel as "web" | "mobile" | "lumo" })) || [],
     },
   });

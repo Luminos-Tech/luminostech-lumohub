@@ -11,7 +11,7 @@ import EventFormModal from "./EventFormModal";
 import EventDetailModal from "./EventDetailModal";
 import { format, startOfDay, endOfDay, addDays, isToday, isTomorrow, isFuture } from "date-fns";
 import { vi } from "date-fns/locale";
-import { Plus, Search, SlidersHorizontal, Calendar, Clock, ChevronRight, X } from "lucide-react";
+import { Plus, Search, SlidersHorizontal, Calendar, CalendarDays, Clock, ChevronRight, X } from "lucide-react";
 import { cn, parseUTC } from "@/lib/utils";
 
 const PRIORITY_OPTIONS = [
@@ -36,16 +36,44 @@ function UpcomingPanel({
   onEventClick: (ev: Event) => void;
 }) {
   const now = new Date();
+  const in2Days = endOfDay(addDays(now, 2));
+
   const todayEvents = events.filter((e) => {
     const s = parseUTC(e.start_time);
     return s >= startOfDay(now) && s <= endOfDay(now);
   });
-  const upcomingEvents = events
-    .filter((e) => parseUTC(e.start_time) > endOfDay(now))
-    .slice(0, 8);
+
+  // Tomorrow and day after tomorrow
+  const next2Events = events.filter((e) => {
+    const s = parseUTC(e.start_time);
+    return s > endOfDay(now) && s <= in2Days;
+  });
+
+  // Beyond 2 days
+  const laterEvents = events
+    .filter((e) => parseUTC(e.start_time) > in2Days)
+    .slice(0, 6);
+
+  const EventItem = ({ ev, defaultColor = "#3b82f6" }: { ev: Event; defaultColor?: string }) => (
+    <li
+      key={ev.id}
+      onClick={() => onEventClick(ev)}
+      className="flex items-start gap-2 p-2 rounded-lg hover:bg-gray-50 cursor-pointer group transition-colors"
+    >
+      <span className="w-2 h-2 rounded-full mt-1.5 shrink-0" style={{ backgroundColor: ev.color || defaultColor }} />
+      <div className="min-w-0 flex-1">
+        <p className="text-xs font-medium text-gray-800 truncate group-hover:text-primary-700 transition-colors">{ev.title}</p>
+        <p className="text-[10px] text-gray-400 mt-0.5">
+          {getTimeLabel(ev.start_time)} · {format(parseUTC(ev.start_time), "HH:mm")}
+        </p>
+      </div>
+      <ChevronRight size={12} className="text-gray-300 group-hover:text-primary-400 mt-1 shrink-0 transition-colors" />
+    </li>
+  );
 
   return (
-    <div className="flex flex-col h-full gap-5">
+    <div className="flex flex-col h-full gap-4 overflow-y-auto no-scrollbar">
+      {/* Hôm nay */}
       <div>
         <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2 flex items-center gap-1.5">
           <Calendar size={12} />
@@ -54,7 +82,7 @@ function UpcomingPanel({
         {todayEvents.length === 0 ? (
           <p className="text-xs text-gray-400 italic pl-1">Không có lịch hôm nay 🎉</p>
         ) : (
-          <ul className="space-y-1.5">
+          <ul className="space-y-1">
             {todayEvents.map((ev) => (
               <li
                 key={ev.id}
@@ -75,28 +103,30 @@ function UpcomingPanel({
         )}
       </div>
 
-      {upcomingEvents.length > 0 && (
+      {/* 2 ngày tới */}
+      <div>
+        <h3 className="text-xs font-semibold text-orange-400 uppercase tracking-wider mb-2 flex items-center gap-1.5">
+          <Clock size={12} />
+          2 ngày tới ({next2Events.length})
+        </h3>
+        {next2Events.length === 0 ? (
+          <p className="text-xs text-gray-400 italic pl-1">Không có lịch 2 ngày tới</p>
+        ) : (
+          <ul className="space-y-1">
+            {next2Events.map((ev) => <EventItem key={ev.id} ev={ev} defaultColor="#f97316" />)}
+          </ul>
+        )}
+      </div>
+
+      {/* Sắp tới */}
+      {laterEvents.length > 0 && (
         <div>
           <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2 flex items-center gap-1.5">
-            <Clock size={12} />
+            <CalendarDays size={12} />
             Sắp tới
           </h3>
-          <ul className="space-y-1.5">
-            {upcomingEvents.map((ev) => (
-              <li
-                key={ev.id}
-                onClick={() => onEventClick(ev)}
-                className="flex items-start gap-2 p-2 rounded-lg hover:bg-gray-50 cursor-pointer group transition-colors"
-              >
-                <span className="w-2 h-2 rounded-full mt-1.5 shrink-0" style={{ backgroundColor: ev.color || "#6366f1" }} />
-                <div className="min-w-0 flex-1">
-                  <p className="text-xs font-medium text-gray-700 truncate group-hover:text-primary-700 transition-colors">{ev.title}</p>
-                  <p className="text-[10px] text-gray-400 mt-0.5">
-                    {getTimeLabel(ev.start_time)} · {format(parseUTC(ev.start_time), "HH:mm")}
-                  </p>
-                </div>
-              </li>
-            ))}
+          <ul className="space-y-1">
+            {laterEvents.map((ev) => <EventItem key={ev.id} ev={ev} defaultColor="#6366f1" />)}
           </ul>
         </div>
       )}
@@ -104,12 +134,14 @@ function UpcomingPanel({
   );
 }
 
+
 export default function CalendarView() {
   const { events, fetchEvents } = useEventStore();
   const [showForm, setShowForm] = useState(false);
   const [defaultDate, setDefaultDate] = useState<{ start: string; end: string } | null>(null);
   const [viewing, setViewing] = useState<Event | null>(null);
   const [editing, setEditing] = useState<Event | null>(null);
+  const [duplicating, setDuplicating] = useState<Event | null>(null);
   const [search, setSearch] = useState("");
   const [priorityFilter, setPriorityFilter] = useState("all");
   const [showFilters, setShowFilters] = useState(false);
@@ -336,9 +368,15 @@ export default function CalendarView() {
       {showForm && (
         <EventFormModal
           event={editing}
+          prefillFrom={duplicating}
           defaultStart={defaultDate?.start}
           defaultEnd={defaultDate?.end}
-          onClose={() => { setShowForm(false); setEditing(null); setDefaultDate(null); }}
+          onClose={() => {
+            setShowForm(false);
+            setEditing(null);
+            setDuplicating(null);
+            setDefaultDate(null);
+          }}
         />
       )}
       {viewing && (
@@ -346,6 +384,7 @@ export default function CalendarView() {
           event={viewing}
           onClose={() => setViewing(null)}
           onEdit={(ev) => { setViewing(null); setEditing(ev); setShowForm(true); }}
+          onDuplicate={(ev) => { setDuplicating(ev); setShowForm(true); }}
         />
       )}
     </div>

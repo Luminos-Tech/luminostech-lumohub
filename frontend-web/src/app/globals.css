@@ -5,10 +5,14 @@
 @tailwind utilities;
 
 @layer base {
-  * { box-sizing: border-box; }
+  * {
+    box-sizing: border-box;
+  }
+
   body {
     @apply bg-gray-50 text-gray-900 font-sans antialiased;
   }
+
   :root {
     --sidebar-width: 240px;
   }
@@ -21,35 +25,40 @@
 
 /* Slide-in animation for mobile drawer */
 @keyframes slide-in-left {
-  from { transform: translateX(-100%); }
-  to   { transform: translateX(0); }
+  from {
+    transform: translateX(-100%);
+  }
+
+  to {
+    transform: translateX(0);
+  }
 }
+
 .animate-slide-in-left {
   animation: slide-in-left 0.22s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 @layer components {
   .btn-primary {
-    @apply inline-flex items-center gap-2 px-4 py-2 bg-primary-600 text-white
-           rounded-lg font-medium text-sm hover:bg-primary-700 transition-colors
-           disabled:opacity-50 disabled:cursor-not-allowed;
+    @apply inline-flex items-center gap-2 px-4 py-2 bg-primary-600 text-white rounded-lg font-medium text-sm hover:bg-primary-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed;
   }
+
   .btn-secondary {
-    @apply inline-flex items-center gap-2 px-4 py-2 bg-white text-gray-700 border
-           border-gray-300 rounded-lg font-medium text-sm hover:bg-gray-50 transition-colors;
+    @apply inline-flex items-center gap-2 px-4 py-2 bg-white text-gray-700 border border-gray-300 rounded-lg font-medium text-sm hover:bg-gray-50 transition-colors;
   }
+
   .btn-danger {
-    @apply inline-flex items-center gap-2 px-4 py-2 bg-red-600 text-white
-           rounded-lg font-medium text-sm hover:bg-red-700 transition-colors;
+    @apply inline-flex items-center gap-2 px-4 py-2 bg-red-600 text-white rounded-lg font-medium text-sm hover:bg-red-700 transition-colors;
   }
+
   .input-field {
-    @apply w-full px-3 py-2 border border-gray-300 rounded-lg text-sm
-           focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent
-           disabled:bg-gray-100 disabled:cursor-not-allowed;
+    @apply w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent disabled:bg-gray-100 disabled:cursor-not-allowed;
   }
+
   .card {
     @apply bg-white rounded-xl border border-gray-200 shadow-sm;
   }
+
   .badge {
     @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium;
   }
@@ -63,88 +72,118 @@
   padding: 0.75rem 1rem;
   border-bottom: 1px solid #f1f5f9;
 }
+
 .fc .fc-toolbar-title {
   @apply text-base font-bold text-gray-800;
   letter-spacing: -0.02em;
 }
+
 .fc .fc-button-primary {
-  @apply bg-primary-600 border-primary-600 hover:bg-primary-700 hover:border-primary-700
-         font-medium text-sm px-3 py-1.5 rounded-lg transition-all duration-150
-         shadow-sm active:scale-95;
+  @apply bg-primary-600 border-primary-600 hover:bg-primary-700 hover:border-primary-700 font-medium text-sm px-3 py-1.5 rounded-lg transition-all duration-150 shadow-sm active:scale-95;
 }
+
 .fc .fc-button-primary:not(:disabled).fc-button-active,
 .fc .fc-button-primary:not(:disabled):active {
   @apply bg-primary-700 border-primary-700;
 }
-.fc .fc-button-group > .fc-button {
+
+.fc .fc-button-group>.fc-button {
   @apply rounded-none first:rounded-l-lg last:rounded-r-lg;
 }
+
 .fc .fc-button-primary.fc-today-button {
   @apply bg-white border border-gray-300 text-gray-700 hover:bg-gray-50 hover:border-gray-400;
 }
+
 .fc .fc-day-today {
   @apply bg-primary-50/40;
 }
+
 .fc .fc-day-today .fc-daygrid-day-number {
   @apply bg-primary-600 text-white rounded-full w-7 h-7 flex items-center justify-center font-semibold;
 }
+
 .fc .fc-daygrid-day-number {
   @apply text-sm text-gray-500 font-medium mt-1 mr-1 transition-colors;
 }
+
 .fc .fc-daygrid-day:hover .fc-daygrid-day-number {
   @apply text-primary-600;
 }
+
 .fc .fc-col-header-cell-cushion {
   @apply text-[11px] font-bold text-gray-400 uppercase tracking-widest py-2;
 }
+
 .fc .fc-daygrid-event {
-  @apply rounded-md cursor-pointer text-xs font-medium px-1.5 py-0.5 shadow-sm
-         hover:shadow-md hover:brightness-105 transition-all duration-150;
+  @apply rounded-md cursor-pointer text-xs font-medium px-1.5 py-0.5 shadow-sm hover:shadow-md hover:brightness-105 transition-all duration-150;
 }
+
 .fc .fc-event {
   border: none !important;
   color: #fff !important;
 }
+
 .fc td.fc-day-disabled {
   @apply bg-gray-50;
 }
+
 .fc .fc-timegrid-slot-label-cushion {
   @apply text-xs text-gray-400 font-medium;
 }
+
 .fc .fc-timegrid-now-indicator-line {
   @apply border-red-400;
 }
+
 .fc .fc-timegrid-now-indicator-arrow {
   @apply border-t-red-400 border-l-red-400;
 }
+
 .fc .fc-list-event:hover td {
   @apply bg-primary-50;
 }
+
 .fc .fc-list-event-dot {
   @apply rounded-full;
 }
+
 .fc .fc-list-day-cushion {
   @apply bg-gray-50/80 font-bold text-xs text-gray-600 uppercase tracking-wider;
 }
+
 .fc .fc-list-event-title a {
   @apply text-gray-800 font-medium no-underline;
 }
+
 .fc .fc-list-event-time {
   @apply text-gray-400 text-xs;
 }
+
 .fc .fc-scrollgrid {
   @apply border-gray-100;
 }
+
 .fc .fc-scrollgrid td,
 .fc .fc-scrollgrid th {
   @apply border-gray-100;
 }
-.fc td, .fc th {
+
+.fc td,
+.fc th {
   @apply border-gray-100;
 }
+
 .fc .fc-more-link {
   @apply text-xs text-primary-600 font-medium hover:text-primary-800;
 }
+
 /* Hide scrollbar on nav area */
-.no-scrollbar::-webkit-scrollbar { display: none; }
-.no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}

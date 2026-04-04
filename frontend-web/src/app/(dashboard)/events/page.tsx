@@ -13,6 +13,7 @@ export default function EventsPage() {
   const [showForm, setShowForm] = useState(false);
   const [editing, setEditing] = useState<Event | null>(null);
   const [viewing, setViewing] = useState<Event | null>(null);
+  const [duplicating, setDuplicating] = useState<Event | null>(null);
 
   useEffect(() => { fetchEvents(); }, [fetchEvents]);
 
@@ -69,10 +70,18 @@ export default function EventsPage() {
       {showForm && (
         <EventFormModal
           event={editing}
-          onClose={() => { setShowForm(false); setEditing(null); }}
+          prefillFrom={duplicating}
+          onClose={() => { setShowForm(false); setEditing(null); setDuplicating(null); }}
         />
       )}
-      {viewing && <EventDetailModal event={viewing} onClose={() => setViewing(null)} onEdit={(ev) => { setViewing(null); setEditing(ev); setShowForm(true); }} />}
+      {viewing && (
+        <EventDetailModal
+          event={viewing}
+          onClose={() => setViewing(null)}
+          onEdit={(ev) => { setViewing(null); setEditing(ev); setShowForm(true); }}
+          onDuplicate={(ev) => { setViewing(null); setDuplicating(ev); setShowForm(true); }}
+        />
+      )}
     </div>
   );
 }
