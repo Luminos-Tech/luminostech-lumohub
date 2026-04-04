@@ -1,5 +1,6 @@
 "use client";
-import { Zap, Github, Heart } from "lucide-react";
+import { Github, Heart } from "lucide-react";
+import Image from "next/image";
 
 const links = [
   { label: "Tài liệu", href: "#" },
@@ -13,10 +14,13 @@ export default function Footer() {
       <div className="flex flex-col sm:flex-row items-center justify-between gap-3">
         {/* Branding */}
         <div className="flex items-center gap-2">
-          <div className="w-7 h-7 rounded-md bg-primary-600 flex items-center justify-center">
-            <Zap size={13} className="text-white" />
-          </div>
-          <span className="text-sm font-semibold text-gray-700">LumoHub</span>
+          <Image
+            src="/logo_lumohub.png"
+            alt="LumoHub Logo"
+            width={170}
+            height={60}
+            className="object-contain w-auto h-8"
+          />
           <span className="text-xs text-gray-400 ml-1">© 2026</span>
         </div>
 

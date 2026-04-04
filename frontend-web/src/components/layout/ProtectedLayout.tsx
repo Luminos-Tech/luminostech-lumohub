@@ -41,7 +41,7 @@ export default function ProtectedLayout({ children }: { children: React.ReactNod
       <div className="flex-1 flex flex-col min-w-0">
         <Topbar onMenuClick={() => setSidebarOpen(true)} />
         {/* pb-16 on mobile to avoid content behind BottomNav */}
-        <main className="flex-1 overflow-auto pb-16 md:pb-0">
+        <main className="flex-1 overflow-auto pb-16 md:pb-0 min-h-0">
           {children}
         </main>
         {/* Footer: hidden on mobile to avoid overlapping with BottomNav */}

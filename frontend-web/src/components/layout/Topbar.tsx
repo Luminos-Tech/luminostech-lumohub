@@ -3,6 +3,7 @@ import { useNotificationStore } from "@/store/notificationStore";
 import { useEffect } from "react";
 import { Bell, Menu } from "lucide-react";
 import Link from "next/link";
+import Image from "next/image";
 
 interface TopbarProps {
   onMenuClick: () => void;
@@ -25,7 +26,15 @@ export default function Topbar({ onMenuClick }: TopbarProps) {
       </button>
 
       {/* LumoHub brand — show on mobile only (desktop has sidebar) */}
-      <span className="font-bold text-gray-900 text-base md:hidden">LumoHub</span>
+      <Link href="/dashboard" className="flex items-center gap-2 md:hidden">
+        <Image
+          src="/logo_lumohub.png"
+          alt="LumoHub Logo"
+          width={170}
+          height={60}
+          className="object-contain w-auto h-8"
+        />
+      </Link>
 
       {/* Spacer so bell is pushed right on desktop */}
       <div className="hidden md:flex flex-1" />
