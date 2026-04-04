@@ -8,7 +8,7 @@ from app.crud.reminder import mark_reminder_sent
 from app.crud.notification import create_notification
 from app.websocket.manager import manager
 from datetime import datetime, timezone
-from sqlalchemy import select, and_
+from sqlalchemy import select
 import json
 
 
@@ -19,18 +19,9 @@ async def check_reminders():
     db: Session = SessionLocal()
     try:
         now = datetime.now(timezone.utc)
-        rows = db.execute(
-            select(Reminder, Event)
-            .join(Event, Reminder.event_id == Event.id)
-            .where(
-                and_(
-                    Reminder.is_sent == False,
-                    Event.start_time - (Reminder.remind_before_minutes * 60) <= now.timestamp(),
-                )
-            )
-        ).all()
 
-        # Simpler approach: find reminders where event start is within remind window
+        # Fetch all unsent reminders with their events
+        from datetime import timedelta
         rows = db.execute(
             select(Reminder).join(Reminder.event)
             .where(Reminder.is_sent == False)
@@ -39,7 +30,6 @@ async def check_reminders():
         triggered = []
         for reminder in rows:
             event = reminder.event
-            from datetime import timedelta
             remind_at = event.start_time.replace(tzinfo=timezone.utc) - timedelta(minutes=reminder.remind_before_minutes)
             if now >= remind_at:
                 triggered.append(reminder)

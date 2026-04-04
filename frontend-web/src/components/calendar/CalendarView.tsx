@@ -11,8 +11,9 @@ import EventFormModal from "./EventFormModal";
 import EventDetailModal from "./EventDetailModal";
 import { format, startOfDay, endOfDay, addDays, isToday, isTomorrow, isFuture } from "date-fns";
 import { vi } from "date-fns/locale";
-import { Plus, Search, SlidersHorizontal, Calendar, CalendarDays, Clock, ChevronRight, X } from "lucide-react";
+import { Plus, Search, SlidersHorizontal, Calendar, CalendarDays, Clock, ChevronRight, X, Sparkles } from "lucide-react";
 import { cn, parseUTC } from "@/lib/utils";
+import AIImportModal from "./AIImportModal";
 
 const PRIORITY_OPTIONS = [
   { value: "all", label: "Tất cả" },
@@ -142,6 +143,7 @@ export default function CalendarView() {
   const [viewing, setViewing] = useState<Event | null>(null);
   const [editing, setEditing] = useState<Event | null>(null);
   const [duplicating, setDuplicating] = useState<Event | null>(null);
+  const [showAIImport, setShowAIImport] = useState(false);
   const [search, setSearch] = useState("");
   const [priorityFilter, setPriorityFilter] = useState("all");
   const [showFilters, setShowFilters] = useState(false);
@@ -229,6 +231,16 @@ export default function CalendarView() {
           {priorityFilter !== "all" && (
             <span className="absolute w-1.5 h-1.5 rounded-full bg-primary-500 translate-x-2 -translate-y-2" />
           )}
+        </button>
+
+        {/* AI Import button */}
+        <button
+          onClick={() => setShowAIImport(true)}
+          className="flex items-center gap-1.5 px-3 py-2 bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-700 hover:to-indigo-700 text-white rounded-lg text-sm font-medium shadow-sm hover:shadow-md transition-all active:scale-95 shrink-0"
+          title="Nhập lịch bằng AI"
+        >
+          <Sparkles size={15} />
+          <span className="hidden sm:inline">AI Import</span>
         </button>
 
         {/* Create button */}
@@ -385,6 +397,12 @@ export default function CalendarView() {
           onClose={() => setViewing(null)}
           onEdit={(ev) => { setViewing(null); setEditing(ev); setShowForm(true); }}
           onDuplicate={(ev) => { setDuplicating(ev); setShowForm(true); }}
+        />
+      )}
+      {showAIImport && (
+        <AIImportModal
+          onClose={() => setShowAIImport(false)}
+          onCreated={() => fetchEvents()}
         />
       )}
     </div>
