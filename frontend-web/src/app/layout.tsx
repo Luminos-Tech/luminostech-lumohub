@@ -5,6 +5,10 @@ import "./globals.css";
 export const metadata: Metadata = {
   title: "LumoHub — Smart Calendar",
   description: "Quản lý lịch thông minh với LumoHub",
+  icons: {
+    icon: "/logo_lumohub.png",
+    apple: "/logo_lumohub.png",
+  },
 };
 
 export const viewport: Viewport = {
