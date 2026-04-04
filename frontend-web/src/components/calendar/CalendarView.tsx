@@ -139,8 +139,8 @@ export default function CalendarView() {
   const fcEvents = filteredEvents.map((ev) => ({
     id: String(ev.id),
     title: ev.title,
-    start: ev.start_time,
-    end: ev.end_time,
+    start: parseUTC(ev.start_time).toISOString(),
+    end: parseUTC(ev.end_time).toISOString(),
     backgroundColor: ev.color || "#3b82f6",
     borderColor: "transparent",
     extendedProps: { event: ev },
