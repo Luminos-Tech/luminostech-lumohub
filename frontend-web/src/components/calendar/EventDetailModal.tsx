@@ -5,6 +5,7 @@ import { format, formatDistanceToNow } from "date-fns";
 import { vi } from "date-fns/locale";
 import { MapPin, Clock, Bell, Tag, Pencil, Trash2, Copy } from "lucide-react";
 import { useEventStore } from "@/store/eventStore";
+import { parseUTC } from "@/lib/utils";
 
 interface Props {
   event: Event;
@@ -50,8 +51,8 @@ export default function EventDetailModal({ event, onClose, onEdit }: Props) {
   };
 
   const eventColor = event.color || "#3b82f6";
-  const startDate = new Date(event.start_time);
-  const endDate = new Date(event.end_time);
+  const startDate = parseUTC(event.start_time);
+  const endDate = parseUTC(event.end_time);
   const isUpcoming = startDate > new Date();
   const timeFromNow = formatDistanceToNow(startDate, { locale: vi, addSuffix: true });
 

@@ -6,7 +6,7 @@ import { useEventStore } from "@/store/eventStore";
 import Modal from "@/components/common/Modal";
 import type { Event } from "@/types";
 import { Plus, Trash2 } from "lucide-react";
-import { format } from "date-fns";
+import { utcIsoToLocal } from "@/lib/utils";
 
 const schema = z.object({
   title: z.string().min(1, "Tiêu đề không được trống"),
@@ -30,7 +30,6 @@ interface Props {
   onClose: () => void;
 }
 
-const toDateTimeLocal = (iso?: string) => iso ? iso.slice(0, 16) : "";
 
 export default function EventFormModal({ event, defaultStart, defaultEnd, onClose }: Props) {
   const { createEvent, updateEvent } = useEventStore();
@@ -42,8 +41,8 @@ export default function EventFormModal({ event, defaultStart, defaultEnd, onClos
       title: event?.title || "",
       description: event?.description || "",
       location: event?.location || "",
-      start_time: toDateTimeLocal(event?.start_time || defaultStart),
-      end_time: toDateTimeLocal(event?.end_time || defaultEnd),
+      start_time: utcIsoToLocal(event?.start_time) || (defaultStart ? utcIsoToLocal(defaultStart) || defaultStart.slice(0, 16) : ""),
+      end_time: utcIsoToLocal(event?.end_time) || (defaultEnd ? utcIsoToLocal(defaultEnd) || defaultEnd.slice(0, 16) : ""),
       priority: event?.priority || "normal",
       color: event?.color || "#3b82f6",
       reminders: event?.reminders?.map((r) => ({ remind_before_minutes: r.remind_before_minutes, channel: r.channel as "web" | "mobile" | "lumo" })) || [],

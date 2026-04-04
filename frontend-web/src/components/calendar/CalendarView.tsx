@@ -12,7 +12,7 @@ import EventDetailModal from "./EventDetailModal";
 import { format, startOfDay, endOfDay, addDays, isToday, isTomorrow, isFuture } from "date-fns";
 import { vi } from "date-fns/locale";
 import { Plus, Search, SlidersHorizontal, Calendar, Clock, ChevronRight, X } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { cn, parseUTC } from "@/lib/utils";
 
 const PRIORITY_OPTIONS = [
   { value: "all", label: "Tất cả" },
@@ -22,7 +22,7 @@ const PRIORITY_OPTIONS = [
 ];
 
 function getTimeLabel(dateStr: string) {
-  const d = new Date(dateStr);
+  const d = parseUTC(dateStr);
   if (isToday(d)) return "Hôm nay";
   if (isTomorrow(d)) return "Ngày mai";
   return format(d, "EEE dd/MM", { locale: vi });
@@ -37,11 +37,11 @@ function UpcomingPanel({
 }) {
   const now = new Date();
   const todayEvents = events.filter((e) => {
-    const s = new Date(e.start_time);
+    const s = parseUTC(e.start_time);
     return s >= startOfDay(now) && s <= endOfDay(now);
   });
   const upcomingEvents = events
-    .filter((e) => new Date(e.start_time) > endOfDay(now))
+    .filter((e) => parseUTC(e.start_time) > endOfDay(now))
     .slice(0, 8);
 
   return (
@@ -65,7 +65,7 @@ function UpcomingPanel({
                 <div className="min-w-0 flex-1">
                   <p className="text-xs font-medium text-gray-800 truncate group-hover:text-primary-700 transition-colors">{ev.title}</p>
                   <p className="text-[10px] text-gray-400 mt-0.5">
-                    {format(new Date(ev.start_time), "HH:mm")} – {format(new Date(ev.end_time), "HH:mm")}
+                    {format(parseUTC(ev.start_time), "HH:mm")} – {format(parseUTC(ev.end_time), "HH:mm")}
                   </p>
                 </div>
                 <ChevronRight size={12} className="text-gray-300 group-hover:text-primary-400 mt-1 shrink-0 transition-colors" />
@@ -92,7 +92,7 @@ function UpcomingPanel({
                 <div className="min-w-0 flex-1">
                   <p className="text-xs font-medium text-gray-700 truncate group-hover:text-primary-700 transition-colors">{ev.title}</p>
                   <p className="text-[10px] text-gray-400 mt-0.5">
-                    {getTimeLabel(ev.start_time)} · {format(new Date(ev.start_time), "HH:mm")}
+                    {getTimeLabel(ev.start_time)} · {format(parseUTC(ev.start_time), "HH:mm")}
                   </p>
                 </div>
               </li>

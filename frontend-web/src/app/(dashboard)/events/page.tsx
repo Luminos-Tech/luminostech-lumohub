@@ -6,6 +6,7 @@ import { Plus, Pencil, Trash2, MapPin, Clock } from "lucide-react";
 import EventFormModal from "@/components/calendar/EventFormModal";
 import EventDetailModal from "@/components/calendar/EventDetailModal";
 import type { Event } from "@/types";
+import { parseUTC } from "@/lib/utils";
 
 export default function EventsPage() {
   const { events, fetchEvents, deleteEvent } = useEventStore();
@@ -45,7 +46,7 @@ export default function EventsPage() {
                 <div className="flex flex-wrap gap-x-4 gap-y-1 mt-1 text-xs text-gray-500">
                   <span className="flex items-center gap-1">
                     <Clock size={12} />
-                    {format(new Date(ev.start_time), "HH:mm dd/MM/yyyy")} – {format(new Date(ev.end_time), "HH:mm dd/MM/yyyy")}
+                    {format(parseUTC(ev.start_time), "HH:mm dd/MM/yyyy")} – {format(parseUTC(ev.end_time), "HH:mm dd/MM/yyyy")}
                   </span>
                   {ev.location && <span className="flex items-center gap-1"><MapPin size={12} />{ev.location}</span>}
                 </div>

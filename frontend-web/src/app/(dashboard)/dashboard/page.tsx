@@ -7,6 +7,7 @@ import { format, startOfDay, endOfDay, addDays, parseISO } from "date-fns";
 import { vi } from "date-fns/locale";
 import { Calendar, Bell, CheckCircle, Clock, Activity, CheckCircle2, XCircle } from "lucide-react";
 import Link from "next/link";
+import { parseUTC } from "@/lib/utils";
 
 export default function DashboardPage() {
   const { user } = useAuthStore();
@@ -20,13 +21,13 @@ export default function DashboardPage() {
   }, [fetchEvents, fetchTodayStatus]);
 
   const today = events.filter((e) => {
-    const s = new Date(e.start_time);
+    const s = parseUTC(e.start_time);
     const now = new Date();
     return s >= startOfDay(now) && s <= endOfDay(now);
   });
 
   const upcoming = events.filter((e) => {
-    const s = new Date(e.start_time);
+    const s = parseUTC(e.start_time);
     const now = new Date();
     return s > endOfDay(now);
   }).slice(0, 5);
@@ -91,7 +92,7 @@ export default function DashboardPage() {
                 <div className="flex-1 min-w-0">
                   <p className="font-medium text-gray-900 text-sm truncate">{ev.title}</p>
                   <p className="text-xs text-gray-500">
-                    {format(new Date(ev.start_time), "HH:mm")} – {format(new Date(ev.end_time), "HH:mm")}
+                    {format(parseUTC(ev.start_time), "HH:mm")} – {format(parseUTC(ev.end_time), "HH:mm")}
                     {ev.location && ` · ${ev.location}`}
                   </p>
                 </div>
@@ -119,7 +120,7 @@ export default function DashboardPage() {
                 />
                 <span className="flex-1 text-gray-800 truncate">{ev.title}</span>
                 <span className="text-gray-400 text-xs whitespace-nowrap">
-                  {format(new Date(ev.start_time), "dd/MM HH:mm")}
+                  {format(parseUTC(ev.start_time), "dd/MM HH:mm")}
                 </span>
               </li>
             ))}
