@@ -14,6 +14,7 @@ export function useLumoWebSocket() {
   const reconnectTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [status, setStatus] = useState<"disconnected" | "connecting" | "connected">("disconnected");
   const [messages, setMessages] = useState<WsMessage[]>([]);
+  const pingInterval = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const connect = useCallback((deviceId: string) => {
     if (wsRef.current) {
@@ -27,13 +28,15 @@ export function useLumoWebSocket() {
     ws.onopen = () => {
       setStatus("connected");
       addMsg("out", "ping");
-      const interval = setInterval(() => {
+      ws.send("ping");
+
+      if (pingInterval.current) clearInterval(pingInterval.current);
+      pingInterval.current = setInterval(() => {
         if (ws.readyState === WebSocket.OPEN) {
           ws.send("ping");
           addMsg("out", "ping");
         }
       }, 30000);
-      ws.onclose = () => clearInterval(interval);
     };
 
     ws.onmessage = (e) => {
@@ -45,6 +48,7 @@ export function useLumoWebSocket() {
     };
 
     ws.onclose = () => {
+      if (pingInterval.current) clearInterval(pingInterval.current);
       setStatus("disconnected");
       if (!wsRef.current) return;
       reconnectTimer.current = setTimeout(() => connect(deviceId), 5000);
@@ -53,6 +57,7 @@ export function useLumoWebSocket() {
 
   const disconnect = useCallback(() => {
     if (reconnectTimer.current) clearTimeout(reconnectTimer.current);
+    if (pingInterval.current) clearInterval(pingInterval.current);
     wsRef.current?.close();
     wsRef.current = null;
     setStatus("disconnected");
@@ -73,9 +78,12 @@ export function useLumoWebSocket() {
   useEffect(() => {
     return () => {
       if (reconnectTimer.current) clearTimeout(reconnectTimer.current);
-      wsRef.current?.close();
+      if (pingInterval.current) clearInterval(pingInterval.current);
+      if (wsRef.current?.readyState === WebSocket.OPEN) {
+        wsRef.current.close();
+      }
     };
   }, []);
 
-  return { status, messages, connect, disconnect, sendMessage };
+  return { status, messages, setMessages, connect, disconnect, sendMessage };
 }

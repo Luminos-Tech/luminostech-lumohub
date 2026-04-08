@@ -3,10 +3,8 @@ import io
 import json
 import logging
 import wave
-import struct
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime
-from pathlib import Path
 
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect, Query
 from google import genai
@@ -15,7 +13,6 @@ import requests
 from groq import Groq
 
 from app.core.config import settings
-from app.crud.device import get_device_by_code
 from app.websocket.manager import manager
 
 # WAV format for ESP32 audio_stream
@@ -186,12 +183,40 @@ async def _run_llm(text: str) -> str:
     return await loop.run_in_executor(executor, _call)
 
 
+# ─── WAV BUILDER ──────────────────────────────────────────────────────────
+
+def _make_wav_bytes(pcm_data: bytes) -> bytes:
+    """Build a complete WAV file from raw PCM bytes."""
+    data_len = len(pcm_data)
+    byte_rate = WAV_SAMPLE_RATE * WAV_CHANNELS * WAV_SAMP_WIDTH
+    block_align = WAV_CHANNELS * WAV_SAMP_WIDTH
+    header = bytearray()
+    def w32(v: int): header.extend(v.to_bytes(4, "little"))
+    def w16(v: int): header.extend(v.to_bytes(2, "little"))
+    header.extend(b"RIFF")
+    w32(36 + data_len)
+    header.extend(b"WAVE")
+    header.extend(b"fmt ")
+    w32(16)          # PCM format
+    w16(1)           # AudioFormat = PCM
+    w16(WAV_CHANNELS)
+    w32(WAV_SAMPLE_RATE)
+    w32(byte_rate)
+    w16(block_align)
+    w16(WAV_SAMP_WIDTH * 8)
+    header.extend(b"data")
+    w32(data_len)
+    return bytes(header) + pcm_data
+
+
 # ─── STREAMING TTS (Gemini → binary chunks → WebSocket) ───────────────────
 
 async def _stream_tts(text: str, websocket: WebSocket, device_id: str):
+    """Collect TTS audio from Gemini in a thread, then send as WAV."""
     loop = asyncio.get_running_loop()
 
-    def _stream():
+    def _collect_pcm():
+        """Run blocking Gemini TTS stream in a thread pool — won't block the event loop."""
         client = _get_gemini()
         response = client.models.generate_content_stream(
             model="gemini-2.5-flash-preview-tts",
@@ -207,6 +232,8 @@ async def _stream_tts(text: str, websocket: WebSocket, device_id: str):
                 ),
             ),
         )
+        pcm = b""
+        count = 0
         for chunk in response:
             candidates = getattr(chunk, "candidates", None)
             if not candidates:
@@ -222,46 +249,19 @@ async def _stream_tts(text: str, websocket: WebSocket, device_id: str):
                 continue
             audio_bytes = getattr(inline_data, "data", None)
             if audio_bytes:
-                yield bytes(audio_bytes)
-
-    all_pcm = b""
-    chunk_count = 0
-    wav_data = b""
+                pcm += bytes(audio_bytes)
+                count += 1
+        return pcm, count
 
     try:
-        def _make_wav_bytes(pcm_data: bytes) -> bytes:
-            """Build a complete WAV file from raw PCM bytes."""
-            data_len = len(pcm_data)
-            byte_rate = WAV_SAMPLE_RATE * WAV_CHANNELS * WAV_SAMP_WIDTH
-            block_align = WAV_CHANNELS * WAV_SAMP_WIDTH
-            header = bytearray()
-            def w32(v: int): header.extend(v.to_bytes(4, "little"))
-            def w16(v: int): header.extend(v.to_bytes(2, "little"))
-            header.extend(b"RIFF")
-            w32(36 + data_len)
-            header.extend(b"WAVE")
-            header.extend(b"fmt ")
-            w32(16)          # PCM format
-            w16(1)           # mono
-            w16(WAV_CHANNELS)
-            w32(WAV_SAMPLE_RATE)
-            w32(byte_rate)
-            w16(block_align)
-            w16(WAV_SAMP_WIDTH * 8)
-            header.extend(b"data")
-            w32(data_len)
-            return bytes(header) + pcm_data
-
-        # Buffer all PCM first, then send as one complete WAV
-        for pcm_chunk in _stream():
-            if pcm_chunk:
-                all_pcm += pcm_chunk
-                chunk_count += 1
+        all_pcm, chunk_count = await loop.run_in_executor(executor, _collect_pcm)
+        wav_data = b""
 
         if all_pcm:
             wav_data = _make_wav_bytes(all_pcm)
             await websocket.send_bytes(wav_data)
             await manager.send_bytes(device_id, wav_data)
+
         lumo_logger.info(f"LUMO TTS stream: {device_id} | text_len={len(text)} | chunks={chunk_count} | total_wav_bytes={len(wav_data)}")
 
         if chunk_count == 0:

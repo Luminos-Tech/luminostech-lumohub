@@ -1,6 +1,6 @@
 "use client";
-import { useState, useRef, useCallback } from "react";
-import { Sparkles, Image as ImageIcon, Type, X, Upload, CheckSquare, Square, Loader2, AlertCircle } from "lucide-react";
+import { useState, useRef, useCallback, useEffect } from "react";
+import { Sparkles, Image as ImageIcon, Type, X, Upload, CheckSquare, Square, Loader2, AlertCircle, Plus } from "lucide-react";
 import { useEventStore } from "@/store/eventStore";
 import type { Event } from "@/types";
 import { cn } from "@/lib/utils";
@@ -28,8 +28,8 @@ export default function AIImportModal({ onClose, onCreated }: Props) {
   const { createEvent } = useEventStore();
   const [tab, setTab] = useState<InputTab>("text");
   const [text, setText] = useState("");
-  const [imageFile, setImageFile] = useState<File | null>(null);
-  const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [imageFiles, setImageFiles] = useState<File[]>([]);
+  const [imagePreviews, setImagePreviews] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [extractedEvents, setExtractedEvents] = useState<ExtractedEvent[] | null>(null);
@@ -37,32 +37,55 @@ export default function AIImportModal({ onClose, onCreated }: Props) {
   const [creating, setCreating] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const handleImageChange = (file: File) => {
-    setImageFile(file);
-    const reader = new FileReader();
-    reader.onloadend = () => setImagePreview(reader.result as string);
-    reader.readAsDataURL(file);
-  };
+  const handleImageChange = useCallback((files: FileList | File[]) => {
+    const newFiles = Array.from(files).filter(f => f.type.startsWith("image/"));
+    if (newFiles.length === 0) return;
+
+    setImageFiles(prev => [...prev, ...newFiles]);
+    newFiles.forEach(file => {
+      const reader = new FileReader();
+      reader.onloadend = () => setImagePreviews(prev => [...prev, reader.result as string]);
+      reader.readAsDataURL(file);
+    });
+  }, []);
+
+  useEffect(() => {
+    const handleGlobalPaste = (e: ClipboardEvent) => {
+      if (e.clipboardData?.files && e.clipboardData.files.length > 0) {
+        setTab("image");
+        handleImageChange(e.clipboardData.files);
+      }
+    };
+    window.addEventListener("paste", handleGlobalPaste);
+    return () => window.removeEventListener("paste", handleGlobalPaste);
+  }, [handleImageChange]);
 
   const handleDrop = useCallback((e: React.DragEvent) => {
     e.preventDefault();
-    const file = e.dataTransfer.files[0];
-    if (file && file.type.startsWith("image/")) handleImageChange(file);
-  }, []);
+    if (e.dataTransfer.files.length > 0) {
+      setTab("image");
+      handleImageChange(e.dataTransfer.files);
+    }
+  }, [handleImageChange]);
 
   const handleExtract = async () => {
     setError(null);
     setExtractedEvents(null);
 
     if (tab === "text" && !text.trim()) { setError("Vui lòng nhập nội dung"); return; }
-    if (tab === "image" && !imageFile) { setError("Vui lòng chọn ảnh"); return; }
+    if (tab === "image" && imageFiles.length === 0) { setError("Vui lòng chọn hoặc dán ảnh"); return; }
 
     setLoading(true);
     try {
-      let payload: Record<string, string>;
-      if (tab === "image" && imageFile) {
-        const base64 = await fileToBase64(imageFile);
-        payload = { image_base64: base64, image_mime_type: imageFile.type };
+      let payload: Record<string, any>;
+      if (tab === "image" && imageFiles.length > 0) {
+        const imagesData = await Promise.all(
+          imageFiles.map(async (file) => ({
+            base64: await fileToBase64(file),
+            mime_type: file.type
+          }))
+        );
+        payload = { images: imagesData };
       } else {
         payload = { text: text.trim() };
       }
@@ -94,8 +117,8 @@ export default function AIImportModal({ onClose, onCreated }: Props) {
             title: ev.title,
             description: ev.description || "",
             location: ev.location || "",
-            start_time: ev.start_time ? new Date(ev.start_time + "Z").toISOString() : new Date().toISOString(),
-            end_time: ev.end_time ? new Date(ev.end_time + "Z").toISOString() : new Date().toISOString(),
+            start_time: ev.start_time ? new Date(ev.start_time).toISOString() : new Date().toISOString(),
+            end_time: ev.end_time ? new Date(ev.end_time).toISOString() : new Date().toISOString(),
             priority: ev.priority || "normal",
             color: ev.color || "#3B82F6",
             reminders: [],
@@ -176,30 +199,42 @@ export default function AIImportModal({ onClose, onCreated }: Props) {
               {/* Image input */}
               {tab === "image" && (
                 <div
-                  onDrop={handleDrop}
+                  onDrop={(e) => { e.preventDefault(); handleImageChange(e.dataTransfer.files); }}
                   onDragOver={(e) => e.preventDefault()}
-                  onClick={() => !imagePreview && fileInputRef.current?.click()}
+                  onClick={() => fileInputRef.current?.click()}
                   className={cn(
-                    "border-2 border-dashed rounded-xl transition-colors",
-                    imagePreview ? "border-gray-200 p-2" : "border-gray-300 hover:border-violet-400 cursor-pointer p-8"
+                    "border-2 border-dashed rounded-xl transition-colors cursor-pointer",
+                    imagePreviews.length > 0 ? "border-violet-200 p-4 bg-violet-50/30" : "border-gray-300 hover:border-violet-400 p-8"
                   )}
                 >
-                  {imagePreview ? (
-                    <div className="relative">
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img src={imagePreview} alt="preview" className="w-full max-h-64 object-contain rounded-lg" />
-                      <button
-                        onClick={(e) => { e.stopPropagation(); setImageFile(null); setImagePreview(null); }}
-                        className="absolute top-2 right-2 w-7 h-7 bg-black/60 hover:bg-black/80 text-white rounded-full flex items-center justify-center transition-colors"
-                      >
-                        <X size={14} />
-                      </button>
+                  {imagePreviews.length > 0 ? (
+                    <div className="grid grid-cols-3 gap-3">
+                      {imagePreviews.map((preview, i) => (
+                        <div key={i} className="relative aspect-square group">
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          <img src={preview} alt={`preview-${i}`} className="w-full h-full object-cover rounded-lg shadow-sm border border-gray-200" />
+                          <button
+                            onClick={(e) => { 
+                              e.stopPropagation(); 
+                              setImageFiles(prev => prev.filter((_, idx) => idx !== i));
+                              setImagePreviews(prev => prev.filter((_, idx) => idx !== i));
+                            }}
+                            className="absolute -top-2 -right-2 w-6 h-6 bg-black/70 hover:bg-black/90 text-white rounded-full flex items-center justify-center shadow-sm opacity-0 group-hover:opacity-100 transition-all duration-200"
+                          >
+                            <X size={12} />
+                          </button>
+                        </div>
+                      ))}
+                      <div className="aspect-square flex flex-col items-center justify-center border-2 border-dashed border-gray-300 rounded-lg hover:border-violet-400 hover:bg-white transition-colors group">
+                        <Plus size={24} className="text-gray-400 group-hover:text-violet-500 mb-1 transition-colors" />
+                        <span className="text-[10px] text-gray-400 group-hover:text-violet-500 font-medium">Thêm ảnh</span>
+                      </div>
                     </div>
                   ) : (
                     <div className="text-center space-y-2">
                       <Upload size={28} className="mx-auto text-gray-400" />
-                      <p className="text-sm text-gray-500">Kéo thả ảnh vào đây hoặc <span className="text-violet-600 font-medium">chọn file</span></p>
-                      <p className="text-xs text-gray-400">JPG, PNG, WEBP, GIF</p>
+                      <p className="text-sm text-gray-500">Kéo thả ảnh vào đây, <span className="text-violet-600 font-medium">chọn file</span>, hoặc <span className="text-violet-600 font-medium">Ctrl+V</span> (dán ảnh)</p>
+                      <p className="text-xs text-gray-400">Hỗ trợ chọn nhiều ảnh JPG, PNG, WEBP...</p>
                     </div>
                   )}
                 </div>
@@ -209,8 +244,9 @@ export default function AIImportModal({ onClose, onCreated }: Props) {
                 ref={fileInputRef}
                 type="file"
                 accept="image/*"
+                multiple
                 className="hidden"
-                onChange={(e) => { const f = e.target.files?.[0]; if (f) handleImageChange(f); }}
+                onChange={(e) => { if (e.target.files) handleImageChange(e.target.files); }}
               />
 
               {error && (

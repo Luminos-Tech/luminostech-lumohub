@@ -29,3 +29,10 @@ async def lumo_websocket(
                 await websocket.send_text("ok")
     except WebSocketDisconnect:
         manager.disconnect(device_id)
+    except Exception as e:
+        print(f"[WS] Error with LUMO device '{device_id}': {e}")
+        manager.disconnect(device_id)
+        try:
+            await websocket.close()
+        except Exception:
+            pass

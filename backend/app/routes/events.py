@@ -55,8 +55,14 @@ Quy tắc:
 22. Nếu trong input có nhiều mốc thời gian, nhiều ngày, nhiều buổi hoặc nhiều hoạt động khác nhau, hãy trả về đầy đủ tất cả event có thể đặt lên lịch, mỗi event là một object riêng trong mảng JSON."""
 
 
+class ImageData(BaseModel):
+    base64: str
+    mime_type: str
+
 class ExtractRequest(BaseModel):
     text: Optional[str] = None
+    images: Optional[List[ImageData]] = None
+    # Keep old fields for backward compatibility during transition
     image_base64: Optional[str] = None
     image_mime_type: Optional[str] = None
 
@@ -139,7 +145,11 @@ async def extract_events_from_content(
     current_user: User = Depends(get_current_active_user),
 ) -> Any:
     """Dùng Gemini để trích xuất sự kiện từ text hoặc ảnh (base64)."""
-    if not body.text and not body.image_base64:
+    # Normalize images
+    if not body.images and body.image_base64 and body.image_mime_type:
+        body.images = [ImageData(base64=body.image_base64, mime_type=body.image_mime_type)]
+
+    if not body.text and not body.images:
         raise HTTPException(status_code=400, detail="Vui lòng cung cấp text hoặc ảnh")
     if not settings.GEMINI_API_KEY:
         raise HTTPException(status_code=500, detail="GEMINI_API_KEY chưa được cấu hình")
@@ -152,13 +162,14 @@ async def extract_events_from_content(
             gtypes.Part.from_text(text=EXTRACT_PROMPT + "\n\nNội dung cần phân tích:\n")
         ]
 
-        if body.image_base64 and body.image_mime_type:
-            parts_list.append(
-                gtypes.Part.from_bytes(
-                    data=base64.b64decode(body.image_base64),
-                    mime_type=body.image_mime_type,
+        if body.images:
+            for img in body.images:
+                parts_list.append(
+                    gtypes.Part.from_bytes(
+                        data=base64.b64decode(img.base64),
+                        mime_type=img.mime_type
+                    )
                 )
-            )
 
         if body.text:
             parts_list.append(gtypes.Part.from_text(text=body.text))
