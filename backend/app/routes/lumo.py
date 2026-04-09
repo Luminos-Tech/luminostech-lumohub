@@ -133,11 +133,11 @@ Người dùng: {text}
 LUMO:"""
 
 
-def _pcm_to_wav(pcm_data: bytes, path: str) -> None:
+def _pcm_to_wav(pcm_data: bytes, path: str, sample_rate: int = 24000) -> None:
     with wave.open(path, "wb") as wf:
         wf.setnchannels(1)
         wf.setsampwidth(2)
-        wf.setframerate(24000)
+        wf.setframerate(sample_rate)
         wf.writeframes(pcm_data)
 
 
@@ -273,11 +273,16 @@ async def lumo_audio(audio: UploadFile = File(...)):
                         response_format="verbose_json",
                     ).text.strip()
 
+            lumo_logger.info(f"[AUDIO] STT start")
             stt_text = await _run_sync_in_executor(_stt)
+            lumo_logger.info(f"[AUDIO] STT result: '{stt_text}'")
             if not stt_text:
+                lumo_logger.error("[AUDIO] STT returned empty")
                 raise HTTPException(status_code=422, detail="STT returned empty text")
 
+            lumo_logger.info(f"[AUDIO] Search web start")
             search_result = await _run_sync_in_executor(_search_web_text, stt_text)
+            lumo_logger.info(f"[AUDIO] Search done: '{search_result}'")
             prompt = _build_lumo_prompt(stt_text, search_result)
 
             if not settings.GEMINI_API_KEY:
@@ -290,13 +295,16 @@ async def lumo_audio(audio: UploadFile = File(...)):
                     contents=prompt,
                 ).text
 
+            lumo_logger.info(f"[AUDIO] TTT start")
             v2_answer = await _run_sync_in_executor(_ttt)
+            lumo_logger.info(f"[AUDIO] TTT result: '{v2_answer}'")
             if not v2_answer:
+                lumo_logger.error("[AUDIO] TTT returned empty")
                 raise HTTPException(status_code=500, detail="version2 returned empty response")
 
-            if not settings.GOOGLE_API_KEY:
-                raise ValueError("GOOGLE_API_KEY not set")
-            tts_client = genai.Client(api_key=settings.GOOGLE_API_KEY)
+            if not settings.GEMINI_API_KEY:
+                raise ValueError("GEMINI_API_KEY not set")
+            tts_client = genai.Client(api_key=settings.GEMINI_API_KEY)
 
             def _tts():
                 return tts_client.models.generate_content(
@@ -314,9 +322,18 @@ async def lumo_audio(audio: UploadFile = File(...)):
                     ),
                 )
 
+            lumo_logger.info(f"[AUDIO] TTS start")
             tts_resp = await _run_sync_in_executor(_tts)
             pcm_data = tts_resp.candidates[0].content.parts[0].inline_data.data
-            _pcm_to_wav(pcm_data, tmp_out)
+            mime_type = tts_resp.candidates[0].content.parts[0].inline_data.mime_type
+            lumo_logger.info(f"[AUDIO] TTS done: {len(pcm_data)} bytes, mime={mime_type}")
+            if mime_type == "audio/pcm":
+                _pcm_to_wav(pcm_data, tmp_out, sample_rate=24000)
+            elif mime_type == "audio/wav":
+                _pcm_to_wav(pcm_data, tmp_out, sample_rate=48000)
+            else:
+                lumo_logger.warning(f"[AUDIO] Unknown audio mime type: {mime_type}, defaulting to 24000")
+                _pcm_to_wav(pcm_data, tmp_out, sample_rate=24000)
 
             return stt_text, v2_answer
 
@@ -329,6 +346,7 @@ async def lumo_audio(audio: UploadFile = File(...)):
     except HTTPException:
         raise
     except Exception as e:
+        lumo_logger.error(f"[AUDIO] Pipeline error: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail=f"Pipeline error: {str(e)}")
     finally:
         if os.path.exists(tmp_in):

@@ -1,238 +1,241 @@
-# LumoHub - Smart Calendar & IoT Event Management System
+# LumoHub - 智能日历与物联网事件管理系统
 
 <p align="center">
-  <strong>Powered by Luminos Tech</strong>
+  <strong>由 Luminos Tech 驱动</strong>
 </p>
 
 ---
 
-## Table of Contents
+## 目录
 
-- [Overview](#overview)
-- [Architecture](#architecture)
-- [Tech Stack](#tech-stack)
-- [Project Structure](#project-structure)
-- [Features](#features)
-  - [User Authentication](#user-authentication)
-  - [Calendar & Events](#calendar--events)
-  - [Reminders & Notifications](#reminders--notifications)
-  - [LUMO AI Assistant](#lumo-ai-assistant)
-  - [IoT Device Integration](#iot-device-integration)
-  - [Admin Dashboard](#admin-dashboard)
-- [API Reference](#api-reference)
-  - [Authentication](#authentication)
-  - [Users](#users)
-  - [Events](#events)
-  - [Reminders](#reminders)
-  - [Notifications](#notifications)
-  - [Calendar](#calendar)
-  - [Devices](#devices)
-  - [Event Buttons](#event-buttons)
+- [项目概述](#项目概述)
+- [系统架构](#系统架构)
+- [技术栈](#技术栈)
+- [项目结构](#项目结构)
+- [功能特性](#功能特性)
+  - [用户认证](#用户认证)
+  - [日历与事件](#日历与事件)
+  - [提醒与通知](#提醒与通知)
+  - [LUMO AI 助手](#lumo-ai-助手)
+  - [物联网设备集成](#物联网设备集成)
+  - [管理后台](#管理后台)
+- [API 接口](#api-接口)
+  - [认证](#认证)
+  - [用户](#用户)
+  - [事件](#事件)
+  - [提醒](#提醒)
+  - [通知](#通知)
+  - [日历](#日历)
+  - [设备](#设备)
+  - [事件按钮](#事件按钮)
   - [LUMO AI](#lumo-ai)
-  - [Admin](#admin)
-- [WebSocket Protocol](#websocket-protocol)
-- [Database Schema](#database-schema)
-- [Configuration](#configuration)
-- [Getting Started](#getting-started)
-  - [Prerequisites](#prerequisites)
-  - [Development Setup](#development-setup)
-  - [Docker Deployment](#docker-deployment)
-- [Frontend Guide](#frontend-guide)
-- [ESP32 IoT Device](#esp32-iot-device)
-- [LUMO AI Voice Pipeline](#lumo-ai-voice-pipeline)
-- [Background Tasks](#background-tasks)
-- [Security](#security)
-- [License](#license)
+  - [管理](#管理)
+- [WebSocket 协议](#websocket-协议)
+- [数据库模型](#数据库模型)
+- [配置说明](#配置说明)
+- [快速开始](#快速开始)
+  - [前置条件](#前置条件)
+  - [Docker 部署（推荐）](#docker-部署推荐)
+  - [本地开发](#本地开发)
+- [前端使用指南](#前端使用指南)
+- [ESP32 物联网设备](#esp32-物联网设备)
+- [LUMO AI 语音处理管道](#lumo-ai-语音处理管道)
+- [定时任务](#定时任务)
+- [安全机制](#安全机制)
+- [默认账户（仅供开发使用）](#默认账户仅供开发使用)
+- [许可证](#许可证)
 
 ---
 
-## Overview
+## 项目概述
 
-**LumoHub** is a full-stack smart calendar and event management system designed for the **Lumo LuminosTech** IoT device ecosystem. It provides:
+**LumoHub** 是一个全栈智能日历和事件管理系统，专为 **Lumo LuminosTech** 物联网设备生态设计，提供以下核心能力：
 
-- **Calendar management** with events, recurring reminders, and multi-channel notifications
-- **AI-powered voice assistant "LUMO"** built on Gemini/Groq for natural voice interactions
-- **ESP32 IoT device integration** via WebSocket for real-time text-to-speech and voice communication
-- **Admin dashboard** for user management, device administration, and system monitoring
-- **Mobile-friendly responsive web interface** built with Next.js and Tailwind CSS
+- **日历管理**：支持事件创建、循环提醒和多渠道通知
+- **AI 语音助手 LUMO**：基于 Gemini/Groq 构建，支持自然语音交互
+- **ESP32 物联网设备集成**：通过 WebSocket 实时进行语音播报（TTS）和语音对话
+- **管理后台**：用户管理、设备管理、系统监控
+- **响应式 Web 界面**：基于 Next.js + Tailwind CSS 构建，支持移动端访问
 
-The system connects physical IoT devices with cloud-based calendar intelligence, enabling users to interact with their schedules through voice commands on their ESP32-powered smart devices.
+系统将物理物联网设备与云端日历智能连接，使用户能够通过 ESP32 智能设备上的语音命令与日程安排进行交互。
 
 ---
 
-## Architecture
+## 系统架构
 
 ```
-┌─────────────────────────────────────────────────────────────────┐
-│                         ESP32 Device                             │
-│   (OLED Display + Microphone + Speaker + Physical Button)        │
-└──────────────────────────┬──────────────────────────────────────┘
+┌─────────────────────────────────────────────────────────────┐
+│                        ESP32 设备                             │
+│            （OLED 显示屏 + 麦克风 + 扬声器 + 物理按键）           │
+└──────────────────────────┬────────────────────────────────────┘
                            │ WebSocket (WSS)
                            ▼
-┌─────────────────────────────────────────────────────────────────┐
-│                     FastAPI Backend (Port 8000)                  │
-│                                                                   │
-│  ┌──────────────┐  ┌──────────────┐  ┌───────────────────────┐  │
-│  │ REST API     │  │ WebSocket    │  │ Background Tasks      │  │
-│  │ (Auth, CRUD) │  │ (LUMO, TTS)  │  │ (APScheduler)         │  │
-│  └──────────────┘  └──────────────┘  └───────────────────────┘  │
-│                                                                   │
-│  ┌──────────────┐  ┌──────────────┐  ┌───────────────────────┐  │
-│  │ LUMO AI      │  │ TTS Stream   │  │ Notification Engine  │  │
-│  │ (Gemini/Groq)│  │ (Google TTS)  │  │                      │  │
-│  └──────────────┘  └──────────────┘  └───────────────────────┘  │
-└──────────────────────────┬──────────────────────────────────────┘
+┌─────────────────────────────────────────────────────────────┐
+│                    FastAPI 后端（端口 8000）                    │
+│                                                              │
+│  ┌──────────────┐  ┌──────────────┐  ┌──────────────────┐  │
+│  │ REST API     │  │ WebSocket    │  │ 后台定时任务        │  │
+│  │ (认证/CRUD) │  │ (LUMO/TTS)   │  │ (APScheduler)     │  │
+│  └──────────────┘  └──────────────┘  └──────────────────────┘  │
+│                                                              │
+│  ┌──────────────┐  ┌──────────────┐  ┌──────────────────┐  │
+│  │ LUMO AI      │  │ TTS 流       │  │ 通知引擎          │  │
+│  │ (Gemini/Groq)│  │ (Google TTS) │  │                  │  │
+│  └──────────────┘  └──────────────┘  └──────────────────────┘  │
+└──────────────────────────┬────────────────────────────────────┘
                            │ SQLAlchemy ORM
                            ▼
-┌─────────────────────────────────────────────────────────────────┐
-│                   PostgreSQL 16 (Port 5432)                      │
-│                                                                   │
-│  users | events | reminders | notifications |                    │
-│  devices | event_buttons | user_sessions |                      │
-│  system_logs | admin_actions                                     │
-└─────────────────────────────────────────────────────────────────┘
+┌─────────────────────────────────────────────────────────────┐
+│                    PostgreSQL 16（端口 5432）                   │
+│                                                              │
+│  users | events | reminders | notifications |                 │
+│  devices | event_buttons | user_sessions |                    │
+│  system_logs | admin_actions                                  │
+└─────────────────────────────────────────────────────────────┘
                            ▲
-                           │ Next.js API Proxy
+                           │ Next.js API 代理
                            ▼
-┌─────────────────────────────────────────────────────────────────┐
-│                   Next.js Frontend (Port 3000)                  │
-│                                                                   │
+┌─────────────────────────────────────────────────────────────┐
+│                    Next.js 前端（端口 3000）                   │
+│                                                              │
 │  Dashboard | Calendar | Events | Notifications | Settings |     │
-│  Admin Dashboard | WebSocket Tester                               │
-└─────────────────────────────────────────────────────────────────┘
+│  Admin Dashboard | WebSocket 测试工具                          │
+└─────────────────────────────────────────────────────────────┘
 ```
 
-### Data Flow
+### 数据流向
 
-1. **User** creates an event via the web dashboard
-2. **APScheduler** detects when a reminder is due and triggers a notification
-3. **Notification** is saved to the database and sent via WebSocket to all connected clients
-4. **LUMO device** receives the WebSocket message and speaks the event aloud using TTS
-5. **User** can interact with LUMO via voice commands (STT → Gemini → TTS)
-6. **Physical button** presses on the ESP32 device are logged and displayed in the web dashboard
-
----
-
-## Tech Stack
-
-### Backend
-
-| Technology | Version | Purpose |
-|------------|---------|---------|
-| **Python** | 3.11+ | Programming language |
-| **FastAPI** | 0.111.0 | Web framework with async support |
-| **Uvicorn** | ASGI | ASGI server |
-| **Pydantic** | 2.7.1 | Data validation and serialization |
-| **SQLAlchemy** | 2.0.30 | SQL ORM toolkit |
-| **Alembic** | 1.13.1 | Database migrations |
-| **PostgreSQL** | 16 | Relational database |
-| **python-jose** | JWT | JWT token handling (HS256) |
-| **passlib[bcrypt]** | Password hashing | Secure password storage |
-| **google-genai** | 1.11.0 | Gemini API for LLM and TTS |
-| **groq** | 0.11.0 | Groq API for Whisper STT |
-| **APScheduler** | 3.10.4 | Background job scheduling |
-| **email-validator** | Email validation | Input validation |
-
-### Frontend
-
-| Technology | Version | Purpose |
-|------------|---------|---------|
-| **Next.js** | 14 | React framework with App Router |
-| **React** | 18 | UI library |
-| **TypeScript** | 5 | Type-safe JavaScript |
-| **Tailwind CSS** | 3.4 | Utility-first CSS framework |
-| **Zustand** | 4.5 | State management |
-| **react-hook-form** | Form management | Form state handling |
-| **zod** | Schema validation | Runtime type validation |
-| **@fullcalendar** | Calendar | Calendar UI components |
-| **axios** | HTTP client | API communication |
-| **Lucide React** | Icons | Icon library |
-| **Sonner** | Toasts | Toast notifications |
-| **date-fns** | Date utilities | Date manipulation |
-
-### Infrastructure
-
-| Technology | Purpose |
-|------------|---------|
-| **Docker** | Containerization |
-| **docker-compose** | Multi-container orchestration |
-| **PostgreSQL 16 Alpine** | Database container |
+1. **用户**通过 Web Dashboard 创建事件
+2. **APScheduler** 检测到提醒到期，触发通知
+3. **通知**保存到数据库，并通过 WebSocket 推送给所有已连接客户端
+4. **LUMO 设备**接收 WebSocket 消息，使用 TTS 语音播报事件
+5. **用户**可以通过语音命令与 LUMO 交互（STT → Gemini → TTS）
+6. **物理按键**按压记录显示在 Web Dashboard 中
 
 ---
 
-## Project Structure
+## 技术栈
+
+### 后端
+
+| 技术 | 版本 | 用途 |
+|------|------|------|
+| **Python** | 3.12 | 编程语言 |
+| **FastAPI** | 0.111.0 | Web 框架，支持异步 |
+| **Uvicorn** | ASGI | ASGI 服务器 |
+| **Pydantic** | 2.7.1 | 数据验证与序列化 |
+| **SQLAlchemy** | 2.0.30 | SQL ORM 工具包 |
+| **Alembic** | 1.13.1 | 数据库迁移 |
+| **PostgreSQL** | 16 | 关系数据库 |
+| **python-jose** | JWT | JWT 令牌处理（HS256）|
+| **passlib[bcrypt]** | 密码哈希 | 安全密码存储 |
+| **google-genai** | 1.11.0 | Gemini API（LLM + TTS）|
+| **groq** | >=0.12.0 | Groq API（Whisper STT）|
+| **APScheduler** | 3.10.4 | 后台任务调度 |
+| **httpx** | 0.28.1 | HTTP 客户端 |
+
+### 前端
+
+| 技术 | 版本 | 用途 |
+|------|------|------|
+| **Next.js** | 14 | React 框架，App Router |
+| **React** | 18 | UI 库 |
+| **TypeScript** | 5 | 类型安全 JavaScript |
+| **Tailwind CSS** | 3.4 | 工具优先 CSS 框架 |
+| **Zustand** | 4.5 | 状态管理 |
+| **react-hook-form** | 表单管理 | 表单状态处理 |
+| **zod** | Schema 验证 | 运行时类型验证 |
+| **@fullcalendar** | 日历 | 日历 UI 组件 |
+| **axios** | HTTP 客户端 | API 通信 |
+| **Lucide React** | 图标 | 图标库 |
+| **Sonner** | Toast | 通知提示 |
+| **date-fns** | 日期工具 | 日期处理 |
+
+### 基础设施
+
+| 技术 | 用途 |
+|------|------|
+| **Docker** | 容器化 |
+| **docker-compose** | 多容器编排 |
+| **PostgreSQL 16 Alpine** | 数据库容器 |
+
+---
+
+## 项目结构
 
 ```
 lumohub/
 ├── backend/
 │   ├── app/
 │   │   ├── __init__.py
-│   │   ├── main.py                    # FastAPI app entry point
+│   │   ├── main.py                    # FastAPI 应用入口
 │   │   ├── core/
-│   │   │   ├── config.py              # Pydantic settings from .env
-│   │   │   └── security.py            # JWT create/verify, password hashing
+│   │   │   ├── config.py              # Pydantic 配置（从 .env 读取）
+│   │   │   └── security.py            # JWT 创建/验证，密码哈希
 │   │   ├── crud/
-│   │   │   ├── base.py                # Generic CRUD operations
-│   │   │   ├── user.py                # User CRUD
-│   │   │   ├── event.py               # Event CRUD
-│   │   │   ├── reminder.py             # Reminder CRUD
-│   │   │   ├── notification.py         # Notification CRUD
-│   │   │   ├── device.py               # Device CRUD
-│   │   │   └── event_button.py         # EventButton CRUD
+│   │   │   ├── base.py                # 通用 CRUD 操作
+│   │   │   ├── user.py                # 用户 CRUD
+│   │   │   ├── event.py               # 事件 CRUD
+│   │   │   ├── reminder.py            # 提醒 CRUD
+│   │   │   ├── notification.py         # 通知 CRUD
+│   │   │   ├── device.py              # 设备 CRUD
+│   │   │   ├── event_button.py        # EventButton CRUD
+│   │   │   ├── session.py             # 会话 CRUD
+│   │   │   └── log.py                 # 日志 CRUD
 │   │   ├── db/
-│   │   │   ├── session.py              # SQLAlchemy async session factory
-│   │   │   ├── init_db.py              # Database initialization
-│   │   │   └── seed.py                 # Seed default admin/demo users
+│   │   │   ├── session.py             # SQLAlchemy 异步会话工厂
+│   │   │   ├── init_db.py             # 数据库初始化
+│   │   │   └── seed.py                # 种子数据（默认管理员/演示用户）
 │   │   ├── models/
-│   │   │   ├── __init__.py             # Exports all SQLAlchemy models
-│   │   │   ├── user.py                 # User model (id, email, hashed_password, role)
-│   │   │   ├── event.py                 # Event model (title, description, start/end, user_id)
-│   │   │   ├── reminder.py              # Reminder model (type: web/mobile/lumo, event_id)
-│   │   │   ├── notification.py         # Notification model (user_id, event_id, read)
-│   │   │   ├── device.py                # Device model (code, name, user_id, ws_client)
-│   │   │   ├── event_button.py          # EventButton model (device_id, event_id, pressed_at)
-│   │   │   ├── user_session.py          # UserSession model (refresh tokens)
-│   │   │   ├── system_log.py            # SystemLog model (audit trail)
-│   │   │   └── admin_action.py          # AdminAction model
+│   │   │   ├── __init__.py            # 导出所有 SQLAlchemy 模型
+│   │   │   ├── user.py                # 用户模型（id, email, hashed_password, role）
+│   │   │   ├── event.py               # 事件模型（title, description, start/end, user_id）
+│   │   │   ├── reminder.py            # 提醒模型（type: web/mobile/lumo, remind_before_minutes, channel）
+│   │   │   ├── notification.py        # 通知模型（user_id, event_id, is_read）
+│   │   │   ├── device.py              # 设备模型（code, name, user_id）
+│   │   │   ├── event_button.py        # EventButton 模型（device_id, event_id, pressed_at）
+│   │   │   ├── user_session.py        # UserSession 模型（refresh tokens）
+│   │   │   ├── system_log.py          # SystemLog 模型（审计日志）
+│   │   │   └── admin_action.py       # AdminAction 模型
 │   │   ├── routes/
-│   │   │   ├── __init__.py              # APIRouter aggregation
-│   │   │   ├── auth.py                  # /api/v1/auth/* endpoints
-│   │   │   ├── users.py                 # /api/v1/users/* endpoints
-│   │   │   ├── events.py                # /api/v1/events/* endpoints
-│   │   │   ├── reminders.py              # /api/v1/reminders/* endpoints
-│   │   │   ├── notifications.py         # /api/v1/notifications/* endpoints
-│   │   │   ├── calendar.py               # /api/v1/calendar/* endpoints
-│   │   │   ├── devices.py                # /api/v1/devices/* endpoints
-│   │   │   ├── event_buttons.py          # /api/v1/event-buttons/* endpoints
-│   │   │   ├── admin.py                  # /api/v1/admin/* endpoints
-│   │   │   └── lumo.py                   # /api/v1/lumo/* endpoints
+│   │   │   ├── __init__.py            # APIRouter 聚合
+│   │   │   ├── auth.py                # /api/v1/auth/* 端点
+│   │   │   ├── users.py               # /api/v1/users/* 端点
+│   │   │   ├── events.py              # /api/v1/events/* 端点
+│   │   │   ├── reminders.py           # /api/v1/reminders/* 端点
+│   │   │   ├── notifications.py      # /api/v1/notifications/* 端点
+│   │   │   ├── calendar.py            # /api/v1/calendar/* 端点
+│   │   │   ├── devices.py             # /api/v1/devices/* 端点
+│   │   │   ├── event_buttons.py       # /api/v1/event-buttons/* 端点
+│   │   │   ├── admin.py               # /api/v1/admin/* 端点
+│   │   │   └── lumo.py                # /api/v1/lumo/* 端点（AI + 音频管道）
 │   │   ├── schemas/
-│   │   │   ├── __init__.py              # Pydantic schema exports
-│   │   │   ├── user.py                  # UserCreate, UserUpdate, UserResponse
-│   │   │   ├── event.py                 # EventCreate, EventUpdate, EventResponse
-│   │   │   ├── reminder.py              # ReminderCreate, ReminderUpdate
-│   │   │   ├── notification.py         # NotificationResponse
-│   │   │   ├── device.py                # DeviceCreate, DeviceUpdate, DeviceResponse
-│   │   │   ├── event_button.py          # EventButtonCreate, EventButtonResponse
-│   │   │   └── token.py                 # Token schemas (access, refresh)
+│   │   │   ├── __init__.py           # Pydantic schema 导出
+│   │   │   ├── user.py               # UserCreate, UserUpdate, UserResponse
+│   │   │   ├── event.py              # EventCreate, EventUpdate, EventResponse
+│   │   │   ├── reminder.py           # ReminderCreate, ReminderUpdate
+│   │   │   ├── notification.py        # NotificationResponse
+│   │   │   ├── device.py             # DeviceCreate, DeviceUpdate, DeviceResponse
+│   │   │   ├── event_button.py       # EventButtonCreate, EventButtonResponse
+│   │   │   └── auth.py               # Token schemas（access, refresh）
 │   │   ├── services/
-│   │   │   └── dependencies.py         # FastAPI dependencies (get_db, get_current_user)
+│   │   │   └── dependencies.py       # FastAPI 依赖项（get_db, get_current_user）
 │   │   ├── tasks/
-│   │   │   └── scheduler.py            # APScheduler: reminder checker, session cleanup
+│   │   │   └── scheduler.py          # APScheduler：提醒检查、会话清理
 │   │   ├── utils/
-│   │   │   └── helpers.py              # Utility functions
+│   │   │   └── helpers.py           # 工具函数
 │   │   └── websocket/
-│   │       ├── __init__.py             # WebSocket route registration
-│   │       ├── manager.py             # WebSocket connection manager (active connections)
-│   │       ├── routes.py              # WebSocket endpoints (/ws/lumo, /ws/stream)
-│   │       └── tts_stream.py          # TTS streaming pipeline (Gemini → WAV chunks)
+│   │       ├── __init__.py          # WebSocket 路由注册
+│   │       ├── manager.py           # WebSocket 连接管理器
+│   │       ├── routes.py            # WebSocket 端点（/ws/lumo, /ws/stream）
+│   │       └── tts_stream.py       # TTS 流处理管道（Gemini → WAV 分块）
 │   ├── alembic/
-│   │   ├── env.py                     # Alembic migration environment
+│   │   ├── env.py                  # Alembic 迁移环境
 │   │   ├── script.py.mako
 │   │   └── versions/
-│   │       ├── 0001_initial.py        # Initial schema (users, events, reminders, notifications)
-│   │       ├── 0002_add_devices.py    # Add devices, event_buttons tables
-│   │       └── 0003_add_event_buttons.py # Add event_buttons table (revised)
+│   │       ├── 0001_initial.py     # 初始 schema
+│   │       ├── 0002_add_devices.py # 设备相关表
+│   │       └── 0003_add_event_buttons.py
 │   ├── requirements.txt
 │   ├── Dockerfile
 │   ├── .env.example
@@ -241,67 +244,84 @@ lumohub/
 ├── frontend-web/
 │   ├── src/
 │   │   ├── app/
-│   │   │   ├── layout.tsx             # Root layout (html/body)
-│   │   │   ├── globals.css            # Tailwind CSS imports
-│   │   │   ├── page.tsx              # Root redirect → /dashboard
+│   │   │   ├── layout.tsx           # 根布局（html/body）
+│   │   │   ├── globals.css         # Tailwind CSS 导入
+│   │   │   ├── page.tsx           # 根重定向 → /dashboard
 │   │   │   ├── (auth)/
-│   │   │   │   ├── layout.tsx         # Auth layout (no sidebar)
-│   │   │   │   ├── login/page.tsx    # Login page
-│   │   │   │   └── register/page.tsx # Register page
+│   │   │   │   ├── layout.tsx     # 认证布局（无侧边栏）
+│   │   │   │   ├── login/page.tsx    # 登录页
+│   │   │   │   └── register/page.tsx # 注册页
 │   │   │   ├── (dashboard)/
-│   │   │   │   ├── layout.tsx        # ProtectedLayout: sidebar + topbar
-│   │   │   │   ├── page.tsx          # /dashboard - overview with stats
-│   │   │   │   ├── calendar/page.tsx # FullCalendar view
-│   │   │   │   ├── events/page.tsx   # Event list + create/edit modals
-│   │   │   │   ├── notifications/page.tsx # Notification list
+│   │   │   │   ├── layout.tsx     # 受保护布局：侧边栏 + 顶部栏
+│   │   │   │   ├── page.tsx       # /dashboard - 概览统计
+│   │   │   │   ├── calendar/page.tsx    # FullCalendar 日历视图
+│   │   │   │   ├── events/page.tsx      # 事件列表 + 创建/编辑弹窗
+│   │   │   │   ├── notifications/page.tsx  # 通知列表
 │   │   │   │   ├── settings/
-│   │   │   │   │   ├── page.tsx      # Profile & password settings
-│   │   │   │   │   ├── devices/page.tsx     # Device management
-│   │   │   │   │   └── event-buttons/page.tsx # Button press history
+│   │   │   │   │   ├── page.tsx        # 个人资料与密码设置
+│   │   │   │   │   ├── devices/page.tsx    # 设备管理
+│   │   │   │   │   └── event-buttons/page.tsx  # 按键历史
 │   │   │   │   └── admin/
-│   │   │   │       ├── page.tsx      # Admin dashboard
-│   │   │   │       ├── users/page.tsx       # User management
-│   │   │   │       └── websocket/page.tsx   # ESP32 WebSocket tester
-│   │   │   └── api/
-│   │   │       └── v1/
-│   │   │           └── [...path]/
-│   │   │               └── route.ts  # API proxy (forwards to backend)
+│   │   │   │       ├── page.tsx        # 管理后台概览
+│   │   │   │       ├── users/page.tsx  # 用户管理
+│   │   │   │       ├── logs/page.tsx   # 系统日志
+│   │   │   │       └── websocket/page.tsx  # ESP32 WebSocket 测试工具
+│   │   │   └── api/v1/[...path]/route.ts  # API 代理（转发到后端）
 │   │   ├── components/
-│   │   │   ├── ProtectedLayout.tsx   # Auth guard component
-│   │   │   ├── Sidebar.tsx           # Navigation sidebar with role check
-│   │   │   ├── Topbar.tsx            # Top bar with notification bell
-│   │   │   ├── Modal.tsx             # Reusable modal dialog
-│   │   │   ├── CalendarView.tsx      # FullCalendar wrapper
-│   │   │   ├── EventFormModal.tsx     # Create/edit event form modal
-│   │   │   ├── EventDetailModal.tsx  # Event detail modal
-│   │   │   ├── NotificationBell.tsx  # Notification bell with badge
-│   │   │   └── NotificationList.tsx  # Notification display component
+│   │   │   ├── layout/
+│   │   │   │   ├── ProtectedLayout.tsx  # 认证守卫组件
+│   │   │   │   ├── Sidebar.tsx         # 导航侧边栏（含角色判断）
+│   │   │   │   ├── Topbar.tsx          # 顶部栏（含通知铃铛）
+│   │   │   │   └── BottomNav.tsx       # 移动端底部导航
+│   │   │   ├── calendar/
+│   │   │   │   ├── CalendarView.tsx    # FullCalendar 包装组件
+│   │   │   │   ├── EventFormModal.tsx  # 创建/编辑事件表单弹窗
+│   │   │   │   ├── EventDetailModal.tsx  # 事件详情弹窗
+│   │   │   │   └── AIImportModal.tsx   # AI 导入事件弹窗
+│   │   │   ├── notifications/
+│   │   │   │   ├── NotificationBell.tsx   # 通知铃铛组件
+│   │   │   │   ├── NotificationList.tsx   # 通知列表组件
+│   │   │   │   └── NotificationItem.tsx   # 单条通知组件
+│   │   │   ├── auth/
+│   │   │   │   ├── LoginForm.tsx       # 登录表单
+│   │   │   │   └── RegisterForm.tsx   # 注册表单
+│   │   │   ├── profile/
+│   │   │   │   ├── ProfileForm.tsx    # 个人资料表单
+│   │   │   │   └── AvatarUpload.tsx   # 头像上传
+│   │   │   ├── admin/
+│   │   │   │   ├── CreateUserModal.tsx    # 创建用户弹窗
+│   │   │   │   ├── ResetPasswordModal.tsx # 重置密码弹窗
+│   │   │   │   └── RoleBadge.tsx         # 角色徽章
+│   │   │   └── common/
+│   │   │       ├── Modal.tsx          # 通用弹窗
+│   │   │       ├── Button.tsx         # 通用按钮
+│   │   │       ├── Input.tsx          # 通用输入框
+│   │   │       ├── Spinner.tsx       # 加载动画
+│   │   │       └── LoadingSpinner.tsx # 加载指示器
 │   │   ├── features/
-│   │   │   ├── auth.ts               # Auth API functions (login, register, logout)
-│   │   │   ├── events.ts             # Events API functions
-│   │   │   ├── reminders.ts          # Reminders API functions
-│   │   │   ├── notifications.ts      # Notifications API functions
-│   │   │   ├── calendar.ts           # Calendar API functions
-│   │   │   ├── devices.ts            # Devices API functions
-│   │   │   ├── event_buttons.ts       # EventButtons API functions
-│   │   │   ├── admin.ts              # Admin API functions
-│   │   │   └── lumo.ts               # LUMO AI API functions
+│   │   │   ├── auth.ts               # 认证 API 函数
+│   │   │   ├── events.ts            # 事件 API 函数
+│   │   │   ├── reminders.ts         # 提醒 API 函数
+│   │   │   ├── notifications.ts     # 通知 API 函数
+│   │   │   ├── calendar.ts           # 日历 API 函数
+│   │   │   ├── devices.ts           # 设备 API 函数
+│   │   │   ├── event_buttons.ts      # EventButton API 函数
+│   │   │   └── admin.ts             # 管理 API 函数
 │   │   ├── hooks/
-│   │   │   ├── useAuth.ts            # Auth hook (login/logout/user)
-│   │   │   └── useWebSocket.ts        # WebSocket hook for LUMO connection
+│   │   │   └── useLumoWebSocket.ts  # LUMO WebSocket 连接 Hook
 │   │   ├── lib/
-│   │   │   ├── api.ts                # Axios instance with auth interceptors
-│   │   │   ├── utils.ts              # Utility functions
-│   │   │   └── constants.ts          # App constants (API paths, etc.)
+│   │   │   ├── api.ts               # Axios 实例（含认证拦截器）
+│   │   │   ├── publicApi.ts         # 公开 API 实例（无需认证）
+│   │   │   ├── utils.ts             # 工具函数
+│   │   │   └── env.ts              # 环境变量工具
 │   │   ├── store/
-│   │   │   ├── authStore.ts          # Auth state (user, token, login/logout)
-│   │   │   ├── eventStore.ts         # Events state with API sync
-│   │   │   ├── notificationStore.ts  # Notifications + unread count
-│   │   │   ├── deviceStore.ts        # Devices state
-│   │   │   └── eventButtonStore.ts   # EventButtons state
+│   │   │   ├── authStore.ts         # 认证状态（user, token, login/logout）
+│   │   │   ├── eventStore.ts        # 事件状态（含 API 同步）
+│   │   │   ├── notificationStore.ts  # 通知状态 + 未读数
+│   │   │   ├── deviceStore.ts       # 设备状态
+│   │   │   └── eventButtonStore.ts  # EventButton 状态
 │   │   └── types/
-│   │       ├── index.ts              # All TypeScript interfaces
-│   │       └── next-auth.d.ts        # NextAuth type extensions
+│   │       └── index.ts             # 所有 TypeScript 接口定义
 │   ├── public/
 │   ├── package.json
 │   ├── .env.local.example
@@ -309,102 +329,103 @@ lumohub/
 │   ├── tailwind.config.ts
 │   └── tsconfig.json
 │
-├── docker-compose.yml                # Postgres + Backend + Frontend
+├── docker-compose.yml                  # PostgreSQL + Backend + Frontend
+├── docker-compose.dev.yml              # 开发环境配置（含文件挂载）
 └── README.md
 ```
 
 ---
 
-## Features
+## 功能特性
 
-### User Authentication
+### 用户认证
 
-- **Registration** with email, password (bcrypt hashed), and display name
-- **Login** with email/password returning JWT access token (30 min) + refresh token (7 days)
-- **JWT-based sessions** using HS256 algorithm with python-jose
-- **Token refresh** mechanism via `/api/v1/auth/refresh`
-- **Role-based access control** with `user` and `admin` roles
-- **Session management** with refresh token tracking and logout revocation
+- **注册**：填写 email、密码（bcrypt 哈希）和显示名称
+- **登录**：email/密码登录，返回 JWT access token（30分钟）+ refresh token（7天）
+- **JWT 会话**：使用 HS256 算法，python-jose 处理
+- **Token 刷新**：通过 `/api/v1/auth/refresh` 刷新 access token
+- **基于角色的访问控制**：支持 `user` 和 `admin` 角色
+- **会话管理**：refresh token 入库，支持主动撤销
 
-### Calendar & Events
+### 日历与事件
 
-- **FullCalendar integration** supporting day, week, month, and list views
-- **Event CRUD** with title, description, location, start/end datetime
-- **Date range filtering** on the events list endpoint
-- **Event detail modal** showing all event information including reminders
-- **Today view** on the dashboard showing upcoming events and quick stats
+- **FullCalendar 集成**：支持日视图、周视图、月视图和列表视图
+- **事件 CRUD**：包含标题、描述、地点、开始/结束时间
+- **日期范围筛选**：事件列表端点支持 `?start=&end=` 筛选
+- **事件详情弹窗**：展示事件的完整信息及关联提醒
+- **Dashboard 今日视图**：显示今日事件和快速统计
 
-### Reminders & Notifications
+### 提醒与通知
 
-- **Three reminder types**:
-  - `web` — in-app notification via WebSocket
-  - `mobile` — mobile push notification (future-ready)
-  - `lumo` — spoken aloud via ESP32 TTS
-- **Reminder scheduling** with offset from event start time (minutes/hours/days)
-- **Automatic notification creation** when reminders trigger
-- **WebSocket broadcast** to all connected clients for real-time updates
-- **Mark as read** individual or bulk (mark all as read)
+- **三种提醒类型**：
+  - `web` — 应用内通知，通过 WebSocket 推送
+  - `mobile` — 移动推送通知（预留）
+  - `lumo` — 通过 ESP32 TTS 语音播报
+- **提醒调度**：基于事件开始时间的偏移量（分钟/小时/天）
+- **自动创建通知**：提醒触发时自动创建 Notification 记录
+- **WebSocket 广播**：实时推送所有已连接客户端
+- **标记已读**：支持单条标记和全部标记
 
-### LUMO AI Assistant
+### LUMO AI 助手
 
-- **Three LLM versions**:
-  - **Version 1**: Gemini 2.5 with Google Search
-  - **Version 2**: Gemini 3.1 with Tavily web search
-  - **Version 3**: Perplexity AI
-- **Full audio pipeline**: STT (Groq Whisper) → LLM → TTS (Gemini)
-- **Vietnamese-speaking AI** with personality rules (short responses <25 chars, friendly tone)
-- **TTS output**: 24kHz mono 16-bit WAV streamed via WebSocket
-- **Kore voice** (prebuilt) used for TTS generation
-- **Text-only mode**: Chat via REST API without audio
+- **三种 LLM 版本**：
+  - **Version 1**：Gemini 2.5 + Google Search
+  - **Version 2**：Gemini 3.1 + Tavily 网络搜索
+  - **Version 3**：Perplexity AI
+- **完整音频管道**：STT（Groq Whisper）→ LLM → TTS（Gemini）
+- **越南语 AI**：带有角色规则（回复少于25字、友好语气）
+- **TTS 输出**：24kHz 单声道 16位 WAV，通过 WebSocket 流式传输
+- **Kore 音色**：使用预置音色进行 TTS 生成
+- **纯文本模式**：通过 REST API 进行文字对话，无需音频
 
-### IoT Device Integration
+### 物联网设备集成
 
-- **ESP32 device registration** via 4-digit pairing code
-- **WebSocket connection** from ESP32 to backend at `/ws/lumo?device_id=XXXX`
-- **Device naming and management** in the web dashboard
-- **Real-time text messaging** to ESP32 OLED display
-- **TTS streaming** to ESP32 speaker
-- **Physical button press logging** with event association
-- **Device connection status** tracking
+- **ESP32 设备注册**：通过4位配对码注册
+- **WebSocket 连接**：ESP32 连接 `/ws/lumo?device_id=XXXX`
+- **设备命名与管理**：在 Web Dashboard 中管理设备
+- **实时文字消息**：发送文字到 ESP32 OLED 显示屏
+- **TTS 流媒体**：将语音流传输到 ESP32 扬声器
+- **物理按键日志**：按键按压记录与事件关联
+- **设备连接状态**：追踪设备在线状态
 
-### Admin Dashboard
+### 管理后台
 
-- **User management**: create, lock/unlock, change role, reset password
-- **System logs**: audit trail of all admin actions
-- **Event browser**: view all events across all users
-- **WebSocket tester**: test ESP32 connections and send messages directly
-- **Device notification**: send notifications to specific devices
+- **用户管理**：创建、锁定/解锁、更改角色、重置密码
+- **系统日志**：审计所有管理操作
+- **事件浏览器**：查看所有用户的事件
+- **WebSocket 测试工具**：测试 ESP32 连接并直接发送消息
+- **设备通知**：向指定设备发送通知
 
 ---
 
-## API Reference
+## API 接口
 
-All API endpoints are prefixed with `/api/v1`. Authentication uses Bearer token in the `Authorization` header.
+所有 API 端点前缀为 `/api/v1`。认证通过请求头中的 Bearer token：
 
 ```
 Authorization: Bearer <access_token>
 ```
 
-### Authentication
+### 认证
 
-| Method | Endpoint | Description | Auth |
-|--------|----------|-------------|------|
-| `POST` | `/auth/register` | Register new user | No |
-| `POST` | `/auth/login` | Login, returns tokens | No |
-| `POST` | `/auth/refresh` | Refresh access token | No |
-| `POST` | `/auth/logout` | Logout (revoke session) | Yes |
-| `GET` | `/auth/me` | Get current user | Yes |
+| 方法 | 端点 | 描述 | 认证 |
+|------|------|------|------|
+| `POST` | `/auth/register` | 注册新用户 | 否 |
+| `POST` | `/auth/login` | 登录，返回 Token | 否 |
+| `POST` | `/auth/refresh` | 刷新 Access Token | 否 |
+| `POST` | `/auth/logout` | 登出（撤销会话）| 是 |
+| `GET` | `/auth/me` | 获取当前用户信息 | 是 |
 
-**Register Request:**
+**注册请求：**
 ```json
 {
   "email": "user@example.com",
   "password": "SecurePass123",
-  "name": "John Doe"
+  "name": "张三"
 }
 ```
 
-**Login Response:**
+**登录响应：**
 ```json
 {
   "access_token": "eyJhbGciOiJIUzI1NiIs...",
@@ -413,605 +434,573 @@ Authorization: Bearer <access_token>
 }
 ```
 
-### Users
+### 用户
 
-| Method | Endpoint | Description | Auth |
-|--------|----------|-------------|------|
-| `GET` | `/users/me` | Get current user profile | Yes |
-| `PATCH` | `/users/me` | Update profile (name, phone) | Yes |
-| `PATCH` | `/users/me/password` | Change password | Yes |
+| 方法 | 端点 | 描述 | 认证 |
+|------|------|------|------|
+| `GET` | `/users/me` | 获取当前用户资料 | 是 |
+| `PATCH` | `/users/me` | 更新资料（姓名、电话）| 是 |
+| `PATCH` | `/users/me/password` | 修改密码 | 是 |
 
-### Events
+### 事件
 
-| Method | Endpoint | Description | Auth |
-|--------|----------|-------------|------|
-| `GET` | `/events` | List events (supports `?start=&end=` filter) | Yes |
-| `GET` | `/events/{id}` | Get single event | Yes |
-| `POST` | `/events` | Create event (auto-creates reminders) | Yes |
-| `PATCH` | `/events/{id}` | Update event | Yes |
-| `DELETE` | `/events/{id}` | Delete event | Yes |
+| 方法 | 端点 | 描述 | 认证 |
+|------|------|------|------|
+| `GET` | `/events` | 列出事件（支持 `?start=&end=` 筛选）| 是 |
+| `GET` | `/events/{id}` | 获取单个事件 | 是 |
+| `POST` | `/events` | 创建事件（自动创建提醒）| 是 |
+| `PATCH` | `/events/{id}` | 更新事件 | 是 |
+| `DELETE` | `/events/{id}` | 删除事件 | 是 |
 
-**Create Event Request:**
+**创建事件请求：**
 ```json
 {
-  "title": "Team Meeting",
-  "description": "Weekly sync",
-  "location": "Conference Room A",
+  "title": "团队会议",
+  "description": "每周同步会议",
+  "location": "会议室 A",
   "start": "2026-04-03T10:00:00",
   "end": "2026-04-03T11:00:00",
   "reminders": [
-    { "type": "lumo", "minutes_before": 5 },
-    { "type": "web", "minutes_before": 15 }
+    { "type": "lumo", "remind_before_minutes": 5 },
+    { "type": "web", "remind_before_minutes": 15 }
   ]
 }
 ```
 
-### Reminders
+### 提醒
 
-| Method | Endpoint | Description | Auth |
-|--------|----------|-------------|------|
-| `GET` | `/reminders` | List user's reminders | Yes |
-| `POST` | `/events/{id}/reminders` | Add reminder to event | Yes |
-| `PATCH` | `/reminders/{id}` | Update reminder | Yes |
-| `DELETE` | `/reminders/{id}` | Delete reminder | Yes |
+| 方法 | 端点 | 描述 | 认证 |
+|------|------|------|------|
+| `GET` | `/reminders` | 列出用户的提醒 | 是 |
+| `POST` | `/events/{id}/reminders` | 为事件添加提醒 | 是 |
+| `PATCH` | `/reminders/{id}` | 更新提醒 | 是 |
+| `DELETE` | `/reminders/{id}` | 删除提醒 | 是 |
 
-### Notifications
+### 通知
 
-| Method | Endpoint | Description | Auth |
-|--------|----------|-------------|------|
-| `GET` | `/notifications` | List notifications | Yes |
-| `PATCH` | `/notifications/{id}/read` | Mark as read | Yes |
-| `PATCH` | `/notifications/read-all` | Mark all as read | Yes |
+| 方法 | 端点 | 描述 | 认证 |
+|------|------|------|------|
+| `GET` | `/notifications` | 列出通知 | 是 |
+| `PATCH` | `/notifications/{id}/read` | 标记已读 | 是 |
+| `PATCH` | `/notifications/read-all` | 全部标记已读 | 是 |
 
-### Calendar
+### 日历
 
-| Method | Endpoint | Description | Auth |
-|--------|----------|-------------|------|
-| `GET` | `/calendar` | Get calendar events (`?start=&end=`) | Yes |
+| 方法 | 端点 | 描述 | 认证 |
+|------|------|------|------|
+| `GET` | `/calendar` | 获取日历事件（`?start=&end=`）| 是 |
 
-### Devices
+### 设备
 
-| Method | Endpoint | Description | Auth |
-|--------|----------|-------------|------|
-| `GET` | `/devices` | List user's devices | Yes |
-| `GET` | `/devices/{id}` | Get device details | Yes |
-| `POST` | `/devices` | Register device (requires 4-digit code) | Yes |
-| `PATCH` | `/devices/{id}` | Update device name | Yes |
-| `DELETE` | `/devices/{id}` | Delete device | Yes |
+| 方法 | 端点 | 描述 | 认证 |
+|------|------|------|------|
+| `GET` | `/devices` | 列出用户设备 | 是 |
+| `GET` | `/devices/{id}` | 获取设备详情 | 是 |
+| `POST` | `/devices` | 注册设备（需要4位码）| 是 |
+| `PATCH` | `/devices/{id}` | 更新设备名称 | 是 |
+| `DELETE` | `/devices/{id}` | 删除设备 | 是 |
 
-### Event Buttons
+### 事件按钮
 
-| Method | Endpoint | Description | Auth |
-|--------|----------|-------------|------|
-| `POST` | `/event-buttons` | Record button press | Yes |
-| `GET` | `/event-buttons` | List button presses | Yes |
-| `GET` | `/event-buttons/today` | Get today's button status | Yes |
+| 方法 | 端点 | 描述 | 认证 |
+|------|------|------|------|
+| `POST` | `/event-buttons` | 记录按键按压 | 是 |
+| `GET` | `/event-buttons` | 列出按键记录 | 是 |
+| `GET` | `/event-buttons/today` | 获取今日按键状态 | 是 |
 
 ### LUMO AI
 
-| Method | Endpoint | Description | Auth |
-|--------|----------|-------------|------|
-| `GET` | `/lumo/version1` | Gemini 2.5 + Google Search | Yes |
-| `GET` | `/lumo/version2` | Gemini 3.1 + Tavily Search | Yes |
-| `GET` | `/lumo/version3` | Perplexity AI | Yes |
-| `POST` | `/lumo/audio/` | Full audio pipeline (STT → LLM → TTS) | Yes |
+| 方法 | 端点 | 描述 | 认证 |
+|------|------|------|------|
+| `GET` | `/lumo/version1` | Gemini 2.5 + Google Search | 是 |
+| `GET` | `/lumo/version2` | Gemini 3.1 + Tavily Search | 是 |
+| `GET` | `/lumo/version3` | Perplexity AI | 是 |
+| `POST` | `/lumo/audio/` | 完整音频管道（STT → LLM → TTS）| 是 |
+| `GET` | `/lumo/` | 健康检查 | 否 |
 
-**Text Query Parameters:** `?q=<message>`
+**文本查询参数：** `?textLumoCallServer=<message>`
 
-**Audio Pipeline Request (multipart/form-data):**
+**音频管道请求（multipart/form-data）：**
 ```
-audio: <audio_file> (audio/webm or audio/mp4)
+audio: <audio_file> (audio/webm 或 audio/mp4)
 ```
 
-### Admin
+### 管理
 
-| Method | Endpoint | Description | Auth |
-|--------|----------|-------------|------|
-| `GET` | `/admin/users` | List all users (paginated) | Admin |
-| `POST` | `/admin/users` | Create user | Admin |
-| `PATCH` | `/admin/users/{id}/password` | Reset user password | Admin |
-| `PATCH` | `/admin/users/{id}/lock` | Lock user account | Admin |
-| `PATCH` | `/admin/users/{id}/unlock` | Unlock user account | Admin |
-| `PATCH` | `/admin/users/{id}/role` | Change user role | Admin |
-| `GET` | `/admin/logs` | View system logs | Admin |
-| `GET` | `/admin/events` | View all events | Admin |
-| `POST` | `/admin/device/notify` | Send notification to device | Admin |
-| `POST` | `/admin/device/send` | Send text to ESP32 | Admin |
+| 方法 | 端点 | 描述 | 认证 |
+|------|------|------|------|
+| `GET` | `/admin/users` | 列出所有用户（分页）| 管理员 |
+| `POST` | `/admin/users` | 创建用户 | 管理员 |
+| `PATCH` | `/admin/users/{id}/password` | 重置用户密码 | 管理员 |
+| `PATCH` | `/admin/users/{id}/lock` | 锁定用户账户 | 管理员 |
+| `PATCH` | `/admin/users/{id}/unlock` | 解锁用户账户 | 管理员 |
+| `PATCH` | `/admin/users/{id}/role` | 更改用户角色 | 管理员 |
+| `GET` | `/admin/logs` | 查看系统日志 | 管理员 |
+| `GET` | `/admin/events` | 查看所有事件 | 管理员 |
+| `POST` | `/admin/device/notify` | 向设备发送通知 | 管理员 |
+| `POST` | `/admin/device/send` | 向 ESP32 发送文字 | 管理员 |
 
 ---
 
-## WebSocket Protocol
+## WebSocket 协议
 
-### Endpoint 1: `/ws/lumo`
+### 端点 1：`/ws/stream`
 
-ESP32 device connection for LUMO AI interactions.
+ESP32 设备连接 LUMO AI 交互。
 
-**Connection:**
+**连接方式：**
 ```
-wss://api.example.com/ws/lumo?device_id=1234
+wss://api.example.com/ws/stream?device_id=1234
 ```
 
-**Device → Server Messages:**
+**设备 → 服务器消息：**
 
 ```json
-// Text-to-Speech request
-{"action": "tts", "text": "Bạn có cuộc họp vào lúc 3 giờ chiều"}
+// 文字转语音请求
+{"action": "tts", "text": "您有一个会议在下午3点"}
 
-// Voice pipeline (STT → LLM → TTS)
+// 语音管道（STT → LLM → TTS）
 {"action": "stt_tts", "audio_b64": "UklGRl..."}
 
-// Keepalive
+// 保活
 "ping"
 ```
 
-**Server → Device Responses:**
+**服务器 → 设备响应：**
 
 ```json
-// Error
-{"type": "error", "message": "TTS service unavailable"}
+// 错误
+{"type": "error", "message": "TTS 服务不可用"}
 
-// Completion
+// 完成
 {"type": "done"}
 
-// Binary frames
+// 二进制帧
 <raw WAV audio data>
 ```
 
-### Endpoint 2: `/ws/stream`
+### 端点 2：`/ws/lumo`
 
-TTS streaming for web clients.
-
-**Connection:**
-```
-wss://api.example.com/ws/stream?token=<access_token>
-```
-
-**Client → Server:**
-```json
-{"action": "tts", "text": "Xin chào! Bạn khỏe không?"}
-```
-
-**Server → Client:** Binary WAV audio chunks, followed by `{"type": "done"}`.
+WebSocket 路由聚合端点，内部调用 stream 端点处理 LUMO 设备消息。
 
 ---
 
-## Database Schema
+## 数据库模型
 
-### Users Table
-| Column | Type | Constraints |
-|--------|------|-------------|
-| id | UUID | PRIMARY KEY |
-| email | VARCHAR(255) | UNIQUE, NOT NULL |
-| name | VARCHAR(255) | NOT NULL |
-| hashed_password | VARCHAR(255) | NOT NULL |
-| role | VARCHAR(50) | DEFAULT 'user' |
-| is_locked | BOOLEAN | DEFAULT FALSE |
-| created_at | TIMESTAMP | DEFAULT NOW() |
+### Users 表
+| 字段 | 类型 | 约束 |
+|------|------|------|
+| id | UUID | 主键 |
+| email | VARCHAR(255) | 唯一，非空 |
+| name | VARCHAR(255) | 非空 |
+| hashed_password | VARCHAR(255) | 非空 |
+| role | VARCHAR(50) | 默认 'user' |
+| is_locked | BOOLEAN | 默认 FALSE |
+| phone | VARCHAR(50) | 可空 |
+| avatar_url | VARCHAR(500) | 可空 |
+| created_at | TIMESTAMP | 默认 NOW() |
 
-### Events Table
-| Column | Type | Constraints |
-|--------|------|-------------|
-| id | UUID | PRIMARY KEY |
-| user_id | UUID | FOREIGN KEY → users.id |
-| title | VARCHAR(255) | NOT NULL |
+### Events 表
+| 字段 | 类型 | 约束 |
+|------|------|------|
+| id | UUID | 主键 |
+| user_id | UUID | 外键 → users.id |
+| title | VARCHAR(255) | 非空 |
 | description | TEXT | |
 | location | VARCHAR(255) | |
-| start | TIMESTAMP | NOT NULL |
-| end | TIMESTAMP | NOT NULL |
-| created_at | TIMESTAMP | DEFAULT NOW() |
+| start_time | TIMESTAMP | 非空 |
+| end_time | TIMESTAMP | 非空 |
+| created_at | TIMESTAMP | 默认 NOW() |
 
-### Reminders Table
-| Column | Type | Constraints |
-|--------|------|-------------|
-| id | UUID | PRIMARY KEY |
-| event_id | UUID | FOREIGN KEY → events.id |
-| type | VARCHAR(50) | NOT NULL (web/mobile/lumo) |
-| minutes_before | INTEGER | NOT NULL |
-| is_sent | BOOLEAN | DEFAULT FALSE |
+### Reminders 表
+| 字段 | 类型 | 约束 |
+|------|------|------|
+| id | UUID | 主键 |
+| event_id | UUID | 外键 → events.id |
+| channel | VARCHAR(50) | 非空（web/mobile/lumo）|
+| remind_before_minutes | INTEGER | 非空 |
+| is_sent | BOOLEAN | 默认 FALSE |
 
-### Notifications Table
-| Column | Type | Constraints |
-|--------|------|-------------|
-| id | UUID | PRIMARY KEY |
-| user_id | UUID | FOREIGN KEY → users.id |
-| event_id | UUID | FOREIGN KEY → events.id (nullable) |
-| title | VARCHAR(255) | NOT NULL |
-| message | TEXT | NOT NULL |
-| is_read | BOOLEAN | DEFAULT FALSE |
-| created_at | TIMESTAMP | DEFAULT NOW() |
+### Notifications 表
+| 字段 | 类型 | 约束 |
+|------|------|------|
+| id | UUID | 主键 |
+| user_id | UUID | 外键 → users.id |
+| event_id | UUID | 外键 → events.id（可空）|
+| title | VARCHAR(255) | 非空 |
+| content | TEXT | 非空 |
+| is_read | BOOLEAN | 默认 FALSE |
+| created_at | TIMESTAMP | 默认 NOW() |
 
-### Devices Table
-| Column | Type | Constraints |
-|--------|------|-------------|
-| id | UUID | PRIMARY KEY |
-| code | VARCHAR(4) | UNIQUE, NOT NULL |
-| name | VARCHAR(255) | NOT NULL |
-| user_id | UUID | FOREIGN KEY → users.id |
-| created_at | TIMESTAMP | DEFAULT NOW() |
+### Devices 表
+| 字段 | 类型 | 约束 |
+|------|------|------|
+| id | UUID | 主键 |
+| code | VARCHAR(4) | 唯一，非空 |
+| name | VARCHAR(255) | 非空 |
+| user_id | UUID | 外键 → users.id |
+| created_at | TIMESTAMP | 默认 NOW() |
 
-### EventButtons Table
-| Column | Type | Constraints |
-|--------|------|-------------|
-| id | UUID | PRIMARY KEY |
-| device_id | UUID | FOREIGN KEY → devices.id |
-| event_id | UUID | FOREIGN KEY → events.id (nullable) |
-| pressed_at | TIMESTAMP | DEFAULT NOW() |
+### EventButtons 表
+| 字段 | 类型 | 约束 |
+|------|------|------|
+| id | UUID | 主键 |
+| device_id | UUID | 外键 → devices.id |
+| event_id | UUID | 外键 → events.id（可空）|
+| pressed_at | TIMESTAMP | 默认 NOW() |
 
-### UserSessions Table
-| Column | Type | Constraints |
-|--------|------|-------------|
-| id | UUID | PRIMARY KEY |
-| user_id | UUID | FOREIGN KEY → users.id |
-| refresh_token | VARCHAR(255) | NOT NULL |
-| expires_at | TIMESTAMP | NOT NULL |
-| created_at | TIMESTAMP | DEFAULT NOW() |
+### UserSessions 表
+| 字段 | 类型 | 约束 |
+|------|------|------|
+| id | UUID | 主键 |
+| user_id | UUID | 外键 → users.id |
+| refresh_token | VARCHAR(255) | 非空 |
+| expires_at | TIMESTAMP | 非空 |
+| created_at | TIMESTAMP | 默认 NOW() |
 
 ---
 
-## Configuration
+## 配置说明
 
-### Backend Environment Variables
+### 后端环境变量
 
-Create `backend/.env` from `backend/.env.example`:
+从 `backend/.env.example` 复制并创建 `backend/.env`：
 
 ```env
-# Database
-DATABASE_URL=postgresql+asyncpg://postgres:postgres@postgres:5432/lumohub
+# 数据库
+DATABASE_URL=postgresql+asyncpg://lumohub:lumohub123@postgres:5432/lumohub_db
 
-# Security
+# 安全
 SECRET_KEY=your-super-secret-key-at-least-32-characters-long
 ALGORITHM=HS256
 ACCESS_TOKEN_EXPIRE_MINUTES=30
 REFRESH_TOKEN_EXPIRE_DAYS=7
 
 # CORS
-CORS_ORIGINS=http://localhost:3000,https://your-domain.com
+CORS_ORIGINS=https://lumohub.luminostech.tech, https://api.luminostech.tech
 
-# AI APIs
+# AI API（必须配置）
 GEMINI_API_KEY=your-google-gemini-api-key
+PERPLEXITY_API_KEY=your-perplexity-api-key
 GROQ_API_KEY=your-groq-api-key
-GOOGLE_API_KEY=your-google-api-key (for Google Search)
 TAVILY_API_KEY=your-tavily-api-key
 
-# Optional: External API base URL
-# API_BASE_URL=http://backend:8000
+# 日志
+LUMO_LOG_PATH=system.log
 ```
 
-### Frontend Environment Variables
+### 前端环境变量
 
-Create `frontend-web/.env.local` from `frontend-web/.env.local.example`:
+从 `frontend-web/.env.local.example` 复制并创建 `frontend-web/.env.local`：
 
 ```env
-# Point to the backend API (use /api/v1 proxy in production)
+# 指向后端 API（在生产环境使用 /api/v1 代理）
 INTERNAL_API_URL=http://127.0.0.1:8000
-
-# Optional: Direct WebSocket URL (if different from frontend origin)
-# NEXT_PUBLIC_WS_URL=wss://api.your-domain.com
 ```
 
 ---
 
-## Getting Started
+## 快速开始
 
-### Prerequisites
+### 前置条件
 
-- **Docker** and **Docker Compose** installed
-- **Python 3.11+** (for local development)
-- **Node.js 18+** (for local frontend development)
-- API keys for Gemini, Groq, Tavily, and Google Search
+- **Docker** 和 **Docker Compose** 已安装
+- **Python 3.11+**（本地开发）
+- **Node.js 18+**（本地前端开发）
+- Gemini、Groq、Tavily 的 API Key
 
-### Development Setup
-
-#### Option 1: Docker (Recommended)
+### Docker 部署（推荐）
 
 ```bash
-# 1. Clone the repository
+# 1. 克隆项目
 git clone https://github.com/luminostech/lumohub.git
 cd lumohub
 
-# 2. Configure environment
+# 2. 配置环境变量
 cp backend/.env.example backend/.env
-# Edit backend/.env with your API keys
+# 编辑 backend/.env，填入 API Key
 
-# 3. Start all services
-docker-compose up -d
+# 3. 启动所有服务
+docker compose up -d --build
 
-# 4. Run database migrations
-docker-compose exec backend alembic upgrade head
+# 4. 数据库迁移
+docker compose exec backend alembic upgrade head
 
-# 5. Seed default users
-docker-compose exec backend python -m app.db.seed
+# 5. 初始化种子数据
+docker compose exec backend python -m app.db.seed
 
-# 6. Access the application
-# Frontend: http://localhost:3000
-# Backend API: http://localhost:8000
-# API Docs: http://localhost:8000/docs
+# 6. 访问应用
+# 前端：http://localhost:3000
+# 后端 API：http://localhost:8000
+# API 文档：http://localhost:8000/docs
 ```
 
-#### Option 2: Local Development
+### 本地开发
 
-**Backend:**
+**后端：**
 ```bash
 cd backend
 
-# Create virtual environment
+# 创建虚拟环境
 python -m venv venv
 source venv/bin/activate  # Windows: venv\Scripts\activate
 
-# Install dependencies
+# 安装依赖
 pip install -r requirements.txt
 
-# Configure environment
+# 配置环境
 cp .env.example .env
-# Edit .env with your settings
+# 编辑 .env 填入 API Key
 
-# Run migrations
+# 数据库迁移
 alembic upgrade head
 
-# Seed data
+# 初始化种子数据
 python -m app.db.seed
 
-# Start server
+# 启动开发服务器（热重载）
 uvicorn app.main:app --reload --port 8000
 ```
 
-**Frontend:**
+**前端：**
 ```bash
 cd frontend-web
 
-# Install dependencies
+# 安装依赖
 npm install
 
-# Configure environment
+# 配置环境
 cp .env.local.example .env.local
-# Edit .env.local
+# 编辑 .env.local
 
-# Start development server
+# 启动开发服务器
 npm run dev
 ```
 
-### Docker Deployment
-
-```bash
-# Build and start
-docker-compose up -d --build
-
-# View logs
-docker-compose logs -f backend
-docker-compose logs -f frontend-web
-
-# Stop services
-docker-compose down
-
-# Reset database (⚠️ destructive)
-docker-compose down -v
-docker-compose up -d
-docker-compose exec backend alembic upgrade head
-docker-compose exec backend python -m app.db.seed
-```
-
 ---
 
-## Frontend Guide
+## 前端使用指南
 
 ### Dashboard
 
-The main dashboard (`/dashboard`) provides:
-- Greeting with user name and current date
-- Today's event count
-- Total events this month
-- Today's event list with quick actions
-- Recent notifications
+主页（`/dashboard`）提供：
+- 用户名和当前日期问候语
+- 今日事件数量统计
+- 本月事件总数
+- 今日事件列表及快捷操作
+- 最近通知
 
-### Calendar
+### 日历
 
-The calendar page (`/calendar`) uses FullCalendar with:
-- **Month view** (default)
-- **Week view**
-- **Day view**
-- **List view**
-- Click any date to create an event
-- Click any event to view details
+日历页面（`/calendar`）使用 FullCalendar，支持：
+- **月视图**（默认）
+- **周视图**
+- **日视图**
+- **列表视图**
+- 点击日期创建事件
+- 点击事件查看详情
 
-### Events Management
+### 事件管理
 
-The events page (`/events`) provides:
-- List view of all events with search
-- Create event via modal form
-- Edit event via modal form
-- Delete event with confirmation
-- Add/edit reminders when creating/editing events
-- Filter by date range
+事件页面（`/events`）提供：
+- 所有事件列表，支持搜索
+- 弹窗表单创建事件
+- 弹窗表单编辑事件
+- 确认删除事件
+- 创建/编辑事件时添加/编辑提醒
+- 按日期范围筛选
 
-### Notifications
+### 通知
 
-The notifications page (`/notifications`) provides:
-- Chronological list of all notifications
-- Mark individual notifications as read
-- Mark all as read button
-- Notification bell in topbar with unread count
+通知页面（`/notifications`）提供：
+- 所有通知按时间倒序排列
+- 单条通知标记已读
+- 全部标记已读按钮
+- 顶部栏通知铃铛含未读数徽章
 
-### Settings
+### 设置
 
-**Profile Settings** (`/settings`):
-- Update display name
-- Update phone number
-- Change password
+**个人资料设置**（`/settings`）：
+- 修改显示名称
+- 修改电话号码
+- 修改密码
 
-**Device Management** (`/settings/devices`):
-- View registered ESP32 devices
-- Add new device (enter 4-digit code)
-- Rename devices
-- Delete devices
+**设备管理**（`/settings/devices`）：
+- 查看已注册的 ESP32 设备
+- 添加新设备（输入4位码）
+- 重命名设备
+- 删除设备
 
-**Event Buttons** (`/settings/event-buttons`):
-- View button press history
-- See which events were triggered
-- Today's button press summary
+**事件按钮**（`/settings/event-buttons`）：
+- 查看按键按压历史
+- 查看触发了哪些事件
+- 今日按键按压汇总
 
-### Admin Dashboard
+### 管理后台
 
-Accessible only to users with `admin` role.
+仅限拥有 `admin` 角色的用户访问。
 
-**Overview** (`/admin`):
-- Total user count
-- Active sessions count
-- System logs table
+**概览**（`/admin`）：
+- 用户总数
+- 活跃会话数
+- 系统日志表格
 
-**User Management** (`/admin/users`):
-- Paginated user list
-- Create new user
-- Reset password
-- Lock/unlock accounts
-- Change user roles (user ↔ admin)
+**用户管理**（`/admin/users`）：
+- 用户分页列表
+- 创建新用户
+- 重置密码
+- 锁定/解锁账户
+- 更改用户角色（user ↔ admin）
 
-**WebSocket Tester** (`/admin/websocket`):
-- Test ESP32 device connections
-- Send TTS messages to devices
-- Monitor WebSocket status
-- View device list with connection status
+**WebSocket 测试工具**（`/admin/websocket`）：
+- 测试 ESP32 设备连接
+- 向设备发送 TTS 消息
+- 监控 WebSocket 状态
+- 查看设备列表及连接状态
 
 ---
 
-## ESP32 IoT Device
+## ESP32 物联网设备
 
-The ESP32 device (Lumo LuminosTech) is an IoT companion device that:
+ESP32 设备（Lumo LuminosTech）功能：
 
-1. **Connects** to the backend via WebSocket at `/ws/lumo?device_id=XXXX`
-2. **Displays** text messages on the OLED screen
-3. **Speaks** event reminders and AI responses via TTS
-4. **Listens** to voice commands via microphone (STT)
-5. **Buttons** can be pressed to trigger associated events
+1. **连接**：通过 WebSocket 连接后端 `/ws/stream?device_id=XXXX`
+2. **显示**：在 OLED 屏幕上显示文字消息
+3. **播报**：通过 TTS 语音播报事件提醒和 AI 响应
+4. **聆听**：通过麦克风接收语音命令（STT）
+5. **按键**：按压物理按键触发关联事件
 
-### Device Communication Flow
+### 设备通信流程
 
 ```
-ESP32 → WebSocket → Backend
-                  ↓
-            [Check device code]
-                  ↓
-            [Route message]
-                  ↓
-     ┌────────────┼────────────┐
-     ↓            ↓            ↓
-  Gemini      Groq STT     TTS Stream
-  (LLM)       (Speech)     (Audio)
-     ↓            ↓            ↓
-     └────────────┴────────────┘
-                  ↓
-            WebSocket Response
-                  ↓
-              ESP32
-         (Display/Speak)
+ESP32 → WebSocket → 后端
+                   ↓
+             [验证设备码]
+                   ↓
+             [路由消息]
+                   ↓
+    ┌───────────┬───┴────┐
+    ↓           ↓         ↓
+  Gemini     Groq STT   TTS 流
+  (LLM)     (语音识别)  (音频)
+    ↓           ↓         ↓
+    └───────────┴─────────┘
+                   ↓
+            WebSocket 响应
+                   ↓
+               ESP32
+          (显示/播报语音)
 ```
 
-### Physical Button Integration
+### 物理按键集成
 
-- Each device has one or more physical buttons
-- Button presses are logged via `POST /api/v1/event-buttons`
-- Buttons can be associated with calendar events
-- Today's button status viewable at `/settings/event-buttons`
+- 每个设备有一个或多个物理按键
+- 按键按压通过 `POST /api/v1/event-buttons` 记录
+- 按键可与日历事件关联
+- 今日按键状态可在 `/settings/event-buttons` 查看
 
 ---
 
-## LUMO AI Voice Pipeline
+## LUMO AI 语音处理管道
+
+### 管道流程
 
 ```
-Microphone → ESP32 → Base64 Audio → WebSocket → Backend
-                                              ↓
-                                         Groq API
-                                      (Whisper STT)
-                                              ↓
-                                         Gemini API
-                                         (LLM + TTS)
-                                              ↓
-                                         WAV Audio
-                                              ↓
-                                         WebSocket
-                                              ↓
-                    ESP32 ← Base64 Audio ← Backend
-                         (DAC → Speaker)
+麦克风 → ESP32 → Base64 音频 → WebSocket → 后端
+                                            ↓
+                                       Groq API
+                                     (Whisper STT)
+                                            ↓
+                                       Gemini API
+                                       (LLM + TTS)
+                                            ↓
+                                       WAV 音频
+                                            ↓
+                                       WebSocket
+                                            ↓
+              ESP32 ← Base64 音频 ← 后端
+                   (DAC → 扬声器)
 ```
 
-### TTS Streaming Details
+### TTS 流媒体详情
 
-1. Client sends `{action: "tts", text: "..."}` to `/ws/stream`
-2. Backend calls `tts_stream_manager.stream_tts()`
-3. Gemini TTS generates audio using `kore` voice
-4. Audio is chunked into ~10KB WAV frames
-5. Binary frames sent over WebSocket
-6. Final `{"type": "done"}` message signals completion
+1. 客户端发送 `{action: "tts", text: "..."}` 到 `/ws/stream`
+2. 后端调用 `tts_stream_manager.stream_tts()`
+3. Gemini TTS 使用 `kore` 音色生成音频
+4. 音频分块为 ~10KB WAV 帧
+5. 二进制帧通过 WebSocket 发送
+6. 收到 `{"type": "done"}` 消息表示完成
 
-### LUMO Personality Rules
+### LUMO 角色规则
 
-LUMO (the AI assistant) follows these rules:
-- Always responds in **Vietnamese**
-- Keeps responses **under 25 characters** for quick TTS playback
-- **Friendly, warm, and caring** tone
-- **Never refuses** — always suggests alternatives if unable to help
-- Used for: event reminders, quick answers, voice interaction
-
----
-
-## Background Tasks
-
-### Reminder Checker (APScheduler)
-
-Runs every **60 seconds**:
-1. Queries reminders where `is_sent = false` and `scheduled_time <= now`
-2. Creates a `Notification` record for the user
-3. Broadcasts via WebSocket to all connected clients
-4. If reminder type is `lumo`, sends TTS message to the user's devices
-5. Marks reminder as `is_sent = true`
-
-### Session Cleanup (APScheduler)
-
-Runs every **60 minutes**:
-1. Deletes expired refresh tokens from `user_sessions` table
-2. Keeps the session table clean
+LUMO（AI 助手）遵循以下规则：
+- 始终使用**越南语**回复
+- 回复**少于25字**，快速 TTS 播放
+- **友好、温暖、关心**的语气
+- **从不拒绝** — 无法帮助时建议替代方案
+- 应用场景：事件提醒、快速问答、语音交互
 
 ---
 
-## Security
+## 定时任务
 
-### Password Security
-- Passwords hashed with **bcrypt** (via passlib)
-- Minimum password requirements enforced at registration
+### 提醒检查（APScheduler）
 
-### JWT Tokens
-- **HS256** algorithm for signing
-- Short-lived access tokens (30 min default)
-- Refresh tokens with longer expiry (7 days default)
-- Refresh tokens stored in database for revocation
+每 **1 分钟**执行一次：
+1. 查询所有 `is_sent = false` 且 `scheduled_time <= now` 的提醒
+2. 为用户创建 `Notification` 记录
+3. 通过 WebSocket 广播给所有已连接客户端
+4. 若提醒类型为 `lumo`，向用户的设备发送 TTS 消息
+5. 将提醒标记为 `is_sent = true`
 
-### Role-Based Access Control
-- **Admin routes** protected with `require_admin` dependency
-- **User routes** protected with `get_current_user` dependency
-- User can only access their own events, devices, notifications
+### 会话清理（APScheduler）
 
-### Input Validation
-- All request data validated with **Pydantic schemas**
-- SQL injection prevented by **SQLAlchemy ORM** (parameterized queries)
-- CORS configured for specific trusted origins
-
-### Admin Security
-- Failed login attempts can lock accounts (admin action)
-- All admin actions logged in `admin_actions` and `system_logs` tables
-- Admin can force-lock/unlock user accounts
+每 **1 小时**执行一次：
+1. 从 `user_sessions` 表删除过期的 refresh token
+2. 保持会话表整洁
 
 ---
 
-## Default Credentials (Development Only)
+## 安全机制
 
-> ⚠️ **Never use these in production!**
+### 密码安全
+- 密码通过 **bcrypt**（passlib）哈希存储
+- 注册时强制最低密码要求
 
-| Role | Email | Password |
-|------|-------|----------|
-| Admin | `admin@lumohub.com` | `Admin@123` |
-| Demo User | `demo@lumohub.com` | `Demo@123` |
+### JWT Token
+- 使用 **HS256** 算法签名
+- Access token 短有效期（默认30分钟）
+- Refresh token 长有效期（默认7天）
+- Refresh token 入库，支持撤销
+
+### 基于角色的访问控制
+- **管理端点**使用 `require_admin` 依赖保护
+- **用户端点**使用 `get_current_user` 依赖保护
+- 用户只能访问自己的事件、设备、通知
+
+### 输入验证
+- 所有请求数据通过 **Pydantic schemas** 验证
+- **SQLAlchemy ORM**（参数化查询）防止 SQL 注入
+- CORS 配置为仅限信任来源
+
+### 管理员安全
+- 登录失败可锁定账户（管理操作）
+- 所有管理操作记录在 `admin_actions` 和 `system_logs` 表
+- 管理员可强制锁定/解锁用户账户
 
 ---
 
-## License
+## 默认账户（仅供开发使用）
 
-Copyright © 2026 **Luminos Tech**. All rights reserved.
+> ⚠️ **生产环境禁止使用！**
+
+| 角色 | 邮箱 | 密码 |
+|------|------|------|
+| 管理员 | `admin@lumohub.com` | `Admin@123` |
+| 演示用户 | `demo@lumohub.com` | `Demo@123` |
+
+---
+
+## 许可证
+
+版权所有 © 2026 **Luminos Tech**。保留所有权利。
