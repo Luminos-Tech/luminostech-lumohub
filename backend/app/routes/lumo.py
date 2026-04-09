@@ -134,11 +134,25 @@ LUMO:"""
 
 
 def _pcm_to_wav(pcm_data: bytes, path: str, sample_rate: int = 24000) -> None:
+    import array
+    from collections import Counter
+    
+    # Parse PCM as signed 16-bit samples
+    samples = array.array('h', pcm_data)
+    
+    # Find the most common value (silence/noise floor)
+    counter = Counter(samples)
+    silence_value = counter.most_common(1)[0][0]
+    
+    # If silence is far from 0, shift it to 0
+    if abs(silence_value) > 100:
+        samples = array.array('h', [s - silence_value for s in samples])
+    
     with wave.open(path, "wb") as wf:
         wf.setnchannels(1)
         wf.setsampwidth(2)
         wf.setframerate(sample_rate)
-        wf.writeframes(pcm_data)
+        wf.writeframes(samples.tobytes())
 
 
 def _run_sync_in_executor(fn, *args):
@@ -327,7 +341,8 @@ async def lumo_audio(audio: UploadFile = File(...)):
             pcm_data = tts_resp.candidates[0].content.parts[0].inline_data.data
             mime_type = tts_resp.candidates[0].content.parts[0].inline_data.mime_type
             lumo_logger.info(f"[AUDIO] TTS done: {len(pcm_data)} bytes, mime={mime_type}")
-            if mime_type == "audio/pcm":
+
+            if mime_type.startswith("audio/L16") or mime_type == "audio/pcm":
                 _pcm_to_wav(pcm_data, tmp_out, sample_rate=24000)
             elif mime_type == "audio/wav":
                 _pcm_to_wav(pcm_data, tmp_out, sample_rate=48000)
