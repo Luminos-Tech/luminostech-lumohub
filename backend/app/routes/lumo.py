@@ -1,11 +1,11 @@
 import asyncio
+import base64
+import binascii
 import logging
 import os
 import wave
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime
-from pathlib import Path
-from typing import List
 
 from fastapi import APIRouter, Depends, HTTPException, Query, UploadFile, File
 from fastapi.responses import FileResponse
@@ -134,25 +134,38 @@ LUMO:"""
 
 
 def _pcm_to_wav(pcm_data: bytes, path: str, sample_rate: int = 24000) -> None:
-    import array
-    from collections import Counter
-    
-    # Parse PCM as signed 16-bit samples
-    samples = array.array('h', pcm_data)
-    
-    # Find the most common value (silence/noise floor)
-    counter = Counter(samples)
-    silence_value = counter.most_common(1)[0][0]
-    
-    # If silence is far from 0, shift it to 0
-    if abs(silence_value) > 100:
-        samples = array.array('h', [s - silence_value for s in samples])
-    
     with wave.open(path, "wb") as wf:
         wf.setnchannels(1)
         wf.setsampwidth(2)
         wf.setframerate(sample_rate)
-        wf.writeframes(samples.tobytes())
+        wf.writeframes(pcm_data)
+
+
+def _sample_rate_from_mime(mime_type: str, default: int = 24000) -> int:
+    # Gemini thường trả audio/L16;rate=24000
+    for token in mime_type.split(";"):
+        token = token.strip()
+        if token.startswith("rate="):
+            value = token.split("=", 1)[1]
+            if value.isdigit():
+                return int(value)
+    return default
+
+
+def _extract_inline_audio_bytes(data: bytes | str) -> bytes:
+    if isinstance(data, str):
+        return base64.b64decode(data)
+
+    raw = bytes(data)
+    try:
+        ascii_data = raw.decode("ascii")
+    except UnicodeDecodeError:
+        return raw
+
+    try:
+        return base64.b64decode(ascii_data, validate=True)
+    except binascii.Error:
+        return raw
 
 
 def _run_sync_in_executor(fn, *args):
@@ -338,17 +351,24 @@ async def lumo_audio(audio: UploadFile = File(...)):
 
             lumo_logger.info(f"[AUDIO] TTS start")
             tts_resp = await _run_sync_in_executor(_tts)
-            pcm_data = tts_resp.candidates[0].content.parts[0].inline_data.data
-            mime_type = tts_resp.candidates[0].content.parts[0].inline_data.mime_type
-            lumo_logger.info(f"[AUDIO] TTS done: {len(pcm_data)} bytes, mime={mime_type}")
+            inline_data = tts_resp.candidates[0].content.parts[0].inline_data
+            raw_audio = inline_data.data
+            mime_type = inline_data.mime_type
+            audio_bytes = _extract_inline_audio_bytes(raw_audio)
+            lumo_logger.info(
+                f"[AUDIO] TTS done: raw={len(raw_audio)} bytes, decoded={len(audio_bytes)} bytes, mime={mime_type}"
+            )
 
-            if mime_type.startswith("audio/L16") or mime_type == "audio/pcm":
-                _pcm_to_wav(pcm_data, tmp_out, sample_rate=24000)
-            elif mime_type == "audio/wav":
-                _pcm_to_wav(pcm_data, tmp_out, sample_rate=48000)
+            if mime_type == "audio/wav":
+                with open(tmp_out, "wb") as f:
+                    f.write(audio_bytes)
             else:
-                lumo_logger.warning(f"[AUDIO] Unknown audio mime type: {mime_type}, defaulting to 24000")
-                _pcm_to_wav(pcm_data, tmp_out, sample_rate=24000)
+                sample_rate = _sample_rate_from_mime(mime_type, default=24000)
+                if not (mime_type.startswith("audio/L16") or mime_type == "audio/pcm"):
+                    lumo_logger.warning(
+                        f"[AUDIO] Unknown audio mime type: {mime_type}, using PCM fallback at {sample_rate} Hz"
+                    )
+                _pcm_to_wav(audio_bytes, tmp_out, sample_rate=sample_rate)
 
             return stt_text, v2_answer
 
