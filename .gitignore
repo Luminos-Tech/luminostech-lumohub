@@ -98,5 +98,52 @@ npm-debug.log*
 # Optional
 .cache/
 
+# IoT / ESP32 / Arduino
+*.bin
+*.elf
+*.hex
+*.map
+build/
+.pio/
+.pioenvs/
+.piolibdeps/
+.vscode/c_cpp_properties.json
+.vscode/launch.json
+.vscode/ipch/
+.vscode/.browse.c_cpp.db*
+.vscode/settings.json
+*.code-workspace
+.clang_complete
+.gcc-flags.json
+*.o
+*.a
+*.d
+*.su
+*.lst
+
+# PlatformIO specific
+.pio
+.pioenvs
+.piolibdeps
+.clang_complete
+.gcc-flags.json
+
+# Arduino IDE
+*.ino.cpp
+*.ino.with_bootloader.bin
+*.ino.with_bootloader.hex
+
+# ESP-IDF
+sdkconfig
+sdkconfig.old
+build/
+dependencies.lock
+
+# Test files
+test_*.py
+test_*.wav
+*_output.wav
+*.pcm
+
 !frontend-web/src/lib/
 !frontend-web/src/lib/**
