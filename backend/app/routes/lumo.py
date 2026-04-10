@@ -8,7 +8,6 @@ from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime
 
 from fastapi import APIRouter, Depends, HTTPException, Query, UploadFile, File
-from fastapi.responses import FileResponse
 from google import genai
 import google.genai.types as gtypes
 from groq import Groq
@@ -276,7 +275,6 @@ async def lumo_version3(
 
 @router.post("/audio/", tags=["LUMO Audio"])
 async def lumo_audio(audio: UploadFile = File(...)):
-    loop = asyncio.get_running_loop()
     pid = os.getpid()
     suffix = os.path.splitext(audio.filename)[-1] or ".wav"
     tmp_in = f"/tmp/esp32_in_{pid}{suffix}"
@@ -376,7 +374,15 @@ async def lumo_audio(audio: UploadFile = File(...)):
         lumo_logger.info(f"user: {stt_text}")
         lumo_logger.info(f"Lumo: {v2_answer}")
 
-        return FileResponse(tmp_out, media_type="audio/wav", filename="response.wav")
+        with open(tmp_out, "rb") as f:
+            wav_bytes = f.read()
+
+        return {
+            "audio_base64": base64.b64encode(wav_bytes).decode("ascii"),
+            "mime_type": "audio/wav",
+            "stt_text": stt_text,
+            "response_text": v2_answer,
+        }
 
     except HTTPException:
         raise
@@ -386,3 +392,5 @@ async def lumo_audio(audio: UploadFile = File(...)):
     finally:
         if os.path.exists(tmp_in):
             os.unlink(tmp_in)
+        if os.path.exists(tmp_out):
+            os.unlink(tmp_out)
