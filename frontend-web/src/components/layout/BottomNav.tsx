@@ -26,14 +26,14 @@ export default function BottomNav() {
             key={item.href}
             href={item.href}
             className={cn(
-              "flex-1 flex flex-col items-center justify-center py-2 gap-0.5 text-[10px] font-medium transition-colors",
+              "flex-1 flex flex-col items-center justify-center py-1.5 gap-0.5 text-[9px] font-medium transition-colors",
               active
                 ? "text-primary-600"
                 : "text-gray-400 hover:text-gray-700"
             )}
           >
             <item.icon
-              size={21}
+              size={19}
               className={cn(active ? "stroke-primary-600" : "stroke-gray-400")}
             />
             <span>{item.label}</span>

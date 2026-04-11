@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Users, ScrollText } from "lucide-react";
+import { Users, ScrollText, Bell } from "lucide-react";
 
 export default function AdminPage() {
   return (
@@ -13,6 +13,10 @@ export default function AdminPage() {
         <Link href="/admin/logs" className="card p-6 flex flex-col items-center gap-3 hover:shadow-md transition-shadow">
           <ScrollText size={32} className="text-indigo-600" />
           <span className="font-medium text-gray-800">Log hệ thống</span>
+        </Link>
+        <Link href="/admin/push" className="card p-6 flex flex-col items-center gap-3 hover:shadow-md transition-shadow">
+          <Bell size={32} className="text-purple-600" />
+          <span className="font-medium text-gray-800">Gửi Push</span>
         </Link>
       </div>
     </div>

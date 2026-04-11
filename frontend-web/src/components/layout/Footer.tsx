@@ -21,7 +21,7 @@ export default function Footer() {
             height={60}
             className="object-contain w-auto h-8"
           />
-          <span className="text-xs text-gray-400 ml-1">© 2026</span>
+          <span className="text-xs text-gray-400 ml-1">v1.0.0 Beta © 2026</span>
         </div>
 
         {/* Links — hidden on mobile to keep it clean */}
@@ -36,13 +36,13 @@ export default function Footer() {
             </a>
           ))}
           <a
-            href="https://github.com/Luminos-Tech/luminostech-lumohub"
+            href=""
             target="_blank"
             rel="noreferrer"
             className="text-xs text-gray-400 hover:text-primary-600 transition-colors flex items-center gap-1"
           >
             <Github size={12} />
-            GitHub
+            ...
           </a>
         </div>
 

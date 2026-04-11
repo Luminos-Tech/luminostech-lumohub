@@ -8,7 +8,7 @@ import { useState, useEffect } from "react";
 import {
   User, Lock, Save, Smartphone, Activity,
   Plus, Trash2, Bell, X, RefreshCw,
-  CheckCircle2, XCircle,
+  CheckCircle2, XCircle, QrCode, Zap,
 } from "lucide-react";
 import { useDeviceStore } from "@/store/deviceStore";
 import { useEventButtonStore } from "@/store/eventButtonStore";
@@ -18,6 +18,8 @@ import { format, isToday, parseISO } from "date-fns";
 import { vi } from "date-fns/locale";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { AddDeviceModal } from "@/components/devices/AddDeviceModal";
+import { NotificationSettingCard, PushBanner } from "@/components/notifications/PushNotificationPrompt";
 
 /* ── Schemas ── */
 const profileSchema = z.object({
@@ -33,12 +35,13 @@ type ProfileForm = z.infer<typeof profileSchema>;
 type PwForm = z.infer<typeof pwSchema>;
 
 /* ── Tab definitions ── */
-type Tab = "profile" | "password" | "devices" | "logs";
+type Tab = "profile" | "password" | "devices" | "notifications" | "logs";
 const TABS: { key: Tab; label: string; icon: React.ElementType }[] = [
-  { key: "profile",  label: "Hồ sơ",       icon: User },
-  { key: "password", label: "Mật khẩu",     icon: Lock },
-  { key: "devices",  label: "Thiết bị",     icon: Smartphone },
-  { key: "logs",     label: "Nhật ký nút",  icon: Activity },
+  { key: "profile",       label: "Hồ sơ",       icon: User },
+  { key: "password",      label: "Mật khẩu",     icon: Lock },
+  { key: "devices",      label: "Thiết bị",     icon: Smartphone },
+  { key: "notifications", label: "Thông báo",   icon: Bell },
+  { key: "logs",         label: "Nhật ký nút",  icon: Activity },
 ];
 
 /* ════════════════════════════════════════ */
@@ -110,27 +113,13 @@ function PasswordPanel() {
 }
 
 function DevicesPanel() {
-  const { devices, loading, fetchDevices, registerDevice, deleteDevice } = useDeviceStore();
+  const { devices, loading, fetchDevices, deleteDevice } = useDeviceStore();
   const [showAdd, setShowAdd] = useState(false);
-  const [code, setCode] = useState("");
-  const [submitting, setSubmitting] = useState(false);
   const [deletingId, setDeletingId] = useState<number | null>(null);
   const [notifyTarget, setNotifyTarget] = useState<Device | null>(null);
-  const [notifyTitle, setNotifyTitle] = useState("");
-  const [notifyBody, setNotifyBody] = useState("");
-  const [sending, setSending] = useState(false);
+  const [qrTarget, setQrTarget] = useState<Device | null>(null);
 
   useEffect(() => { fetchDevices(); }, [fetchDevices]);
-
-  const handleAdd = async (e: React.FormEvent) => {
-    e.preventDefault();
-    const trimmed = code.trim();
-    if (!/^\d{4}$/.test(trimmed)) { toast.error("Nhập đúng 4 chữ số"); return; }
-    setSubmitting(true);
-    try { await registerDevice(trimmed); toast.success("Thêm thành công"); setShowAdd(false); }
-    catch { toast.error("Thêm thất bại"); }
-    finally { setSubmitting(false); }
-  };
 
   const handleDelete = async (id: number) => {
     if (!confirm("Xóa thiết bị này?")) return;
@@ -144,7 +133,7 @@ function DevicesPanel() {
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <p className="text-sm text-gray-500">Thiết bị LUMO được liên kết với tài khoản</p>
-        <button onClick={() => { setCode(""); setShowAdd(true); }} className="btn-primary flex items-center gap-1.5 text-sm">
+        <button onClick={() => setShowAdd(true)} className="btn-primary flex items-center gap-1.5 text-sm">
           <Plus size={15} /> Thêm
         </button>
       </div>
@@ -155,59 +144,75 @@ function DevicesPanel() {
         <div className="card p-10 text-center">
           <Smartphone size={36} className="mx-auto text-gray-300 mb-3" />
           <p className="text-gray-500 mb-4 text-sm">Chưa có thiết bị nào</p>
-          <button onClick={() => { setCode(""); setShowAdd(true); }} className="btn-primary text-sm">
+          <button onClick={() => setShowAdd(true)} className="btn-primary text-sm">
             Thêm thiết bị đầu tiên
           </button>
         </div>
       ) : (
-        <div className="card divide-y divide-gray-100">
+        <div className="space-y-2">
           {devices.map((device: Device) => (
-            <div key={device.id} className="flex items-center gap-3 px-4 py-3">
-              <div className="w-9 h-9 rounded-lg bg-indigo-50 flex items-center justify-center text-indigo-600 shrink-0">
-                <Smartphone size={17} />
+            <div key={device.id} className="card p-4 hover:shadow-md transition-all group">
+              <div className="flex items-center gap-3">
+                <div className="relative shrink-0">
+                  <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center shadow-md">
+                    <Smartphone size={18} className="text-white" />
+                  </div>
+                  <div className={`absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 rounded-full border-2 border-white shadow-sm ${
+                    device.is_active ? "bg-green-500 animate-pulse" : "bg-gray-300"
+                  }`} />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2">
+                    <p className="font-mono font-bold text-gray-900 tracking-widest text-sm">{device.device_id}</p>
+                    <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${
+                      device.is_active ? "bg-green-50 text-green-600 border border-green-200" : "bg-gray-100 text-gray-400 border border-gray-200"
+                    }`}>
+                      {device.is_active ? "Online" : "Offline"}
+                    </span>
+                  </div>
+                  <p className="text-xs text-gray-400 mt-0.5">{device.is_active ? "Đang hoạt động" : "Không hoạt động"}</p>
+                </div>
+                <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                  <button onClick={() => setQrTarget(device)} className="p-2 text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors" title="Mã QR">
+                    <QrCode size={15} />
+                  </button>
+                  <button onClick={() => setNotifyTarget(device)} className="p-2 text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors" title="Gửi thông báo">
+                    <Bell size={15} />
+                  </button>
+                  <button onClick={() => handleDelete(device.id)} disabled={deletingId === device.id} className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors disabled:opacity-40">
+                    <Trash2 size={15} />
+                  </button>
+                </div>
               </div>
-              <div className="flex-1 min-w-0">
-                <p className="font-mono font-bold text-gray-900 tracking-widest text-sm">{device.device_id}</p>
-                <p className="text-xs text-gray-400">{device.is_active ? "Đang hoạt động" : "Không hoạt động"}</p>
-              </div>
-              <button
-                onClick={() => { setNotifyTarget(device); setNotifyTitle(""); setNotifyBody(""); }}
-                className="p-2 text-indigo-400 hover:bg-indigo-50 rounded-lg transition-colors"
-                title="Gửi thông báo"
-              >
-                <Bell size={16} />
-              </button>
-              <button
-                onClick={() => handleDelete(device.id)}
-                disabled={deletingId === device.id}
-                className="p-2 text-red-400 hover:bg-red-50 rounded-lg transition-colors disabled:opacity-40"
-              >
-                <Trash2 size={16} />
-              </button>
             </div>
           ))}
         </div>
       )}
 
-      {/* Add modal */}
+      {/* Add device modal */}
       {showAdd && (
+        <AddDeviceModal
+          open={showAdd}
+          onClose={() => setShowAdd(false)}
+          onAdded={fetchDevices}
+        />
+      )}
+
+      {/* QR modal */}
+      {qrTarget && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-xl shadow-xl w-full max-w-xs p-6">
+          <div className="bg-white rounded-xl shadow-xl w-full max-w-sm p-6">
             <div className="flex items-center justify-between mb-4">
-              <h2 className="text-lg font-semibold text-gray-900">Mã thiết bị</h2>
-              <button onClick={() => setShowAdd(false)} className="text-gray-400 hover:text-gray-600"><X size={20} /></button>
+              <h2 className="text-lg font-semibold text-gray-900">Mã QR cặp đôi</h2>
+              <button onClick={() => setQrTarget(null)} className="text-gray-400 hover:text-gray-600"><X size={20} /></button>
             </div>
-            <form onSubmit={handleAdd} className="space-y-4">
-              <input
-                value={code}
-                onChange={(e) => setCode(e.target.value.replace(/\D/g, "").slice(0, 4))}
-                className="input-field text-center font-mono text-3xl font-bold tracking-widest"
-                placeholder="0000" maxLength={4} autoFocus required
-              />
-              <button type="submit" disabled={submitting} className="btn-primary w-full">
-                {submitting ? "Đang thêm..." : "Thêm"}
-              </button>
-            </form>
+            <div className="flex flex-col items-center">
+              <div className="p-4 bg-white border-2 border-gray-100 rounded-2xl shadow-sm">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src="/api/v1/devices/qr" alt="QR Code" className="w-48 h-48 object-contain" />
+              </div>
+              <p className="text-xs text-gray-400 mt-3 text-center">Dùng thiết bị LUMO quét mã này để cặp đôi</p>
+            </div>
           </div>
         </div>
       )}
@@ -223,23 +228,26 @@ function DevicesPanel() {
             <form
               onSubmit={async (e) => {
                 e.preventDefault();
-                if (!notifyTitle.trim() || !notifyBody.trim()) { toast.error("Nhập đủ tiêu đề và nội dung"); return; }
-                setSending(true);
-                try { await adminApi.notifyDevice(notifyTarget.device_id, notifyTitle.trim(), notifyBody.trim()); toast.success("Đã gửi"); setNotifyTarget(null); }
+                const fd = new FormData(e.currentTarget);
+                const title = (fd.get("title") as string)?.trim();
+                const body = (fd.get("body") as string)?.trim();
+                if (!title || !body) { toast.error("Nhập đủ tiêu đề và nội dung"); return; }
+                try { await adminApi.notifyDevice(notifyTarget.device_id, title, body); toast.success("Đã gửi"); setNotifyTarget(null); }
                 catch { toast.error("Gửi thất bại"); }
-                finally { setSending(false); }
               }}
               className="space-y-3"
             >
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Tiêu đề</label>
-                <input value={notifyTitle} onChange={(e) => setNotifyTitle(e.target.value)} className="input-field" placeholder="Nhắc lịch học" required autoFocus />
+                <input name="title" className="input-field" placeholder="Nhắc lịch học" required autoFocus />
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Nội dung</label>
-                <textarea value={notifyBody} onChange={(e) => setNotifyBody(e.target.value)} className="input-field resize-none" rows={3} placeholder="Bạn có lịch học vào 14:00" required />
+                <textarea name="body" className="input-field resize-none" rows={3} placeholder="Bạn có lịch học vào 14:00" required />
               </div>
-              <button type="submit" disabled={sending} className="btn-primary w-full">{sending ? "Đang gửi..." : "Gửi ngay"}</button>
+              <button type="submit" className="btn-primary w-full flex items-center justify-center gap-2">
+                <Zap size={15} /> Gửi thông báo
+              </button>
             </form>
           </div>
         </div>
@@ -379,6 +387,23 @@ export default function SettingsPage() {
       {tab === "profile"  && <ProfilePanel />}
       {tab === "password" && <PasswordPanel />}
       {tab === "devices"  && <DevicesPanel />}
+      {tab === "notifications" && (
+        <div className="space-y-4">
+          <NotificationSettingCard />
+          <div className="card p-4">
+            <h3 className="text-sm font-semibold text-gray-700 mb-3">Về thông báo Lumo</h3>
+            <div className="space-y-2 text-xs text-gray-500">
+              <p>Thông báo giúp bạn nhận được lời nhắc lịch học, sự kiện sắp tới ngay cả khi app đang đóng.</p>
+              <p>Có 2 loại thông báo:</p>
+              <ul className="list-disc list-inside space-y-1 ml-2">
+                <li><strong>Thông báo trong app</strong> — hiển thị trên trang Thông báo</li>
+                <li><strong>Push Notification</strong> — gửi đến trình duyệt/thiết bị (cần bật ở tab này)</li>
+              </ul>
+              <p className="pt-2 border-t">Nếu không nhận được thông báo, hãy kiểm tra quyền trong cài đặt thiết bị hoặc trình duyệt của bạn.</p>
+            </div>
+          </div>
+        </div>
+      )}
       {tab === "logs"     && <LogsPanel />}
     </div>
   );

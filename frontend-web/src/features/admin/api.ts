@@ -1,6 +1,25 @@
 import { api } from "@/lib/api";
 import type { User, SystemLog, Event } from "@/types";
 
+export interface AdminPushRequest {
+  user_id?: number | null;
+  title: string;
+  body: string;
+  tag?: string;
+}
+
+export interface PushStatusResponse {
+  total_subscriptions: number;
+  users_with_push: number;
+}
+
+export interface PushSendResponse {
+  sent: number;
+  total: number;
+  target: string;
+  message?: string;
+}
+
 export const adminApi = {
   users: () => api.get<User[]>("/admin/users"),
   createUser: (data: { full_name: string; email: string; password: string; role: string }) =>
@@ -16,4 +35,8 @@ export const adminApi = {
     api.post("/admin/device/notify", { device_id, title, body }),
   sendTextToDevice: (device_id: string, text: string) =>
     api.post("/admin/device/send", { device_id, text }),
+  // Push 通知
+  sendPushNotification: (data: AdminPushRequest) =>
+    api.post<PushSendResponse>("/push/send", data),
+  getPushStatus: () => api.get<PushStatusResponse>("/push/status"),
 };

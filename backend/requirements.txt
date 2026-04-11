@@ -17,3 +17,6 @@ google-genai==1.11.0
 groq>=0.12.0
 requests==2.32.3
 aiofiles==24.1.0
+qrcode==7.4.2
+Pillow>=10.0.0
+pywebpush>=1.14.0

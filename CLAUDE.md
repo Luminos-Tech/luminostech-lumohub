@@ -63,6 +63,7 @@ Theo `backend/app/routes/__init__.py`, backend hiện đang mount các nhóm rou
 - `/lumo`
 - `/devices`
 - `/event_buttons`
+- `/push` — Web Push Notification（管理员向浏览器发送推送）
 
 Ngoài ra còn có:
 - `/health`: health check chung của backend
@@ -147,12 +148,10 @@ Từ `backend/requirements.txt`:
 - python-jose
 - passlib + bcrypt
 - python-multipart
-- APScheduler
-- httpx
-- google-genai
-- groq
-- requests
-- aiofiles
+- `qrcode==7.4.2`
+- `Pillow>=10.0.0`
+- `pywebpush>=1.14.0`
+- `web-push>=3.3.0`
 
 ---
 
@@ -205,6 +204,7 @@ Trong `frontend-web/src/app/` đang có:
 - `(dashboard)/admin/users`
 - `(dashboard)/admin/logs`
 - `(dashboard)/admin/websocket`
+- `(dashboard)/admin/push` — Admin gửi Push Notification đến người dùng
 - `api/extract-events`
 - `api/v1/[...path]`
 - `api/health`
@@ -229,6 +229,7 @@ Có các nhóm component chính:
 - `components/auth/`: login/register form
 - `components/admin/`: create user, reset password, role badge
 - `components/notifications/`
+- `components/devices/` — Modal thêm thiết bị (camera QR), gửi notification
 - `components/profile/`
 - `components/common/` và `components/ui/`
 

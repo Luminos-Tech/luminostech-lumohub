@@ -172,6 +172,43 @@ def _run_sync_in_executor(fn, *args):
     return loop.run_in_executor(executor, fn, *args)
 
 
+def _normalize_phrase(text: str) -> str:
+    normalized = text.lower().strip()
+    for src, dst in (
+        ("ù", "u"), ("ú", "u"), ("ũ", "u"), ("ụ", "u"),
+        ("ô", "o"), ("ồ", "o"), ("ố", "o"), ("ỗ", "o"), ("ộ", "o"),
+        ("ơ", "o"), ("ờ", "o"), ("ớ", "o"), ("ỡ", "o"), ("ợ", "o"),
+        ("à", "a"), ("á", "a"), ("ã", "a"), ("ạ", "a"),
+    ):
+        normalized = normalized.replace(src, dst)
+
+    cleaned = []
+    for ch in normalized:
+        if ch.isalnum() or ch.isspace():
+            cleaned.append(ch)
+        else:
+            cleaned.append(" ")
+
+    return " ".join("".join(cleaned).split())
+
+
+def _match_wakeword(transcription: str) -> str | None:
+    normalized = _normalize_phrase(transcription)
+    wake_phrases = (
+        "lumo",
+        "hey lumo",
+        "hi lumo",
+        "hello lumo",
+        "lu mo",
+        "hey lu mo",
+    )
+
+    for phrase in wake_phrases:
+        if phrase in normalized:
+            return phrase
+    return None
+
+
 # =========================
 # ENDPOINTS
 # =========================
@@ -271,6 +308,49 @@ async def lumo_version3(
         "assistant_name": assistant_name,
         "response": response_text,
     }
+
+
+@router.post("/wakeword/verify", tags=["LUMO Wakeword"])
+async def lumo_wakeword_verify(audio: UploadFile = File(...)):
+    pid = os.getpid()
+    suffix = os.path.splitext(audio.filename)[-1] or ".wav"
+    tmp_in = f"/tmp/lumo_wakeword_{pid}{suffix}"
+
+    content = await audio.read()
+
+    try:
+        with open(tmp_in, "wb") as f:
+            f.write(content)
+
+        groq_cli = get_groq_client()
+
+        def _stt():
+            with open(tmp_in, "rb") as f:
+                return groq_cli.audio.transcriptions.create(
+                    file=(audio.filename, f.read()),
+                    model="whisper-large-v3-turbo",
+                    temperature=0,
+                    response_format="verbose_json",
+                ).text.strip()
+
+        transcription = await _run_sync_in_executor(_stt)
+        matched_phrase = _match_wakeword(transcription)
+        verified = matched_phrase is not None
+        lumo_logger.info(
+            f"[WAKEWORD] transcription='{transcription}' verified={verified} matched={matched_phrase}"
+        )
+
+        return {
+            "verified": verified,
+            "transcription": transcription,
+            "matched_phrase": matched_phrase,
+        }
+    except Exception as e:
+        lumo_logger.error(f"[WAKEWORD] Verify error: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=f"Wakeword verify error: {str(e)}")
+    finally:
+        if os.path.exists(tmp_in):
+            os.unlink(tmp_in)
 
 
 @router.post("/audio/", tags=["LUMO Audio"])
