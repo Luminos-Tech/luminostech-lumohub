@@ -83,6 +83,7 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
               alt="LumoHub Logo"
               width={320}
               height={160}
+              unoptimized
               className={cn("object-contain w-full h-auto", collapsed ? "max-h-8" : "max-h-16")}
             />
           </Link>

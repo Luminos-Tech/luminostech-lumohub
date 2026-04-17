@@ -15,7 +15,7 @@ export default function Topbar({ onMenuClick }: TopbarProps) {
   useEffect(() => { fetchNotifications(); }, [fetchNotifications]);
 
   return (
-    <header className="h-11 sm:h-12 border-b border-gray-100 bg-white/90 backdrop-blur-md flex items-center justify-between px-3 sm:px-6 gap-3 sticky top-0 z-30">
+    <header className="h-11 sm:h-12 border-b border-gray-100 bg-white flex items-center justify-between px-3 sm:px-6 gap-3 sticky top-0 z-30">
       {/* Mobile hamburger — hidden on desktop */}
       <button
         onClick={onMenuClick}
@@ -32,6 +32,7 @@ export default function Topbar({ onMenuClick }: TopbarProps) {
           alt="LumoHub Logo"
           width={120}
           height={42}
+          unoptimized
           className="object-contain w-auto h-6"
         />
       </Link>

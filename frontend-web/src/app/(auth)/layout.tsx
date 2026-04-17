@@ -8,9 +8,11 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
           <Image
             src="/logo_lumohub.png"
             alt="LumoHub Logo"
-            width={220}
-            height={220}
-            className="mx-auto mb-4 object-contain shadow-sm rounded-2xl bg-white"
+            width={315}
+            height={144}
+            unoptimized
+            priority
+            className="mx-auto mb-4 object-contain shadow-sm rounded-2xl bg-gray"
           />
           <p className="text-gray-500 text-sm mt-1">Quản lý lịch thông minh</p>
         </div>
