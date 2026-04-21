@@ -26,14 +26,18 @@ export type NotificationStatus = "default" | "granted" | "denied" | "unsupported
 /**
  * Hook để lấy trạng thái notification hiện tại
  */
-export function useNotificationStatus(): NotificationStatus {
+export function useNotificationStatus(): [NotificationStatus, () => void] {
   const [status, setStatus] = useState<NotificationStatus>("default");
 
-  useEffect(() => {
+  const refresh = () => {
     setStatus(getNotificationPermission());
+  };
+
+  useEffect(() => {
+    refresh();
   }, []);
 
-  return status;
+  return [status, refresh];
 }
 
 /**
@@ -41,14 +45,15 @@ export function useNotificationStatus(): NotificationStatus {
  * Dùng khi user chưa quyết định (status = "default")
  */
 export function PushBanner() {
-  const status = useNotificationStatus();
+  const [status, refreshStatus] = useNotificationStatus();
+  const [dismissed, setDismissed] = useState(false);
 
-  if (status !== "default") return null;
+  if (status !== "default" || dismissed) return null;
 
-  return <PushBannerInner onStatusChange={() => {}} />;
+  return <PushBannerInner onStatusChange={refreshStatus} onDismiss={() => setDismissed(true)} />;
 }
 
-function PushBannerInner({ onStatusChange }: { onStatusChange: () => void }) {
+function PushBannerInner({ onStatusChange, onDismiss }: { onStatusChange: () => void; onDismiss: () => void }) {
   const [loading, setLoading] = useState(false);
 
   const handleEnable = async () => {
@@ -57,16 +62,22 @@ function PushBannerInner({ onStatusChange }: { onStatusChange: () => void }) {
       const granted = await requestNotificationPermission();
       if (granted) {
         // Thử đăng ký push
-        const result = await initPushNotifications();
-        if (result.success) {
-          toast.success("Đã bật thông báo thành công!");
-        } else {
-          // Quyền được rồi nhưng push chưa hoạt động (chưa có VAPID key)
-          toast.success("Đã bật quyền thông báo! (Push server đang chờ cấu hình)");
+        try {
+          const result = await initPushNotifications();
+          if (result.success) {
+            toast.success("Đã bật thông báo thành công!");
+          } else {
+            // Quyền được rồi nhưng push chưa hoạt động (chưa có VAPID key)
+            toast.success("Đã bật quyền thông báo! (Push server đang chờ cấu hình)");
+          }
+        } catch (err) {
+          console.error("[Push] initPushNotifications error:", err);
+          toast.success("Đã bật quyền thông báo!");
         }
       } else {
         toast.error("Bạn đã từ chối quyền thông báo");
       }
+      // Refresh status so the banner hides
       onStatusChange();
     } finally {
       setLoading(false);
@@ -81,13 +92,22 @@ function PushBannerInner({ onStatusChange }: { onStatusChange: () => void }) {
           Bật thông báo để nhận lời nhắc lịch
         </p>
       </div>
-      <button
-        onClick={handleEnable}
-        disabled={loading}
-        className="shrink-0 px-3 py-1.5 bg-white/20 hover:bg-white/30 disabled:opacity-50 rounded-lg text-xs font-semibold transition-colors"
-      >
-        {loading ? "..." : "Bật ngay"}
-      </button>
+      <div className="flex items-center gap-2 shrink-0">
+        <button
+          onClick={handleEnable}
+          disabled={loading}
+          className="px-3 py-1.5 bg-white/20 hover:bg-white/30 disabled:opacity-50 rounded-lg text-xs font-semibold transition-colors"
+        >
+          {loading ? "..." : "Bật ngay"}
+        </button>
+        <button
+          onClick={onDismiss}
+          className="px-2 py-1.5 hover:bg-white/10 rounded-lg text-xs transition-colors"
+          aria-label="Đóng"
+        >
+          ✕
+        </button>
+      </div>
     </div>
   );
 }
@@ -97,7 +117,7 @@ function PushBannerInner({ onStatusChange }: { onStatusChange: () => void }) {
  * Hiển thị trạng thái + hướng dẫn rõ ràng
  */
 export function NotificationSettingCard() {
-  const status = useNotificationStatus();
+  const [status, refreshStatus] = useNotificationStatus();
   const [loading, setLoading] = useState(false);
 
   const handleToggle = async () => {
@@ -119,10 +139,15 @@ export function NotificationSettingCard() {
     try {
       const granted = await requestNotificationPermission();
       if (granted) {
-        const result = await initPushNotifications();
-        if (result.success) {
-          toast.success("Đã bật thông báo thành công!");
-        } else {
+        try {
+          const result = await initPushNotifications();
+          if (result.success) {
+            toast.success("Đã bật thông báo thành công!");
+          } else {
+            toast.success("Quyền thông báo đã được bật!");
+          }
+        } catch (err) {
+          console.error("[Push] initPushNotifications error:", err);
           toast.success("Quyền thông báo đã được bật!");
         }
       } else {

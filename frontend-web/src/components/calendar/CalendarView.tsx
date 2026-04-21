@@ -137,7 +137,7 @@ function UpcomingPanel({
 
 
 export default function CalendarView() {
-  const { events, fetchEvents } = useEventStore();
+  const { events, loading, fetchEvents } = useEventStore();
   const [showForm, setShowForm] = useState(false);
   const [defaultDate, setDefaultDate] = useState<{ start: string; end: string } | null>(null);
   const [viewing, setViewing] = useState<Event | null>(null);

@@ -41,14 +41,31 @@ export async function requestNotificationPermission(): Promise<boolean> {
  * @param publicKey 后端提供的 VAPID 公钥
  */
 async function urlBase64ToUint8Array(base64String: string): Promise<Uint8Array> {
-  const padding = "=".repeat((4 - (base64String.length % 4)) % 4);
-  const base64 = (base64String + padding).replace(/-/g, "+").replace(/_/g, "/");
-  const rawData = window.atob(base64);
-  const outputArray = new Uint8Array(rawData.length);
-  for (let i = 0; i < rawData.length; i++) {
-    outputArray[i] = rawData.charCodeAt(i);
+  if (!base64String || typeof base64String !== "string" || base64String.trim().length === 0) {
+    throw new Error("Invalid VAPID public key: key is empty or not a string");
   }
-  return outputArray;
+
+  // Remove any whitespace
+  const cleaned = base64String.trim();
+
+  // Validate that it only contains valid URL-safe base64 characters
+  if (!/^[A-Za-z0-9_-]+$/.test(cleaned)) {
+    throw new Error("Invalid VAPID public key: contains invalid characters");
+  }
+
+  const padding = "=".repeat((4 - (cleaned.length % 4)) % 4);
+  const base64 = (cleaned + padding).replace(/-/g, "+").replace(/_/g, "/");
+
+  try {
+    const rawData = window.atob(base64);
+    const outputArray = new Uint8Array(rawData.length);
+    for (let i = 0; i < rawData.length; i++) {
+      outputArray[i] = rawData.charCodeAt(i);
+    }
+    return outputArray;
+  } catch (e) {
+    throw new Error(`Invalid VAPID public key: failed to decode base64 - ${e}`);
+  }
 }
 
 /**
@@ -70,12 +87,17 @@ export async function subscribeToPush(publicKey: string): Promise<PushSubscripti
   if (!registration) return null;
 
   // 订阅
-  const subscription = await registration.pushManager.subscribe({
-    userVisibleOnly: true,
-    applicationServerKey: await urlBase64ToUint8Array(publicKey),
-  });
-
-  return subscription.toJSON();
+  try {
+    const applicationServerKey = await urlBase64ToUint8Array(publicKey);
+    const subscription = await registration.pushManager.subscribe({
+      userVisibleOnly: true,
+      applicationServerKey,
+    });
+    return subscription.toJSON();
+  } catch (e) {
+    console.error("[Push] Failed to subscribe:", e);
+    return null;
+  }
 }
 
 /**

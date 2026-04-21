@@ -8,18 +8,34 @@ import EventDetailModal from "@/components/calendar/EventDetailModal";
 import type { Event } from "@/types";
 import { parseUTC } from "@/lib/utils";
 
+function EventsSkeleton() {
+  return (
+    <div className="space-y-3 animate-pulse">
+      {[...Array(5)].map((_, i) => (
+        <div key={i} className="card p-4 flex items-start gap-4">
+          <div className="w-3 h-3 rounded-full mt-1.5 bg-gray-200" />
+          <div className="flex-1 space-y-2">
+            <div className="h-4 w-2/3 bg-gray-200 rounded" />
+            <div className="h-3 w-1/2 bg-gray-100 rounded" />
+          </div>
+          <div className="flex gap-2">
+            <div className="w-8 h-8 bg-gray-100 rounded-lg" />
+            <div className="w-8 h-8 bg-gray-100 rounded-lg" />
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 export default function EventsPage() {
-  const { events, fetchEvents, deleteEvent } = useEventStore();
+  const { events, loading, fetchEvents } = useEventStore();
   const [showForm, setShowForm] = useState(false);
   const [editing, setEditing] = useState<Event | null>(null);
   const [viewing, setViewing] = useState<Event | null>(null);
   const [duplicating, setDuplicating] = useState<Event | null>(null);
 
   useEffect(() => { fetchEvents(); }, [fetchEvents]);
-
-  const handleDelete = async (id: number) => {
-    if (confirm("Xóa sự kiện này?")) await deleteEvent(id);
-  };
 
   return (
     <div className="p-6 max-w-4xl mx-auto">
@@ -30,7 +46,9 @@ export default function EventsPage() {
         </button>
       </div>
 
-      {events.length === 0 ? (
+      {loading && events.length === 0 ? (
+        <EventsSkeleton />
+      ) : events.length === 0 ? (
         <div className="card p-12 text-center">
           <p className="text-gray-400">Chưa có sự kiện nào. Hãy tạo sự kiện đầu tiên!</p>
           <button className="btn-primary mt-4" onClick={() => setShowForm(true)}>
@@ -58,7 +76,7 @@ export default function EventsPage() {
                   <Pencil size={15} />
                 </button>
                 <button className="p-1.5 hover:bg-red-50 rounded-lg text-gray-500 hover:text-red-600"
-                  onClick={() => handleDelete(ev.id)}>
+                  onClick={() => { if (confirm("Xóa sự kiện này?")) useEventStore.getState().deleteEvent(ev.id); }}>
                   <Trash2 size={15} />
                 </button>
               </div>
@@ -85,3 +103,4 @@ export default function EventsPage() {
     </div>
   );
 }
+

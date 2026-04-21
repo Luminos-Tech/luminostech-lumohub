@@ -2,11 +2,11 @@ import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
 
 export default function Loading() {
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-white/80 backdrop-blur-sm">
+    <div className="flex items-center justify-center min-h-[60vh]">
       <div className="flex flex-col items-center gap-4">
-        <LoadingSpinner size={40} />
-        <p className="text-sm font-medium text-gray-500 animate-pulse">
-          Đang tải dữ liệu...
+        <LoadingSpinner size={32} />
+        <p className="text-sm font-medium text-gray-400 animate-pulse">
+          Đang tải...
         </p>
       </div>
     </div>
