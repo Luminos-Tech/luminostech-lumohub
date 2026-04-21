@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
 
 @tailwind base;
 @tailwind components;
@@ -15,6 +15,9 @@
 
   :root {
     --sidebar-width: 240px;
+    --brand-red: #dc2626;
+    --brand-red-light: #fef2f2;
+    --brand-red-dark: #991b1b;
   }
 }
 
@@ -28,46 +31,72 @@
 
 /* Slide-in animation for mobile drawer */
 @keyframes slide-in-left {
-  from {
-    transform: translateX(-100%);
-  }
-
-  to {
-    transform: translateX(0);
-  }
+  from { transform: translateX(-100%); }
+  to { transform: translateX(0); }
 }
-
 .animate-slide-in-left {
   animation: slide-in-left 0.22s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
+/* Fade-in animation */
+@keyframes fade-in {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.animate-fade-in {
+  animation: fade-in 0.3s ease-out;
+}
+
+/* Subtle pulse glow for active nav items */
+@keyframes pulse-glow {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(220, 38, 38, 0); }
+  50% { box-shadow: 0 0 12px 2px rgba(220, 38, 38, 0.12); }
+}
+
 @layer components {
   .btn-primary {
-    @apply inline-flex items-center gap-2 px-4 py-2 bg-primary-600 text-white rounded-lg font-medium text-sm hover:bg-primary-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed;
+    @apply inline-flex items-center gap-2 px-4 py-2 bg-primary-600 text-white rounded-xl font-semibold text-sm 
+           hover:bg-primary-700 active:scale-[0.97] transition-all duration-150 
+           disabled:opacity-50 disabled:cursor-not-allowed shadow-sm hover:shadow-md;
   }
 
   .btn-secondary {
-    @apply inline-flex items-center gap-2 px-4 py-2 bg-white text-gray-700 border border-gray-300 rounded-lg font-medium text-sm hover:bg-gray-50 transition-colors;
+    @apply inline-flex items-center gap-2 px-4 py-2 bg-white text-gray-700 border border-gray-200 rounded-xl font-semibold text-sm 
+           hover:bg-gray-50 hover:border-gray-300 active:scale-[0.97] transition-all duration-150;
   }
 
   .btn-danger {
-    @apply inline-flex items-center gap-2 px-4 py-2 bg-red-600 text-white rounded-lg font-medium text-sm hover:bg-red-700 transition-colors;
+    @apply inline-flex items-center gap-2 px-4 py-2 bg-red-600 text-white rounded-xl font-semibold text-sm 
+           hover:bg-red-700 active:scale-[0.97] transition-all duration-150 shadow-sm;
+  }
+
+  .btn-ghost {
+    @apply inline-flex items-center gap-2 px-3 py-2 text-gray-600 rounded-xl font-medium text-sm 
+           hover:bg-gray-100 hover:text-gray-900 active:scale-[0.97] transition-all duration-150;
   }
 
   .input-field {
-    @apply w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent disabled:bg-gray-100 disabled:cursor-not-allowed;
+    @apply w-full px-3.5 py-2.5 border border-gray-200 rounded-xl text-sm bg-white
+           focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 
+           disabled:bg-gray-50 disabled:cursor-not-allowed transition-all duration-150
+           placeholder:text-gray-400;
   }
 
   .card {
-    @apply bg-white rounded-xl border border-gray-200 shadow-sm;
+    @apply bg-white rounded-2xl border border-gray-100 shadow-soft;
   }
 
   .badge {
-    @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium;
+    @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold tracking-wide;
+  }
+
+  /* Glass card effect */
+  .card-glass {
+    @apply bg-white/80 backdrop-blur-xl rounded-2xl border border-white/50 shadow-soft;
   }
 }
 
-/* FullCalendar overrides */
+/* ─── FullCalendar overrides ─── */
 .fc .fc-toolbar {
   gap: 0.75rem;
   flex-wrap: wrap;
@@ -82,7 +111,8 @@
 }
 
 .fc .fc-button-primary {
-  @apply bg-primary-600 border-primary-600 hover:bg-primary-700 hover:border-primary-700 font-medium text-sm px-3 py-1.5 rounded-lg transition-all duration-150 shadow-sm active:scale-95;
+  @apply bg-primary-600 border-primary-600 hover:bg-primary-700 hover:border-primary-700 
+         font-semibold text-sm px-3 py-1.5 rounded-lg transition-all duration-150 shadow-sm active:scale-95;
 }
 
 .fc .fc-button-primary:not(:disabled).fc-button-active,
@@ -95,15 +125,15 @@
 }
 
 .fc .fc-button-primary.fc-today-button {
-  @apply bg-white border border-gray-300 text-gray-700 hover:bg-gray-50 hover:border-gray-400;
+  @apply bg-white border border-gray-200 text-gray-700 hover:bg-gray-50 hover:border-gray-300 shadow-none;
 }
 
 .fc .fc-day-today {
-  @apply bg-primary-50/40;
+  @apply bg-primary-50/30;
 }
 
 .fc .fc-day-today .fc-daygrid-day-number {
-  @apply bg-primary-600 text-white rounded-full w-7 h-7 flex items-center justify-center font-semibold;
+  @apply bg-primary-600 text-white rounded-full w-7 h-7 flex items-center justify-center font-bold;
 }
 
 .fc .fc-daygrid-day-number {
@@ -119,7 +149,7 @@
 }
 
 .fc .fc-daygrid-event {
-  @apply rounded-md cursor-pointer text-xs font-medium px-1.5 py-0.5 shadow-sm hover:shadow-md hover:brightness-105 transition-all duration-150;
+  @apply rounded-md cursor-pointer text-xs font-semibold px-1.5 py-0.5 shadow-sm hover:shadow-md hover:brightness-105 transition-all duration-150;
 }
 
 .fc .fc-event {
@@ -136,11 +166,12 @@
 }
 
 .fc .fc-timegrid-now-indicator-line {
-  @apply border-red-400;
+  @apply border-primary-500;
+  border-width: 2px;
 }
 
 .fc .fc-timegrid-now-indicator-arrow {
-  @apply border-t-red-400 border-l-red-400;
+  @apply border-t-primary-500 border-l-primary-500;
 }
 
 .fc .fc-list-event:hover td {
@@ -178,14 +209,13 @@
 }
 
 .fc .fc-more-link {
-  @apply text-xs text-primary-600 font-medium hover:text-primary-800;
+  @apply text-xs text-primary-600 font-semibold hover:text-primary-800;
 }
 
 /* Hide scrollbar on nav area */
 .no-scrollbar::-webkit-scrollbar {
   display: none;
 }
-
 .no-scrollbar {
   -ms-overflow-style: none;
   scrollbar-width: none;

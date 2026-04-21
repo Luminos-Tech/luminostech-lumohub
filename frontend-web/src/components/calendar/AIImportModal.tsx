@@ -153,7 +153,7 @@ export default function AIImportModal({ onClose, onCreated }: Props) {
         {/* Header */}
         <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
           <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-violet-500 to-indigo-600 flex items-center justify-center">
+            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-primary-500 to-primary-600 flex items-center justify-center">
               <Sparkles size={16} className="text-white" />
             </div>
             <div>
@@ -192,7 +192,7 @@ export default function AIImportModal({ onClose, onCreated }: Props) {
                   value={text}
                   onChange={(e) => setText(e.target.value)}
                   placeholder="Dán nội dung lịch vào đây... (email, tin nhắn, thông báo...)"
-                  className="w-full h-48 px-3 py-3 border border-gray-200 rounded-xl text-sm resize-none focus:outline-none focus:ring-2 focus:ring-violet-400 focus:border-transparent transition"
+                  className="w-full h-48 px-3 py-3 border border-gray-200 rounded-xl text-sm resize-none focus:outline-none focus:ring-2 focus:ring-primary-400 focus:border-transparent transition"
                 />
               )}
 
@@ -204,7 +204,7 @@ export default function AIImportModal({ onClose, onCreated }: Props) {
                   onClick={() => fileInputRef.current?.click()}
                   className={cn(
                     "border-2 border-dashed rounded-xl transition-colors cursor-pointer",
-                    imagePreviews.length > 0 ? "border-violet-200 p-4 bg-violet-50/30" : "border-gray-300 hover:border-violet-400 p-8"
+                    imagePreviews.length > 0 ? "border-violet-200 p-4 bg-violet-50/30" : "border-gray-300 hover:border-primary-400 p-8"
                   )}
                 >
                   {imagePreviews.length > 0 ? (
@@ -225,15 +225,15 @@ export default function AIImportModal({ onClose, onCreated }: Props) {
                           </button>
                         </div>
                       ))}
-                      <div className="aspect-square flex flex-col items-center justify-center border-2 border-dashed border-gray-300 rounded-lg hover:border-violet-400 hover:bg-white transition-colors group">
-                        <Plus size={24} className="text-gray-400 group-hover:text-violet-500 mb-1 transition-colors" />
-                        <span className="text-[10px] text-gray-400 group-hover:text-violet-500 font-medium">Thêm ảnh</span>
+                      <div className="aspect-square flex flex-col items-center justify-center border-2 border-dashed border-gray-300 rounded-lg hover:border-primary-400 hover:bg-white transition-colors group">
+                        <Plus size={24} className="text-gray-400 group-hover:text-primary-500 mb-1 transition-colors" />
+                        <span className="text-[10px] text-gray-400 group-hover:text-primary-500 font-medium">Thêm ảnh</span>
                       </div>
                     </div>
                   ) : (
                     <div className="text-center space-y-2">
                       <Upload size={28} className="mx-auto text-gray-400" />
-                      <p className="text-sm text-gray-500">Kéo thả ảnh vào đây, <span className="text-violet-600 font-medium">chọn file</span>, hoặc <span className="text-violet-600 font-medium">Ctrl+V</span> (dán ảnh)</p>
+                      <p className="text-sm text-gray-500">Kéo thả ảnh vào đây, <span className="text-primary-600 font-medium">chọn file</span>, hoặc <span className="text-primary-600 font-medium">Ctrl+V</span> (dán ảnh)</p>
                       <p className="text-xs text-gray-400">Hỗ trợ chọn nhiều ảnh JPG, PNG, WEBP...</p>
                     </div>
                   )}
@@ -259,7 +259,7 @@ export default function AIImportModal({ onClose, onCreated }: Props) {
               <button
                 onClick={handleExtract}
                 disabled={loading}
-                className="w-full flex items-center justify-center gap-2 py-2.5 bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-700 hover:to-indigo-700 text-white rounded-xl text-sm font-medium shadow-md hover:shadow-lg transition-all active:scale-[0.98] disabled:opacity-60 disabled:cursor-not-allowed"
+                className="w-full flex items-center justify-center gap-2 py-2.5 bg-gradient-to-r from-primary-600 to-primary-600 hover:from-primary-700 hover:to-primary-700 text-white rounded-xl text-sm font-medium shadow-md hover:shadow-lg transition-all active:scale-[0.98] disabled:opacity-60 disabled:cursor-not-allowed"
               >
                 {loading ? (
                   <><Loader2 size={16} className="animate-spin" /> Đang phân tích...</>
@@ -273,9 +273,9 @@ export default function AIImportModal({ onClose, onCreated }: Props) {
             <div className="p-5 space-y-3">
               <div className="flex items-center justify-between">
                 <p className="text-sm font-medium text-gray-700">
-                  Tìm thấy <span className="text-violet-600 font-bold">{extractedEvents.length}</span> sự kiện
+                  Tìm thấy <span className="text-primary-600 font-bold">{extractedEvents.length}</span> sự kiện
                 </p>
-                <button onClick={toggleAll} className="text-xs text-violet-600 hover:text-violet-800 font-medium">
+                <button onClick={toggleAll} className="text-xs text-primary-600 hover:text-violet-800 font-medium">
                   {selected.size === extractedEvents.length ? "Bỏ chọn tất cả" : "Chọn tất cả"}
                 </button>
               </div>
@@ -292,7 +292,7 @@ export default function AIImportModal({ onClose, onCreated }: Props) {
                         : "border-gray-200 bg-gray-50 opacity-60"
                     )}
                   >
-                    <div className="mt-0.5 shrink-0 text-violet-500">
+                    <div className="mt-0.5 shrink-0 text-primary-500">
                       {selected.has(i) ? <CheckSquare size={16} /> : <Square size={16} className="text-gray-400" />}
                     </div>
                     <div className="min-w-0 flex-1">
@@ -335,7 +335,7 @@ export default function AIImportModal({ onClose, onCreated }: Props) {
               <button
                 onClick={handleCreate}
                 disabled={creating || selected.size === 0}
-                className="flex-1 flex items-center justify-center gap-2 py-2 bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-700 hover:to-indigo-700 text-white rounded-lg text-sm font-medium transition-all disabled:opacity-50"
+                className="flex-1 flex items-center justify-center gap-2 py-2 bg-gradient-to-r from-primary-600 to-primary-600 hover:from-primary-700 hover:to-primary-700 text-white rounded-lg text-sm font-medium transition-all disabled:opacity-50"
               >
                 {creating ? <Loader2 size={14} className="animate-spin" /> : <Sparkles size={14} />}
                 {creating ? "Đang tạo..." : `Tạo ${selected.size} sự kiện`}

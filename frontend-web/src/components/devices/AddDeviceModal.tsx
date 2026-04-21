@@ -301,7 +301,7 @@ export function AddDeviceModal({ open, onClose, onAdded }: AddDeviceModalProps) 
                   <div className="w-[65%] aspect-square border-2 border-white/60 rounded-2xl" />
                 </div>
                 {/* 扫描线动画 */}
-                <div className="absolute inset-x-[17.5%] top-[17.5%] h-[1px] bg-gradient-to-r from-transparent via-indigo-400 to-transparent animate-pulse opacity-70" />
+                <div className="absolute inset-x-[17.5%] top-[17.5%] h-[1px] bg-gradient-to-r from-transparent via-primary-400 to-transparent animate-pulse opacity-70" />
               </div>
 
               {/* 摄像头控制 */}
@@ -338,7 +338,7 @@ export function AddDeviceModal({ open, onClose, onAdded }: AddDeviceModalProps) 
                   {!showManual && (
                     <button
                       onClick={() => setShowManual(true)}
-                      className="w-full py-2.5 border border-dashed border-gray-300 text-gray-500 hover:border-indigo-400 hover:text-indigo-600 rounded-xl text-sm font-medium transition-colors"
+                      className="w-full py-2.5 border border-dashed border-gray-300 text-gray-500 hover:border-primary-400 hover:text-primary-600 rounded-xl text-sm font-medium transition-colors"
                     >
                       Nhập ID thiết bị thủ công
                     </button>
@@ -349,14 +349,14 @@ export function AddDeviceModal({ open, onClose, onAdded }: AddDeviceModalProps) 
                       <input
                         value={manualInput}
                         onChange={(e) => setManualInput(e.target.value.toUpperCase())}
-                        className="flex-1 px-4 py-2.5 border border-gray-200 rounded-xl text-sm font-mono uppercase tracking-wider focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                        className="flex-1 px-4 py-2.5 border border-gray-200 rounded-xl text-sm font-mono uppercase tracking-wider focus:outline-none focus:ring-2 focus:ring-primary-500"
                         placeholder="VD: 0001"
                         maxLength={20}
                         autoFocus
                       />
                       <button
                         type="submit"
-                        className="px-4 py-2.5 bg-indigo-600 text-white rounded-xl text-sm font-semibold hover:bg-indigo-700 transition-colors"
+                        className="px-4 py-2.5 bg-primary-600 text-white rounded-xl text-sm font-semibold hover:bg-primary-700 transition-colors"
                       >
                         OK
                       </button>
@@ -387,7 +387,7 @@ export function AddDeviceModal({ open, onClose, onAdded }: AddDeviceModalProps) 
 
               <div className="bg-gray-50 rounded-2xl p-4">
                 <div className="flex items-center gap-3">
-                  <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center shrink-0">
+                  <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-primary-500 to-primary-700 flex items-center justify-center shrink-0">
                     <Smartphone size={22} className="text-white" />
                   </div>
                   <div>
@@ -411,7 +411,7 @@ export function AddDeviceModal({ open, onClose, onAdded }: AddDeviceModalProps) 
                 <button
                   onClick={handleRegister}
                   disabled={submitting}
-                  className="flex-1 py-3 bg-indigo-600 hover:bg-indigo-700 disabled:bg-indigo-300 text-white rounded-xl font-semibold text-sm transition-colors flex items-center justify-center gap-2"
+                  className="flex-1 py-3 bg-primary-600 hover:bg-primary-700 disabled:bg-primary-300 text-white rounded-xl font-semibold text-sm transition-colors flex items-center justify-center gap-2"
                 >
                   {submitting ? "Đang thêm..." : "Thêm thiết bị"}
                   <ChevronRight size={15} />
@@ -451,14 +451,14 @@ export function AddDeviceModal({ open, onClose, onAdded }: AddDeviceModalProps) 
                   <input
                     value={manualInput}
                     onChange={(e) => setManualInput(e.target.value.toUpperCase())}
-                    className="flex-1 px-4 py-2.5 border border-gray-200 rounded-xl text-sm font-mono uppercase tracking-wider focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    className="flex-1 px-4 py-2.5 border border-gray-200 rounded-xl text-sm font-mono uppercase tracking-wider focus:outline-none focus:ring-2 focus:ring-primary-500"
                     placeholder="VD: 0001"
                     maxLength={20}
                     autoFocus
                   />
                   <button
                     type="submit"
-                    className="px-4 py-2.5 bg-indigo-600 text-white rounded-xl text-sm font-semibold hover:bg-indigo-700 transition-colors"
+                    className="px-4 py-2.5 bg-primary-600 text-white rounded-xl text-sm font-semibold hover:bg-primary-700 transition-colors"
                   >
                     OK
                   </button>
@@ -467,7 +467,7 @@ export function AddDeviceModal({ open, onClose, onAdded }: AddDeviceModalProps) 
 
               <button
                 onClick={handleRetry}
-                className="w-full py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-semibold text-sm transition-colors flex items-center justify-center gap-2"
+                className="w-full py-3 bg-primary-600 hover:bg-primary-700 text-white rounded-xl font-semibold text-sm transition-colors flex items-center justify-center gap-2"
               >
                 <RefreshCw size={15} />
                 Thử lại

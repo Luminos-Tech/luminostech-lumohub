@@ -61,12 +61,12 @@ function DeviceQRModal({
 
         <div className="p-6 flex flex-col items-center">
           {/* 说明 */}
-          <div className="flex items-center gap-3 mb-6 px-4 py-3 bg-indigo-50 rounded-xl w-full">
-            <div className="w-10 h-10 rounded-xl bg-indigo-100 flex items-center justify-center shrink-0">
-              <QrCode size={20} className="text-indigo-600" />
+          <div className="flex items-center gap-3 mb-6 px-4 py-3 bg-primary-50 rounded-xl w-full">
+            <div className="w-10 h-10 rounded-xl bg-primary-100 flex items-center justify-center shrink-0">
+              <QrCode size={20} className="text-primary-600" />
             </div>
             <div>
-              <p className="text-xs text-indigo-600 font-medium">Tự động ghép đôi</p>
+              <p className="text-xs text-primary-600 font-medium">Tự động ghép đôi</p>
               <p className="text-sm text-gray-700">Thiết bị quét là xong</p>
             </div>
           </div>
@@ -121,7 +121,7 @@ function NotifyModal({
       <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden">
         <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
           <div className="flex items-center gap-2">
-            <Bell size={18} className="text-indigo-600" />
+            <Bell size={18} className="text-primary-600" />
             <h2 className="text-lg font-bold text-gray-900">Gửi thông báo</h2>
           </div>
           <button onClick={onClose} className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-xl transition-all">
@@ -140,7 +140,7 @@ function NotifyModal({
             <input
               value={title}
               onChange={(e) => setTitle(e.target.value)}
-              className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all text-sm"
+              className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all text-sm"
               placeholder="Nhắc lịch học"
               autoFocus
             />
@@ -151,7 +151,7 @@ function NotifyModal({
             <textarea
               value={body}
               onChange={(e) => setBody(e.target.value)}
-              className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all resize-none text-sm"
+              className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all resize-none text-sm"
               rows={3}
               placeholder="Bạn có lịch học vào 14:00"
             />
@@ -160,7 +160,7 @@ function NotifyModal({
           <button
             type="submit"
             disabled={sending}
-            className="w-full py-3 bg-indigo-600 hover:bg-indigo-700 disabled:bg-indigo-300 text-white rounded-xl font-semibold text-sm transition-colors flex items-center justify-center gap-2"
+            className="w-full py-3 bg-primary-600 hover:bg-primary-700 disabled:bg-primary-300 text-white rounded-xl font-semibold text-sm transition-colors flex items-center justify-center gap-2"
           >
             <Zap size={15} />
             {sending ? "Đang gửi..." : "Gửi thông báo"}
@@ -195,7 +195,7 @@ function DeviceCard({
       <div className="flex items-start gap-4">
         {/* 设备图标 + 状态指示灯 */}
         <div className="relative shrink-0">
-          <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center shadow-lg shadow-indigo-200">
+          <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-primary-500 to-primary-700 flex items-center justify-center shadow-lg shadow-primary-200">
             <Smartphone size={24} className="text-white" />
           </div>
           <div
@@ -234,14 +234,14 @@ function DeviceCard({
         <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
           <button
             onClick={() => onShowQR(device)}
-            className="p-2 text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-xl transition-all"
+            className="p-2 text-gray-400 hover:text-primary-600 hover:bg-primary-50 rounded-xl transition-all"
             title="Mã QR"
           >
             <QrCode size={16} />
           </button>
           <button
             onClick={() => onNotify(device)}
-            className="p-2 text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-xl transition-all"
+            className="p-2 text-gray-400 hover:text-primary-600 hover:bg-primary-50 rounded-xl transition-all"
             title="Gửi thông báo"
           >
             <Bell size={16} />
@@ -261,7 +261,7 @@ function DeviceCard({
       <div className="flex items-center gap-2 mt-4 pt-3 border-t border-gray-50">
         <button
           onClick={() => onNotify(device)}
-          className="flex-1 flex items-center justify-center gap-1.5 py-2 text-xs font-medium text-indigo-600 hover:bg-indigo-50 rounded-xl transition-colors"
+          className="flex-1 flex items-center justify-center gap-1.5 py-2 text-xs font-medium text-primary-600 hover:bg-primary-50 rounded-xl transition-colors"
         >
           <Bell size={13} />
           Gửi thông báo
@@ -284,8 +284,8 @@ function DeviceCard({
 function EmptyState({ onAdd }: { onAdd: () => void }) {
   return (
     <div className="flex flex-col items-center justify-center py-16 px-6">
-      <div className="w-24 h-24 rounded-full bg-gradient-to-br from-indigo-100 to-purple-100 flex items-center justify-center mb-6">
-        <Smartphone size={40} className="text-indigo-400" />
+      <div className="w-24 h-24 rounded-full bg-gradient-to-br from-primary-100 to-primary-100 flex items-center justify-center mb-6">
+        <Smartphone size={40} className="text-primary-400" />
       </div>
       <h3 className="text-lg font-bold text-gray-900 mb-2">Chưa có thiết bị nào</h3>
       <p className="text-sm text-gray-400 text-center mb-6 max-w-xs">
@@ -293,7 +293,7 @@ function EmptyState({ onAdd }: { onAdd: () => void }) {
       </p>
       <button
         onClick={onAdd}
-        className="flex items-center gap-2 px-6 py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-semibold text-sm transition-colors shadow-lg shadow-indigo-200"
+        className="flex items-center gap-2 px-6 py-3 bg-primary-600 hover:bg-primary-700 text-white rounded-xl font-semibold text-sm transition-colors shadow-lg shadow-primary-200"
       >
         <Plus size={16} />
         Thêm thiết bị đầu tiên
@@ -328,7 +328,7 @@ export default function DevicesPage() {
       <div className="bg-white border-b border-gray-100 sticky top-0 z-10">
         <div className="max-w-2xl mx-auto px-4 py-3 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center shadow-md">
+            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-primary-500 to-primary-700 flex items-center justify-center shadow-md">
               <Smartphone size={16} className="text-white" />
             </div>
             <div>
@@ -338,7 +338,7 @@ export default function DevicesPage() {
           </div>
           <button
             onClick={() => setShowAdd(true)}
-            className="flex items-center gap-2 px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-semibold text-sm transition-colors shadow-lg shadow-indigo-200"
+            className="flex items-center gap-2 px-4 py-2.5 bg-primary-600 hover:bg-primary-700 text-white rounded-xl font-semibold text-sm transition-colors shadow-lg shadow-primary-200"
           >
             <Plus size={15} />
             Thêm thiết bị
@@ -350,7 +350,7 @@ export default function DevicesPage() {
       <div className="max-w-2xl mx-auto px-4 py-6">
         {loading ? (
           <div className="flex flex-col items-center justify-center py-20">
-            <div className="w-10 h-10 border-3 border-indigo-600 border-t-transparent rounded-full animate-spin" />
+            <div className="w-10 h-10 border-3 border-primary-600 border-t-transparent rounded-full animate-spin" />
             <p className="mt-4 text-sm text-gray-400">Đang tải...</p>
           </div>
         ) : devices.length === 0 ? (

@@ -76,7 +76,7 @@ export default function AdminUsersPage() {
                       <button
                         title="Đổi vai trò"
                         onClick={() => toggleRole(u.id, u.role)}
-                        className="p-1.5 rounded-lg hover:bg-gray-100 text-indigo-500"
+                        className="p-1.5 rounded-lg hover:bg-gray-100 text-primary-500"
                       >
                         <ShieldCheck size={15} />
                       </button>

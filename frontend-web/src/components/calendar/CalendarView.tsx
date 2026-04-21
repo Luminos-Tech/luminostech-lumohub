@@ -236,7 +236,7 @@ export default function CalendarView() {
         {/* AI Import button */}
         <button
           onClick={() => setShowAIImport(true)}
-          className="flex items-center gap-1.5 px-3 py-2 bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-700 hover:to-indigo-700 text-white rounded-lg text-sm font-medium shadow-sm hover:shadow-md transition-all active:scale-95 shrink-0"
+          className="flex items-center gap-1.5 px-3 py-2 bg-gradient-to-r from-primary-600 to-primary-700 hover:from-primary-700 hover:to-primary-800 text-white rounded-xl text-sm font-semibold shadow-sm hover:shadow-md transition-all active:scale-95 shrink-0"
           title="Nhập lịch bằng AI"
         >
           <Sparkles size={15} />
@@ -246,7 +246,7 @@ export default function CalendarView() {
         {/* Create button */}
         <button
           onClick={openCreate}
-          className="flex items-center gap-1.5 px-3 py-2 bg-primary-600 hover:bg-primary-700 text-white rounded-lg text-sm font-medium shadow-sm hover:shadow-md transition-all active:scale-95 shrink-0"
+          className="flex items-center gap-1.5 px-3 py-2 bg-primary-600 hover:bg-primary-700 text-white rounded-xl text-sm font-semibold shadow-sm hover:shadow-md transition-all active:scale-95 shrink-0"
         >
           <Plus size={15} />
           <span className="hidden sm:inline">Tạo sự kiện</span>

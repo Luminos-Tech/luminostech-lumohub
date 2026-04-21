@@ -85,9 +85,9 @@ function PushBannerInner({ onStatusChange, onDismiss }: { onStatusChange: () => 
   };
 
   return (
-    <div className="bg-indigo-600 text-white px-4 py-3 flex items-center justify-between gap-3 safe-area-inset-top">
+    <div className="bg-gradient-to-r from-primary-600 to-primary-700 text-white px-4 py-3 flex items-center justify-between gap-3 safe-area-inset-top shadow-sm">
       <div className="flex items-center gap-2 min-w-0">
-        <Bell size={18} className="shrink-0" />
+        <Bell size={18} className="shrink-0 animate-pulse" />
         <p className="text-sm font-medium truncate">
           Bật thông báo để nhận lời nhắc lịch
         </p>
@@ -96,7 +96,7 @@ function PushBannerInner({ onStatusChange, onDismiss }: { onStatusChange: () => 
         <button
           onClick={handleEnable}
           disabled={loading}
-          className="px-3 py-1.5 bg-white/20 hover:bg-white/30 disabled:opacity-50 rounded-lg text-xs font-semibold transition-colors"
+          className="px-3 py-1.5 bg-white/20 hover:bg-white/30 disabled:opacity-50 rounded-lg text-xs font-semibold transition-all active:scale-95"
         >
           {loading ? "..." : "Bật ngay"}
         </button>
@@ -167,7 +167,7 @@ export function NotificationSettingCard() {
       label: "Chưa bật",
       desc: "Bấm để bật thông báo",
       buttonText: "Bật thông báo",
-      buttonColor: "bg-indigo-600 hover:bg-indigo-700",
+      buttonColor: "bg-primary-600 hover:bg-primary-700 text-white",
     },
     granted: {
       icon: CheckCircle2,
@@ -211,7 +211,7 @@ export function NotificationSettingCard() {
         <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${
           status === "granted" ? "bg-green-100" :
           status === "denied" ? "bg-red-100" :
-          status === "unsupported" ? "bg-gray-100" : "bg-indigo-100"
+          status === "unsupported" ? "bg-gray-100" : "bg-primary-50"
         }`}>
           <Icon size={20} className={config.color} />
         </div>
@@ -223,7 +223,7 @@ export function NotificationSettingCard() {
             <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${
               status === "granted" ? "bg-green-100 text-green-700" :
               status === "denied" ? "bg-red-100 text-red-700" :
-              status === "unsupported" ? "bg-gray-200 text-gray-500" : "bg-indigo-100 text-indigo-700"
+              status === "unsupported" ? "bg-gray-200 text-gray-500" : "bg-primary-100 text-primary-700"
             }`}>
               {config.label}
             </span>
@@ -258,10 +258,10 @@ export function NotificationSettingCard() {
 
       {/* Gợi ý khi chưa bật */}
       {status === "default" && (
-        <div className="mt-3 pt-3 border-t border-indigo-200">
+        <div className="mt-3 pt-3 border-t border-primary-200">
           <div className="flex items-start gap-2">
-            <Bell size={14} className="text-indigo-400 shrink-0 mt-0.5" />
-            <p className="text-xs text-indigo-600">
+            <Bell size={14} className="text-primary-400 shrink-0 mt-0.5" />
+            <p className="text-xs text-primary-600">
               Sau khi bật, bạn sẽ nhận được thông báo nhắc lịch ngay cả khi app đang đóng.
             </p>
           </div>

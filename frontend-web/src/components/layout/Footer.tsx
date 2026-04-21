@@ -10,7 +10,7 @@ const links = [
 
 export default function Footer() {
   return (
-    <footer className="bg-white border-t border-gray-200 px-6 py-4">
+    <footer className="bg-white border-t border-gray-100 px-6 py-4">
       <div className="flex flex-col sm:flex-row items-center justify-between gap-3">
         {/* Branding */}
         <div className="flex items-center gap-2">
@@ -21,7 +21,7 @@ export default function Footer() {
             height={60}
             className="object-contain w-auto h-8"
           />
-          <span className="text-xs text-gray-400 ml-1">v1.0.0 Beta © 2026</span>
+          <span className="text-xs text-gray-300 ml-1">v1.0.0 Beta © 2026</span>
         </div>
 
         {/* Links — hidden on mobile to keep it clean */}
@@ -48,7 +48,7 @@ export default function Footer() {
 
         {/* Made with */}
         <p className="text-xs text-gray-300 flex items-center gap-1">
-          Made with <Heart size={10} className="text-red-400 fill-red-400" /> by Luminos Tech
+          Made with <Heart size={10} className="text-primary-500 fill-primary-500" /> by Luminos Tech
         </p>
       </div>
     </footer>

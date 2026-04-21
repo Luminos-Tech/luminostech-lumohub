@@ -15,11 +15,11 @@ export default function Topbar({ onMenuClick }: TopbarProps) {
   useEffect(() => { fetchNotifications(); }, [fetchNotifications]);
 
   return (
-    <header className="h-11 sm:h-12 border-b border-gray-100 bg-white flex items-center justify-between px-3 sm:px-6 gap-3 sticky top-0 z-30">
+    <header className="h-12 sm:h-13 border-b border-gray-100 bg-white/90 backdrop-blur-lg flex items-center justify-between px-3 sm:px-6 gap-3 sticky top-0 z-30">
       {/* Mobile hamburger — hidden on desktop */}
       <button
         onClick={onMenuClick}
-        className="p-2 rounded-lg text-gray-500 hover:bg-gray-100 hover:text-gray-800 transition-colors md:hidden -ml-1"
+        className="p-2 rounded-xl text-gray-400 hover:bg-gray-100 hover:text-gray-700 transition-all md:hidden -ml-1"
         aria-label="Mở menu"
       >
         <Menu size={20} />
@@ -42,12 +42,12 @@ export default function Topbar({ onMenuClick }: TopbarProps) {
 
       <Link
         href="/notifications"
-        className="relative p-2 hover:bg-gray-100 rounded-lg text-gray-500 hover:text-gray-800 transition-colors"
+        className="relative p-2 hover:bg-primary-50 rounded-xl text-gray-400 hover:text-primary-600 transition-all"
         aria-label="Thông báo"
       >
         <Bell size={19} />
         {unreadCount > 0 && (
-          <span className="absolute -top-0.5 -right-0.5 w-4.5 h-4.5 bg-red-500 text-white text-[9px] font-bold rounded-full flex items-center justify-center">
+          <span className="absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] bg-primary-600 text-white text-[9px] font-bold rounded-full flex items-center justify-center px-1 shadow-sm animate-pulse">
             {unreadCount > 9 ? "9+" : unreadCount}
           </span>
         )}

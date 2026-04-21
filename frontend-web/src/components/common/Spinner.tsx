@@ -22,7 +22,7 @@ export function Badge({ label, color = "blue" }: BadgeProps) {
     green:  "bg-green-100 text-green-700",
     red:    "bg-red-100 text-red-700",
     gray:   "bg-gray-100 text-gray-600",
-    purple: "bg-indigo-100 text-indigo-700",
+    purple: "bg-primary-100 text-primary-700",
   };
   return <span className={cn("badge", colors[color])}>{label}</span>;
 }

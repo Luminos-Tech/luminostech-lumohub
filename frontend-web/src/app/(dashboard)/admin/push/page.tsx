@@ -68,7 +68,7 @@ export default function AdminPushPage() {
       <div className="bg-white border-b border-gray-100 sticky top-0 z-10">
         <div className="max-w-2xl mx-auto px-4 py-3">
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center shadow-md">
+            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-primary-500 to-primary-700 flex items-center justify-center shadow-md">
               <Bell size={16} className="text-white" />
             </div>
             <div>
@@ -83,14 +83,14 @@ export default function AdminPushPage() {
         {/* 订阅统计卡片 */}
         <div className="bg-white border border-gray-100 rounded-2xl p-5 shadow-sm">
           <h2 className="text-sm font-semibold text-gray-700 mb-4 flex items-center gap-2">
-            <Users size={15} className="text-indigo-500" />
+            <Users size={15} className="text-primary-500" />
             Tình trạng Push Subscription
           </h2>
           {status ? (
             <div className="grid grid-cols-2 gap-4">
-              <div className="bg-indigo-50 rounded-xl p-4 text-center">
-                <p className="text-2xl font-bold text-indigo-600">{status.total_subscriptions}</p>
-                <p className="text-xs text-indigo-500 mt-1">Tổng subscription</p>
+              <div className="bg-primary-50 rounded-xl p-4 text-center">
+                <p className="text-2xl font-bold text-primary-600">{status.total_subscriptions}</p>
+                <p className="text-xs text-primary-500 mt-1">Tổng subscription</p>
               </div>
               <div className="bg-green-50 rounded-xl p-4 text-center">
                 <p className="text-2xl font-bold text-green-600">{status.users_with_push}</p>
@@ -108,7 +108,7 @@ export default function AdminPushPage() {
         {/* 发送表单 */}
         <form onSubmit={handleSend} className="bg-white border border-gray-100 rounded-2xl p-5 shadow-sm space-y-5">
           <h2 className="text-sm font-semibold text-gray-700 flex items-center gap-2">
-            <Send size={15} className="text-indigo-500" />
+            <Send size={15} className="text-primary-500" />
             Soạn thông báo
           </h2>
 
@@ -121,7 +121,7 @@ export default function AdminPushPage() {
                 onClick={() => { setTargetType("all"); setSelectedUser(null); }}
                 className={`flex-1 py-2.5 px-4 rounded-xl text-sm font-medium border transition-colors ${
                   targetType === "all"
-                    ? "bg-indigo-50 border-indigo-200 text-indigo-700"
+                    ? "bg-primary-50 border-primary-200 text-primary-700"
                     : "bg-white border-gray-200 text-gray-600 hover:bg-gray-50"
                 }`}
               >
@@ -133,7 +133,7 @@ export default function AdminPushPage() {
                 onClick={() => setTargetType("specific")}
                 className={`flex-1 py-2.5 px-4 rounded-xl text-sm font-medium border transition-colors ${
                   targetType === "specific"
-                    ? "bg-indigo-50 border-indigo-200 text-indigo-700"
+                    ? "bg-primary-50 border-primary-200 text-primary-700"
                     : "bg-white border-gray-200 text-gray-600 hover:bg-gray-50"
                 }`}
               >
@@ -149,7 +149,7 @@ export default function AdminPushPage() {
               <select
                 value={selectedUser ?? ""}
                 onChange={(e) => setSelectedUser(Number(e.target.value) || null)}
-                className="w-full px-4 py-3 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 appearance-none bg-white"
+                className="w-full px-4 py-3 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 appearance-none bg-white"
               >
                 <option value="">-- Chọn người dùng --</option>
                 {users.map((u) => (
@@ -168,7 +168,7 @@ export default function AdminPushPage() {
             <input
               value={title}
               onChange={(e) => setTitle(e.target.value)}
-              className="w-full px-4 py-3 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              className="w-full px-4 py-3 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
               placeholder="VD: Nhắc lịch học"
               maxLength={100}
             />
@@ -180,7 +180,7 @@ export default function AdminPushPage() {
             <textarea
               value={body}
               onChange={(e) => setBody(e.target.value)}
-              className="w-full px-4 py-3 border border-gray-200 rounded-xl text-sm resize-none focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              className="w-full px-4 py-3 border border-gray-200 rounded-xl text-sm resize-none focus:outline-none focus:ring-2 focus:ring-primary-500"
               rows={4}
               placeholder="VD: Bạn có lịch học Toán vào 14:00 hôm nay"
               maxLength={500}
@@ -192,7 +192,7 @@ export default function AdminPushPage() {
           <button
             type="submit"
             disabled={sending || !title.trim() || !body.trim()}
-            className="w-full py-3 bg-indigo-600 hover:bg-indigo-700 disabled:bg-indigo-300 text-white rounded-xl font-semibold text-sm transition-colors flex items-center justify-center gap-2"
+            className="w-full py-3 bg-primary-600 hover:bg-primary-700 disabled:bg-primary-300 text-white rounded-xl font-semibold text-sm transition-colors flex items-center justify-center gap-2"
           >
             <Send size={15} />
             {sending ? "Đang gửi..." : "Gửi Push Notification"}

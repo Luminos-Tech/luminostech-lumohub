@@ -154,7 +154,7 @@ function DevicesPanel() {
             <div key={device.id} className="card p-4 hover:shadow-md transition-all group">
               <div className="flex items-center gap-3">
                 <div className="relative shrink-0">
-                  <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center shadow-md">
+                  <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-primary-500 to-primary-700 flex items-center justify-center shadow-md">
                     <Smartphone size={18} className="text-white" />
                   </div>
                   <div className={`absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 rounded-full border-2 border-white shadow-sm ${
@@ -173,10 +173,10 @@ function DevicesPanel() {
                   <p className="text-xs text-gray-400 mt-0.5">{device.is_active ? "Đang hoạt động" : "Không hoạt động"}</p>
                 </div>
                 <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                  <button onClick={() => setQrTarget(device)} className="p-2 text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors" title="Mã QR">
+                  <button onClick={() => setQrTarget(device)} className="p-2 text-gray-400 hover:text-primary-600 hover:bg-primary-50 rounded-lg transition-colors" title="Mã QR">
                     <QrCode size={15} />
                   </button>
-                  <button onClick={() => setNotifyTarget(device)} className="p-2 text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors" title="Gửi thông báo">
+                  <button onClick={() => setNotifyTarget(device)} className="p-2 text-gray-400 hover:text-primary-600 hover:bg-primary-50 rounded-lg transition-colors" title="Gửi thông báo">
                     <Bell size={15} />
                   </button>
                   <button onClick={() => handleDelete(device.id)} disabled={deletingId === device.id} className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors disabled:opacity-40">
