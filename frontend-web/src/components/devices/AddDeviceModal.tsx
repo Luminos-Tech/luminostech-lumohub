@@ -50,8 +50,7 @@ export function AddDeviceModal({ open, onClose, onAdded }: AddDeviceModalProps) 
   const [cameraList, setCameraList] = useState<{ id: string; label: string }[]>([]);
   const [currentCamera, setCurrentCamera] = useState<string>("environment");
   const scannerRef = useRef<HTMLDivElement>(null);
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const html5QrcodeRef = useRef<any>(null);
+  const html5QrcodeRef = useRef<{ stop: () => Promise<void> } | null>(null);
   const hasScannedRef = useRef(false);
   const Html5QrcodeScannerRef = useRef<unknown>(null);
 
@@ -97,8 +96,7 @@ export function AddDeviceModal({ open, onClose, onAdded }: AddDeviceModalProps) 
         html5QrcodeRef.current = null;
       }
       if (Html5QrcodeScannerRef.current) {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const scanner = Html5QrcodeScannerRef.current as any;
+        const scanner = Html5QrcodeScannerRef.current as { clear?: () => void };
         if (scanner.clear) {
           await scanner.clear();
         }
@@ -132,7 +130,7 @@ export function AddDeviceModal({ open, onClose, onAdded }: AddDeviceModalProps) 
       const { Html5Qrcode } = await import("html5-qrcode");
 
       // 检测 html5-qrcode 版本
-      const version = Html5Qrcode["LIB"]?.v || "2.x";
+      const version = (Html5Qrcode as unknown as { LIB?: { v?: string } })["LIB"]?.v || "2.x";
 
       if (version.startsWith("2.")) {
         // html5-qrcode v2.x: 使用 Html5Qrcode 类
