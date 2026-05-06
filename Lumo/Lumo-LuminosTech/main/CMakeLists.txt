@@ -1,0 +1,33 @@
+idf_component_register(
+    SRCS
+        "Lumo-LuminosTech.c"
+        "audio/audio_player.c"
+        "oled/oled.c"
+        "button/button.c"
+        "wifi/web_portal.c"
+        "wifi/wifi_manager.c"
+        "http_api/http_api.c"
+        "mic/mic.c"
+        "record/record.c"
+    INCLUDE_DIRS
+        "."
+        "audio"
+        "oled"
+        "button"
+        "wifi"
+        "oled/font5x7"
+    REQUIRES
+        esp_driver_i2c
+        esp_driver_i2s
+        esp_driver_gpio
+        esp_timer
+        esp_http_server
+        nvs_flash
+        esp_wifi
+        spi_flash
+        esp_http_client
+        mbedtls
+        spiffs
+    EMBED_TXTFILES
+        "certs/server_cert.pem"
+)
