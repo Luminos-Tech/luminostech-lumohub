@@ -7,7 +7,7 @@ import os
 logging.basicConfig(level=logging.INFO)
 lumo_logger = logging.getLogger("lumo_tts")
 
-tts_client = genai.Client(api_key="AIzaSyDj14rOtzeh38ZqDi8Ymifn9g9aocczYns")
+tts_client = genai.Client(api_key="AIzaSyDhBnAT6LpYT7O19lUxKpHIYhMQqTuSkaU")
 
 
 def _pcm_to_wav(pcm_data: bytes, output_path: str, sample_rate: int = 24000):
@@ -76,5 +76,5 @@ def generate_tts(v2_answer: str, output_file: str = "lumo_tts_output.wav"):
 
 
 if __name__ == "__main__":
-    text = "Xin chào, tôi là lumo. Ngày hôm nay của bạn như thế nào"
+    text = "Xin chào, Tôi thấy ngày hôm bay bạn chưa tương tác với tôi, không biết bạn có vấn đề gì không"
     generate_tts(text)

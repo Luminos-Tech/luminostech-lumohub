@@ -4,7 +4,7 @@
 .env.*.local
 !.env.example
 !.env.local.example
-
+test_audio.py
 # Python
 __pycache__/
 *.py[cod]
