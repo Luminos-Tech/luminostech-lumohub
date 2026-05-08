@@ -5,3 +5,4 @@ from app.schemas.reminder import ReminderCreateRequest, ReminderUpdateRequest, R
 from app.schemas.notification import NotificationResponse
 from app.schemas.admin import SystemLogResponse, AdminActionResponse
 from app.schemas.device import DeviceCreateRequest, DeviceUpdateRequest, DeviceResponse
+from app.schemas.check_noti import CheckNotiCreateRequest, CheckNotiUpdateRequest, CheckNotiResponse

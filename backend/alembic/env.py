@@ -6,7 +6,7 @@ from logging.config import fileConfig
 from sqlalchemy import engine_from_config, pool
 from alembic import context
 from app.db.session import Base
-from app.models import user, event, reminder, notification, system_log, user_session, admin_action  # noqa
+from app.models import user, event, reminder, notification, system_log, user_session, admin_action, device, event_button, push_subscription, check_noti  # noqa
 
 config = context.config
 

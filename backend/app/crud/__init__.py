@@ -5,3 +5,6 @@ from app.crud.notification import *
 from app.crud.log import *
 from app.crud.session import *
 from app.crud.device import *
+from app.crud.event_button import *
+from app.crud.push_subscription import *
+from app.crud.check_noti import *

@@ -8,9 +8,10 @@ from app.models.admin_action import AdminAction
 from app.models.device import Device
 from app.models.event_button import EventButton
 from app.models.push_subscription import PushSubscription
+from app.models.check_noti import CheckNoti
 
 __all__ = [
     "User", "Event", "Reminder", "Notification",
     "SystemLog", "UserSession", "AdminAction", "Device",
-    "EventButton", "PushSubscription",
+    "EventButton", "PushSubscription", "CheckNoti",
 ]
