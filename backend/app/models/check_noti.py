@@ -13,6 +13,6 @@ class CheckNoti(Base):
     )
 
     id: Mapped[int] = mapped_column(BigInteger, primary_key=True, autoincrement=True)
-    device: Mapped[int] = mapped_column(BigInteger, nullable=False, index=True)
+    device: Mapped[int] = mapped_column(BigInteger, nullable=False)
     state: Mapped[int] = mapped_column(BigInteger, nullable=False)
     date: Mapped[datetime] = mapped_column(nullable=False)
