@@ -72,6 +72,8 @@ export interface Device {
   is_active: boolean;
   created_at: string;
   updated_at: string;
+  /** Telemetry-ready field. Older backends omit it and the UI shows an empty state. */
+  battery_level?: number;
 }
 
 export interface EventButton {

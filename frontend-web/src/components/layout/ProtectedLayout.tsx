@@ -1,59 +1,30 @@
 "use client";
-import { useEffect, useState } from "react";
+
+import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useAuthStore } from "@/store/authStore";
-import Sidebar from "./Sidebar";
-import Topbar from "./Topbar";
-import Footer from "./Footer";
 import BottomNav from "./BottomNav";
+import Topbar from "./Topbar";
 import Spinner from "@/components/common/Spinner";
-import { PushBanner } from "@/components/notifications/PushNotificationPrompt";
 
 export default function ProtectedLayout({ children }: { children: React.ReactNode }) {
   const { isAuthenticated, user, fetchMe } = useAuthStore();
   const router = useRouter();
-  const [sidebarOpen, setSidebarOpen] = useState(false);
 
   useEffect(() => {
     const token = localStorage.getItem("access_token");
-    if (!token) {
-      router.replace("/login");
-      return;
-    }
-    if (!user) {
-      fetchMe().catch(() => router.replace("/login"));
-    }
-  }, [user, fetchMe, router]);
+    if (!token) return router.replace("/login");
+    if (!user) fetchMe().catch(() => router.replace("/login"));
+  }, [fetchMe, router, user]);
 
   if (!isAuthenticated || !user) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <Spinner className="h-8 w-8" />
-      </div>
-    );
+    return <div className="app-loading"><Spinner className="h-8 w-8" /><span>Đang kết nối với Lumo...</span></div>;
   }
 
   return (
-    <div className="flex min-h-screen bg-gray-50">
-      {/* Sidebar: desktop always-visible + mobile drawer */}
-      <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
-
-      {/* Main content area */}
-      <div className="flex-1 flex flex-col min-w-0">
-        <Topbar onMenuClick={() => setSidebarOpen(true)} />
-        {/* Banner xin quyền thông báo - chỉ hiện khi chưa quyết định */}
-        <PushBanner />
-        {/* pb-14 on mobile to avoid content behind BottomNav */}
-        <main className="flex-1 overflow-auto pb-14 md:pb-0 min-h-0">
-          {children}
-        </main>
-        {/* Footer: hidden on mobile to avoid overlapping with BottomNav */}
-        <div className="hidden md:block">
-          <Footer />
-        </div>
-      </div>
-
-      {/* Mobile bottom nav */}
+    <div className="mobile-app-shell">
+      <Topbar />
+      <main className="mobile-app-content">{children}</main>
       <BottomNav />
     </div>
   );

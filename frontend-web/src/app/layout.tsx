@@ -4,15 +4,15 @@ import { ServiceWorkerRegistration } from "@/components/ServiceWorkerRegistratio
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Lumo Hub",
-  description: "Quản lý lịch thông minh với LumoHub",
+  title: "Lumo - An tâm mỗi ngày",
+  description: "Theo dõi điểm danh, thiết bị và lịch nhắc của gia đình cùng Lumo.",
   manifest: "/manifest.json",
   formatDetection: {
     telephone: false,
   },
   openGraph: {
-    title: "Lumo Hub",
-    description: "Quản lý lịch thông minh với LumoHub",
+    title: "Lumo - An tâm mỗi ngày",
+    description: "Theo dõi điểm danh, thiết bị và lịch nhắc của gia đình cùng Lumo.",
     type: "website",
     siteName: "Lumo Hub",
   },
@@ -28,7 +28,7 @@ export const viewport: Viewport = {
   maximumScale: 1,
   userScalable: false,
   viewportFit: "cover",
-  themeColor: "#6366f1",
+  themeColor: "#f2fafa",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
@@ -37,10 +37,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <head>
         {/* PWA iOS meta tags — phải để trong <head> */}
         <meta name="apple-mobile-web-app-capable" content="yes" />
-        <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+        <meta name="apple-mobile-web-app-status-bar-style" content="default" />
         <meta name="apple-mobile-web-app-title" content="Lumo" />
         <meta name="mobile-web-app-capable" content="yes" />
-        <meta name="msapplication-TileColor" content="#6366f1" />
+        <meta name="msapplication-TileColor" content="#00afa8" />
         <meta name="msapplication-tap-highlight" content="no" />
       </head>
       <body>
