@@ -9,14 +9,14 @@ import { OPEN_AUTH_EVENT } from "@/lib/uiEvents";
 import { usePreferenceStore } from "@/store/preferenceStore";
 import { LumoHubIcon } from "@/components/icons/LumoDeviceIcons";
 
-const navItems = [
+export const navItems = [
   { href: "/dashboard", vi: "Trang chủ", en: "Home", icon: LumoHomeIcon, kind: "home" },
   { href: "/settings/event-buttons", vi: "Lời nhắn", en: "Voices", icon: AudioLines },
   { href: "/calendar", vi: "Lịch", en: "Calendar", icon: CalendarDays },
   { href: "/settings/devices", vi: "Thiết bị", en: "Devices", icon: LumoHubIcon, kind: "devices" },
 ];
 
-function LumoHomeIcon({ size = 32 }: { size?: number; strokeWidth?: number }) {
+export function LumoHomeIcon({ size = 32 }: { size?: number; strokeWidth?: number }) {
   return (
     <svg width={size} height={size} viewBox="0 0 32 32" fill="none" aria-hidden="true">
       <circle cx="16" cy="16" r="10.5" stroke="currentColor" strokeWidth="6" />

@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import dynamic from "next/dynamic";
 import { useAuthStore } from "@/store/authStore";
 import BottomNav from "./BottomNav";
+import DesktopSidebar from "./DesktopSidebar";
 import Topbar from "./Topbar";
 import { OPEN_AUTH_EVENT, OPEN_NOTIFICATIONS_EVENT } from "@/lib/uiEvents";
 
@@ -51,22 +52,25 @@ export default function ProtectedLayout({ children }: { children: React.ReactNod
 
   return (
     <div className="mobile-app-shell">
-      <Topbar />
-      <main className="mobile-app-content" onClickCapture={(event) => {
-        const anchor = (event.target as HTMLElement).closest("a");
-        const href = anchor?.getAttribute("href");
-        if (isAuthenticated && href === "/notifications") {
-          event.preventDefault();
-          window.dispatchEvent(new CustomEvent(OPEN_NOTIFICATIONS_EVENT));
-          return;
-        }
-        if (isAuthenticated) return;
-        if (href && href.startsWith("/") && href !== "/dashboard") {
-          event.preventDefault();
-          window.dispatchEvent(new CustomEvent(OPEN_AUTH_EVENT));
-        }
-      }}>{children}</main>
-      <BottomNav />
+      <DesktopSidebar />
+      <div className="desktop-app-main">
+        <Topbar />
+        <main className="mobile-app-content" onClickCapture={(event) => {
+          const anchor = (event.target as HTMLElement).closest("a");
+          const href = anchor?.getAttribute("href");
+          if (isAuthenticated && href === "/notifications") {
+            event.preventDefault();
+            window.dispatchEvent(new CustomEvent(OPEN_NOTIFICATIONS_EVENT));
+            return;
+          }
+          if (isAuthenticated) return;
+          if (href && href.startsWith("/") && href !== "/dashboard") {
+            event.preventDefault();
+            window.dispatchEvent(new CustomEvent(OPEN_AUTH_EVENT));
+          }
+        }}>{children}</main>
+        <BottomNav />
+      </div>
       {authOpen && <AuthModal onClose={closeAuth} />}
       {notificationsOpen && <NotificationModal onClose={closeNotifications} />}
     </div>
