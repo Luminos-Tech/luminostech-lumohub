@@ -1,9 +1,9 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
-import { format } from "date-fns";
-import { CalendarCheck2, CheckCircle2, ChevronRight, ShieldAlert, ShieldCheck, Timer } from "lucide-react";
+import { addDays, format, startOfWeek } from "date-fns";
+import { CalendarCheck2, Check, CheckCircle2, ChevronRight, Clock3, ShieldAlert, ShieldCheck, Timer } from "lucide-react";
 import { LumoBandIcon } from "@/components/icons/LumoDeviceIcons";
 import { useAuthStore } from "@/store/authStore";
 import { useDeviceStore } from "@/store/deviceStore";
@@ -11,27 +11,17 @@ import { useEventButtonStore } from "@/store/eventButtonStore";
 import { usePreferenceStore } from "@/store/preferenceStore";
 import { parseUTC } from "@/lib/utils";
 
-function SummaryRings({ checkin, today, activity, label }: { checkin: number; today: number; activity: number; label: string }) {
-  const rings = [
-    { path: "M26 112 A64 64 0 1 1 154 112", value: checkin, className: "checkin" },
-    { path: "M40 112 A50 50 0 1 1 140 112", value: today, className: "today" },
-    { path: "M54 112 A36 36 0 1 1 126 112", value: activity, className: "activity" },
-  ];
-
-  return (
-    <svg className="health-summary-rings" viewBox="0 0 180 126" role="img" aria-label={label}>
-      {rings.map((ring) => <path key={`${ring.className}-track`} className={`summary-ring-track ${ring.className}`} d={ring.path} pathLength="100" />)}
-      {rings.map((ring) => <path key={ring.className} className={`summary-ring-value ${ring.className}`} d={ring.path} pathLength="100" strokeDasharray={`${ring.value} 100`} />)}
-    </svg>
-  );
-}
-
 export default function DashboardPage() {
   const { isAuthenticated } = useAuthStore();
   const { devices, fetchDevices } = useDeviceStore();
   const { events, todayStatus, fetchEvents, fetchTodayStatus } = useEventButtonStore();
   const language = usePreferenceStore((state) => state.language);
   const isEnglish = language === "en";
+  const [now, setNow] = useState<Date | null>(null);
+
+  useEffect(() => {
+    setNow(new Date());
+  }, []);
 
   useEffect(() => {
     if (!isAuthenticated) return;
@@ -45,15 +35,31 @@ export default function DashboardPage() {
   const activityMinutes = activeDevice?.activity_minutes_today;
   const fallDetected = activeDevice?.fall_detected;
   const checkedIn = Boolean(todayStatus?.clicked_today);
-  const checkinDays = new Set(events.map((event) => format(parseUTC(event.time_button_click), "yyyy-MM-dd"))).size;
-  const checkinProgress = Math.min((checkinDays / 7) * 100, 100);
-  const activityProgress = typeof activityMinutes === "number" ? Math.min((activityMinutes / 30) * 100, 100) : 0;
+  const eventDays = new Set(events.map((event) => format(parseUTC(event.time_button_click), "yyyy-MM-dd")));
+  const weekStart = now ? startOfWeek(now, { weekStartsOn: 1 }) : null;
+  const dayLabels = isEnglish ? ["M", "T", "W", "T", "F", "S", "S"] : ["T2", "T3", "T4", "T5", "T6", "T7", "CN"];
+  const weekDays = dayLabels.map((label, index) => {
+    const date = weekStart ? addDays(weekStart, index) : null;
+    const key = date ? format(date, "yyyy-MM-dd") : "";
+    return {
+      label,
+      checked: Boolean(key && eventDays.has(key)),
+      today: Boolean(date && now && format(date, "yyyy-MM-dd") === format(now, "yyyy-MM-dd")),
+      future: Boolean(date && now && date.getTime() > now.getTime()),
+    };
+  });
+  const weeklyCheckins = weekDays.filter((day) => day.checked).length;
+  const lastCheckTime = todayStatus?.last_click_at ? format(parseUTC(todayStatus.last_click_at), "HH:mm") : null;
 
   const copy = isEnglish ? {
     checked: "Checked in today",
     waiting: "Not checked in yet",
+    reassuring: "All good",
+    pending: "Waiting",
+    waitingHint: "Lumo is waiting for today's check-in.",
     lastCheck: "Last check-in",
     summary: "Daily overview",
+    thisWeek: "This week",
     checkinDays: "Check-in days",
     dayUnit: "days",
     today: "Today",
@@ -73,8 +79,12 @@ export default function DashboardPage() {
   } : {
     checked: "Đã điểm danh hôm nay",
     waiting: "Chưa điểm danh hôm nay",
+    reassuring: "An tâm",
+    pending: "Đang chờ",
+    waitingHint: "Lumo đang chờ lần điểm danh hôm nay.",
     lastCheck: "Lần gần nhất",
     summary: "Tổng quan hôm nay",
+    thisWeek: "Tuần này",
     checkinDays: "Ngày điểm danh",
     dayUnit: "ngày",
     today: "Hôm nay",
@@ -96,17 +106,37 @@ export default function DashboardPage() {
   return (
     <div className="lumo-page dashboard-overview">
       <section className="health-summary-card" aria-label={copy.summary}>
-        <SummaryRings checkin={checkinProgress} today={checkedIn ? 100 : 0} activity={activityProgress} label={copy.summary} />
+        <div className="care-summary-heading">
+          <div><span><ShieldCheck size={20} /></span><strong>{copy.summary}</strong></div>
+          <em className={checkedIn ? "safe" : "pending"}>{checkedIn ? copy.reassuring : copy.pending}</em>
+        </div>
+
+        <div className={`care-status-banner ${checkedIn ? "safe" : "pending"}`}>
+          <span>{checkedIn ? <CheckCircle2 size={25} /> : <Clock3 size={25} />}</span>
+          <div><small>{copy.today}</small><strong>{checkedIn ? copy.checked : copy.waiting}</strong><p>{lastCheckTime ? `${copy.lastCheck} ${lastCheckTime}` : copy.waitingHint}</p></div>
+        </div>
+
+        <div className="weekly-checkin">
+          <div className="weekly-checkin-heading"><span>{copy.thisWeek}</span><strong>{weeklyCheckins}/7 {copy.dayUnit}</strong></div>
+          <div className="weekly-checkin-days">
+            {weekDays.map((day, index) => (
+              <div className={`${day.checked ? "checked" : ""} ${day.today ? "today" : ""} ${day.future ? "future" : ""}`} key={`${day.label}-${index}`}>
+                <span>{day.label}</span><i>{day.checked ? <Check size={14} /> : null}</i>
+              </div>
+            ))}
+          </div>
+        </div>
+
         <div className="health-summary-metrics">
           <div className="summary-metric checkin">
             <span><CalendarCheck2 size={15} />{copy.checkinDays}</span>
-            <strong>{checkinDays}</strong>
-            <small>{copy.dayUnit}</small>
+            <strong>{weeklyCheckins}/7</strong>
+            <small>{copy.thisWeek}</small>
           </div>
           <div className="summary-metric today">
             <span><CheckCircle2 size={15} />{copy.today}</span>
-            <strong>{checkedIn ? copy.done : copy.notYet}</strong>
-            <small>{todayStatus?.last_click_at ? `${copy.lastCheck} ${format(parseUTC(todayStatus.last_click_at), "HH:mm")}` : copy.waiting}</small>
+            <strong>{lastCheckTime ?? copy.notYet}</strong>
+            <small>{checkedIn ? copy.checked : copy.waiting}</small>
           </div>
           <div className="summary-metric activity">
             <span><Timer size={15} />{copy.activity}</span>

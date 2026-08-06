@@ -16,17 +16,15 @@ export default function NotificationModal({ onClose }: { onClose: () => void }) 
   useEffect(() => {
     void fetchNotifications();
     const closeOnEscape = (event: KeyboardEvent) => event.key === "Escape" && onClose();
-    document.body.style.overflow = "hidden";
     window.addEventListener("keydown", closeOnEscape);
     return () => {
-      document.body.style.overflow = "";
       window.removeEventListener("keydown", closeOnEscape);
     };
   }, [fetchNotifications, onClose]);
 
   return (
     <div className="notification-modal-backdrop" role="presentation" onMouseDown={onClose}>
-      <section className="notification-modal" role="dialog" aria-modal="true" aria-label={text.title} onMouseDown={(event) => event.stopPropagation()}>
+      <section className="notification-modal" role="dialog" aria-label={text.title} onMouseDown={(event) => event.stopPropagation()}>
         <header className="notification-modal-heading">
           <div><span><Bell size={19} /></span><div><h2>{text.title}</h2><small>{notifications.length}</small></div></div>
           {notifications.some((item) => !item.is_read) && <button type="button" onClick={() => void markAllRead()}><CheckCheck size={16} />{text.allRead}</button>}

@@ -62,26 +62,46 @@ button:focus-visible, a:focus-visible, input:focus-visible, textarea:focus-visib
 .bottom-nav-item.active .dock-icon { background: transparent; box-shadow: none; }
 .lumo-page { width: 100%; max-width: 720px; margin: 0 auto; padding: 21px 16px 30px; }
 .dashboard-overview { padding-top: 16px; padding-bottom: 24px; }
-.health-summary-card { min-height: 260px; padding: 17px 14px 16px; border: 1px solid var(--lumo-line); border-radius: var(--lumo-radius); color: var(--lumo-ink); background: #fff; box-shadow: 0 10px 24px rgba(7,59,71,.07); }
-.health-summary-rings { width: min(100%,210px); height: 145px; display: block; margin: 0 auto -5px; overflow: visible; }
-.summary-ring-track,.summary-ring-value { fill: none; stroke-linecap: round; }
-.summary-ring-track.checkin { stroke: #ffead1; stroke-width: 12; }
-.summary-ring-track.today { stroke: #fff1b9; stroke-width: 11; }
-.summary-ring-track.activity { stroke: #dceeff; stroke-width: 10; }
-.summary-ring-value.checkin { stroke: #ff7a36; stroke-width: 12; }
-.summary-ring-value.today { stroke: #ffc928; stroke-width: 11; }
-.summary-ring-value.activity { stroke: #43aaf5; stroke-width: 10; }
-.health-summary-metrics { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); margin-top: 7px; }
-.summary-metric { min-width: 0; display: flex; flex-direction: column; align-items: flex-start; padding: 2px 8px; color: var(--lumo-ink); border-left: 1px solid var(--lumo-line); }
-.summary-metric:first-child { border-left: 0; }
-.summary-metric > span { width: 100%; min-height: 40px; display: flex; align-items: flex-start; gap: 4px; color: var(--lumo-muted); font-size: var(--dashboard-label-size); line-height: 1.25; font-weight: 500; white-space: normal; }
+.health-summary-card { min-height: 390px; padding: 16px 14px; border: 1px solid var(--lumo-line); border-radius: var(--lumo-radius); color: var(--lumo-ink); background: #fff; box-shadow: 0 10px 24px rgba(7,59,71,.07); }
+.care-summary-heading { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.care-summary-heading > div { min-width: 0; display: flex; align-items: center; gap: 9px; }
+.care-summary-heading > div > span { width: 36px; height: 36px; flex: 0 0 auto; display: grid; place-items: center; border-radius: 11px; color: #087e83; background: #dff7f3; }
+.care-summary-heading strong { font-size: 16px; font-weight: 600; }
+.care-summary-heading em { padding: 6px 9px; border-radius: 13px; font-size: 10px; font-style: normal; font-weight: 600; }
+.care-summary-heading em.safe { color: #176a48; background: #ddf6e9; }
+.care-summary-heading em.pending { color: #8a6512; background: #fff0bf; }
+.care-status-banner { min-height: 88px; display: grid; grid-template-columns: 48px minmax(0,1fr); align-items: center; gap: 12px; margin-top: 13px; padding: 14px; border-radius: 13px; }
+.care-status-banner.safe { color: #155f43; background: #e5f8ed; border: 1px solid #bce9cf; }
+.care-status-banner.pending { color: #765714; background: #fff5d6; border: 1px solid #f1d985; }
+.care-status-banner > span { width: 46px; height: 46px; display: grid; place-items: center; border-radius: 50%; background: rgba(255,255,255,.76); }
+.care-status-banner > div { min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.care-status-banner small { color: inherit; font-size: 10px; font-weight: 500; opacity: .78; }
+.care-status-banner strong { font-size: 16px; line-height: 1.3; font-weight: 600; }
+.care-status-banner p { margin: 1px 0 0; color: inherit; font-size: 11px; opacity: .78; }
+.weekly-checkin { margin-top: 13px; padding: 12px 11px; border: 1px solid var(--lumo-line); border-radius: 13px; background: #f8fbfb; }
+.weekly-checkin-heading { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.weekly-checkin-heading span { color: var(--lumo-muted); font-size: 11px; }
+.weekly-checkin-heading strong { color: #d7652b; font-size: 12px; font-weight: 600; }
+.weekly-checkin-days { display: grid; grid-template-columns: repeat(7,minmax(0,1fr)); gap: 5px; margin-top: 10px; }
+.weekly-checkin-days > div { min-width: 0; display: flex; flex-direction: column; align-items: center; gap: 5px; color: #71868b; }
+.weekly-checkin-days span { font-size: 9px; font-weight: 500; }
+.weekly-checkin-days i { width: 28px; height: 28px; display: grid; place-items: center; border: 2px solid #dce6e7; border-radius: 50%; color: white; background: white; font-style: normal; }
+.weekly-checkin-days .checked i { border-color: #ff8a4c; background: #ff8a4c; }
+.weekly-checkin-days .today i { box-shadow: 0 0 0 3px #fff,0 0 0 5px #e4b51d; }
+.weekly-checkin-days .future { opacity: .42; }
+.health-summary-metrics { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 8px; margin-top: 12px; }
+.summary-metric { min-width: 0; min-height: 104px; display: flex; flex-direction: column; align-items: flex-start; padding: 11px 10px; color: var(--lumo-ink); border-radius: 12px; }
+.summary-metric.checkin { background: #fff0e6; }
+.summary-metric.today { background: #fff6cf; }
+.summary-metric.activity { background: #e7f4ff; }
+.summary-metric > span { width: 100%; min-height: 35px; display: flex; align-items: flex-start; gap: 4px; color: var(--lumo-muted); font-size: 11px; line-height: 1.25; font-weight: 500; white-space: normal; }
 .summary-metric > span svg { flex: 0 0 auto; margin-top: 1px; }
 .summary-metric.checkin > span svg { color: #ff7a36; }
-.summary-metric.today > span svg { color: #ffc928; }
-.summary-metric.activity > span svg { color: #43aaf5; }
-.summary-metric strong { max-width: 100%; min-height: 46px; margin-top: 6px; overflow-wrap: anywhere; font-size: var(--dashboard-value-size); line-height: 1.15; font-weight: 600; }
+.summary-metric.today > span svg { color: #b78b00; }
+.summary-metric.activity > span svg { color: #2887c8; }
+.summary-metric strong { max-width: 100%; margin-top: 5px; overflow-wrap: anywhere; font-size: 20px; line-height: 1.15; font-weight: 600; }
 .summary-metric.today strong { font-size: var(--dashboard-value-size); }
-.summary-metric small { margin-top: 3px; color: var(--lumo-muted); font-size: var(--dashboard-meta-size); line-height: 1.35; }
+.summary-metric small { margin-top: 5px; color: var(--lumo-muted); font-size: 10px; line-height: 1.3; }
 .wellbeing-grid { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 12px; margin-top: 12px; }
 .wellbeing-card { min-width: 0; min-height: 164px; display: flex; flex-direction: column; align-items: flex-start; gap: 14px; padding: 16px; border: 1px solid var(--lumo-line); border-radius: var(--lumo-radius); color: var(--lumo-ink); background: white; }
 .wellbeing-icon { flex: 0 0 auto; width: 52px; height: 52px; display: grid; place-items: center; border-radius: 50%; }
@@ -212,8 +232,10 @@ button:focus-visible, a:focus-visible, input:focus-visible, textarea:focus-visib
 @keyframes auth-modal-in { from { opacity: 0; transform: translateY(14px) scale(.98); } }
 
 /* Notification popup */
-.notification-modal-backdrop { position: fixed; z-index: 100; inset: 0; display: grid; place-items: center; padding: 18px; background: rgba(5,29,36,.52); backdrop-filter: blur(8px); animation: auth-backdrop-in .18s ease-out; }
-.notification-modal { width: min(100%,460px); max-height: min(680px,calc(100dvh - 36px)); display: flex; flex-direction: column; overflow: hidden; border: 1px solid rgba(255,255,255,.65); border-radius: 18px; color: var(--lumo-ink); background: white; box-shadow: 0 28px 80px rgba(5,29,36,.32); animation: auth-modal-in .2s ease-out; }
+.notification-modal-backdrop { position: fixed; z-index: 100; inset: 0; background: transparent; animation: auth-backdrop-in .14s ease-out; }
+.notification-modal { width: min(370px,calc(100vw - 24px)); max-height: min(610px,calc(100dvh - 82px)); position: absolute; top: calc(70px + env(safe-area-inset-top, 0px)); right: max(12px,calc((100vw - 900px) / 2 + 12px)); display: flex; flex-direction: column; overflow: hidden; border: 1px solid var(--lumo-line); border-radius: 14px; color: var(--lumo-ink); background: white; box-shadow: 0 18px 48px rgba(5,29,36,.24); animation: notification-panel-in .18s ease-out; }
+.notification-modal::before { content: ''; width: 13px; height: 13px; position: absolute; top: -7px; right: 57px; transform: rotate(45deg); border-left: 1px solid var(--lumo-line); border-top: 1px solid var(--lumo-line); background: inherit; }
+@keyframes notification-panel-in { from { opacity: 0; transform: translateY(-7px) scale(.98); } }
 .notification-modal-heading { min-height: 72px; display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 14px 16px; border-bottom: 1px solid var(--lumo-line); }
 .notification-modal-heading > div { min-width: 0; display: flex; align-items: center; gap: 10px; }
 .notification-modal-heading > div > span { width: 38px; height: 38px; display: grid; place-items: center; flex: 0 0 auto; border-radius: 11px; color: var(--lumo-green); background: var(--lumo-green-soft); }
@@ -230,10 +252,70 @@ button:focus-visible, a:focus-visible, input:focus-visible, textarea:focus-visib
 .notification-status { width: 7px; height: 7px; margin-top: 4px; border-radius: 50%; background: transparent; }
 .notification-modal-item.unread .notification-status { background: var(--lumo-coral); box-shadow: 0 0 0 4px var(--lumo-coral-soft); }
 .notification-modal-item.unread strong { color: var(--lumo-green); }
-.notification-empty { min-height: 240px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 7px; padding: 28px; text-align: center; }
+.notification-empty { min-height: 210px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 7px; padding: 28px; text-align: center; }
 .notification-empty > span { width: 52px; height: 52px; display: grid; place-items: center; margin-bottom: 3px; border-radius: 50%; color: var(--lumo-green); background: var(--lumo-green-soft); }
 .notification-empty strong { font-size: 12px; }
 .notification-empty small { max-width: 250px; color: var(--lumo-muted); font-size: 9px; line-height: 1.5; }
+
+/* Daily Hub reminder schedule */
+.reminder-page { width: 100%; max-width: 680px; margin: 0 auto; padding: 20px 16px 34px; color: var(--lumo-ink); }
+.reminder-heading { display: flex; align-items: center; justify-content: space-between; gap: 14px; margin-bottom: 15px; }
+.reminder-heading > div { min-width: 0; }
+.reminder-heading > div > span { color: var(--lumo-green); font-size: 10px; font-weight: 600; text-transform: uppercase; }
+.reminder-heading h1 { margin: 3px 0 3px; font-size: 25px; line-height: 1.2; font-weight: 600; }
+.reminder-heading p { margin: 0; color: var(--lumo-muted); font-size: 13px; }
+.reminder-heading-icon { width: 46px; height: 46px; flex: 0 0 auto; display: grid; place-items: center; border-radius: 50%; color: var(--lumo-green); background: var(--lumo-green-soft); }
+.next-reminder-card { min-height: 86px; display: grid; grid-template-columns: 48px minmax(0,1fr) auto; align-items: center; gap: 12px; margin-bottom: 12px; padding: 15px; border-radius: var(--lumo-radius); color: white; background: linear-gradient(135deg,#0c878e,#0e5260); box-shadow: 0 12px 26px rgba(7,59,71,.15); }
+.next-reminder-icon { width: 46px; height: 46px; display: grid; place-items: center; border-radius: 50%; color: #0c878e; background: #e5fbf9; }
+.next-reminder-card > div { min-width: 0; display: flex; flex-direction: column; gap: 4px; }
+.next-reminder-card small { color: rgba(255,255,255,.72); font-size: 11px; }
+.next-reminder-card strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 16px; font-weight: 600; }
+.next-reminder-card time { padding-left: 10px; font-family: 'Be Vietnam Pro','Manrope',Arial,sans-serif; font-size: 22px; font-weight: 600; }
+.reminder-section { margin-top: 12px; padding: 16px; border: 1px solid var(--lumo-line); border-radius: var(--lumo-radius); background: white; box-shadow: 0 8px 22px rgba(7,59,71,.05); }
+.reminder-section-heading { display: grid; grid-template-columns: 44px minmax(0,1fr) auto; align-items: center; gap: 11px; }
+.reminder-section-icon { width: 44px; height: 44px; display: grid; place-items: center; border-radius: 50%; }
+.reminder-section-icon.checkin { color: #087e83; background: #dff7f3; }
+.reminder-section-heading > div { min-width: 0; }
+.reminder-section h2 { margin: 0; font-size: 16px; font-weight: 600; }
+.reminder-section-heading p { margin: 4px 0 0; color: var(--lumo-muted); font-size: 11px; line-height: 1.4; }
+.schedule-switch { width: 43px; height: 25px; position: relative; flex: 0 0 auto; padding: 3px; border: 0; border-radius: 13px; background: #cfdbdd; cursor: pointer; transition: background .18s ease; }
+.schedule-switch > span { width: 19px; height: 19px; display: block; border-radius: 50%; background: white; box-shadow: 0 2px 5px rgba(7,59,71,.2); transition: transform .18s ease; }
+.schedule-switch.on { background: var(--lumo-green); }
+.schedule-switch.on > span { transform: translateX(18px); }
+.schedule-switch.compact { width: 36px; height: 22px; padding: 3px; }
+.schedule-switch.compact > span { width: 16px; height: 16px; }
+.schedule-switch.compact.on > span { transform: translateX(14px); }
+.checkin-time-options { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 8px; margin-top: 15px; }
+.checkin-time-options button { min-width: 0; min-height: 50px; display: flex; align-items: center; justify-content: center; gap: 5px; border: 1px solid var(--lumo-line); border-radius: 11px; color: var(--lumo-ink); background: #f7fafa; cursor: pointer; }
+.checkin-time-options button span { font-size: 15px; font-weight: 600; }
+.checkin-time-options button.active { color: white; border-color: var(--lumo-green); background: var(--lumo-green); box-shadow: 0 7px 16px rgba(12,135,142,.2); }
+.checkin-time-options button:disabled { opacity: .48; cursor: default; }
+.daily-schedule { padding-bottom: 8px; }
+.daily-schedule-title { padding-bottom: 12px; border-bottom: 1px solid var(--lumo-line); }
+.daily-schedule-title > div { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.daily-schedule-title span { display: inline-flex; align-items: center; gap: 4px; color: var(--lumo-green); font-size: 10px; }
+.reminder-timeline { position: relative; }
+.reminder-timeline::before { content: ''; width: 2px; position: absolute; top: 27px; bottom: 27px; left: 21px; background: #deebec; }
+.reminder-row { min-height: 78px; position: relative; display: grid; grid-template-columns: 44px minmax(0,1fr) auto 36px; align-items: center; gap: 9px; border-bottom: 1px solid rgba(14,46,56,.08); transition: opacity .18s ease; }
+.reminder-row:last-child { border-bottom: 0; }
+.reminder-row.disabled { opacity: .48; }
+.reminder-row-icon { width: 42px; height: 42px; position: relative; z-index: 1; display: grid; place-items: center; border: 5px solid white; border-radius: 50%; }
+.reminder-row-icon.sun { color: #b97b12; background: #fff0c9; }
+.reminder-row-icon.medicine { color: #b14f5d; background: #ffe3e7; }
+.reminder-row-icon.checkin { color: #087e83; background: #dff7f3; }
+.reminder-row-icon.care { color: #7351a8; background: #eee5ff; }
+.reminder-row-copy { min-width: 0; display: flex; flex-direction: column; gap: 4px; }
+.reminder-row-copy strong { font-size: 14px; font-weight: 600; }
+.reminder-row-copy small { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--lumo-muted); font-size: 10px; }
+.reminder-row input[type="time"] { width: 80px; height: 36px; padding: 0 7px; border: 1px solid var(--lumo-line); border-radius: 9px; color: var(--lumo-ink); background: #f7fafa; font-size: 13px; font-weight: 600; text-align: center; }
+.reminder-time-static { min-width: 58px; color: var(--lumo-green); font-size: 13px; font-weight: 600; text-align: center; }
+
+@media (max-width: 390px) {
+  .reminder-row { grid-template-columns: 40px minmax(0,1fr) auto 34px; gap: 7px; }
+  .reminder-row input[type="time"] { width: 72px; padding-inline: 4px; font-size: 12px; }
+  .reminder-row-copy small { display: none; }
+  .next-reminder-card time { font-size: 19px; }
+}
 
 @media (min-width: 700px) {
   .auth-panel { max-width: 620px; justify-self: center; padding-inline: 52px; }
@@ -586,12 +668,27 @@ button:focus-visible, a:focus-visible, input:focus-visible, textarea:focus-visib
 [data-theme="dark"] .icon-button { color: #d8eef0; background: #123039; border-color: #31555c; }
 [data-theme="dark"] .user-avatar.guest { color: #08232a; background: #dff7ff; border-color: #b8dbe2; }
 [data-theme="dark"] .health-summary-card { color: #e8f5f5; background: #102a31; border-color: rgba(200,229,232,.16); box-shadow: 0 10px 24px rgba(0,0,0,.2); }
-[data-theme="dark"] .summary-ring-track.checkin { stroke: #493225; }
-[data-theme="dark"] .summary-ring-track.today { stroke: #463e1d; }
-[data-theme="dark"] .summary-ring-track.activity { stroke: #18384f; }
+[data-theme="dark"] .care-summary-heading em.safe { color: #a7e9c6; background: #173b30; }
+[data-theme="dark"] .care-summary-heading em.pending { color: #f5d878; background: #3d351c; }
+[data-theme="dark"] .care-status-banner.safe { color: #c9f3dd; background: #12382c; border-color: #285d48; }
+[data-theme="dark"] .care-status-banner.pending { color: #f5dfa0; background: #3a321c; border-color: #635528; }
+[data-theme="dark"] .care-status-banner > span { background: rgba(255,255,255,.08); }
+[data-theme="dark"] .weekly-checkin { background: #0d2228; }
+[data-theme="dark"] .weekly-checkin-heading span,[data-theme="dark"] .weekly-checkin-days > div { color: #a9bec2; }
+[data-theme="dark"] .weekly-checkin-heading strong { color: #ff9b62; }
+[data-theme="dark"] .weekly-checkin-days i { border-color: #365159; background: #17343b; }
+[data-theme="dark"] .weekly-checkin-days .today i { box-shadow: 0 0 0 3px #102a31,0 0 0 5px #e4b51d; }
+[data-theme="dark"] .summary-metric.checkin { background: #39281f; }
+[data-theme="dark"] .summary-metric.today { background: #373219; }
+[data-theme="dark"] .summary-metric.activity { background: #173247; }
 [data-theme="dark"] .wellbeing-card { background: #102a31; }
 [data-theme="dark"] .device-summary-row { background: #12363b; }
 [data-theme="dark"] .device-summary-row > span { background: #dff7f3; }
+[data-theme="dark"] .reminder-section { background: #102a31; }
+[data-theme="dark"] .checkin-time-options button,[data-theme="dark"] .reminder-row input[type="time"] { color: #e8f5f5; background: #183840; border-color: rgba(200,229,232,.18); }
+[data-theme="dark"] .checkin-time-options button.active { color: white; background: #0c878e; border-color: #0c878e; }
+[data-theme="dark"] .reminder-row-icon { border-color: #102a31; }
+[data-theme="dark"] .reminder-timeline::before { background: rgba(200,229,232,.15); }
 
 [data-theme="dark"] .bg-blue-50 { background-color: #142f49; }
 [data-theme="dark"] .bg-green-50 { background-color: #143b34; }

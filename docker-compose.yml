@@ -63,3 +63,5 @@ services:
 
 volumes:
   pgdata:
+    name: luminostech-lumohub_pgdata
+    external: true
