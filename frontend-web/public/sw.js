@@ -4,14 +4,13 @@
    Chiến lược: Cache-first cho static assets, network-first cho API
 ============================================= */
 
-const CACHE_NAME = "lumohub-v1";
+const CACHE_NAME = "lumohub-v3";
 const STATIC_ASSETS = [
-  "/",
   "/manifest.json",
   "/icon-192.png",
   "/icon-512.png",
   "/apple-touch-icon.png",
-  "/logo_lumohub.png",
+  "/logo-luminostech.png",
 ];
 
 // ─── Install: cache static assets ───────────────────────────────────────────
@@ -74,7 +73,29 @@ self.addEventListener("fetch", (event) => {
     return;
   }
 
-  // Static assets / pages: cache-first
+  // Pages must prefer the network so a deployment never shows stale UI.
+  if (request.mode === "navigate") {
+    event.respondWith(
+      fetch(request)
+        .then((response) => {
+          if (response.ok) {
+            const clone = response.clone();
+            caches.open(CACHE_NAME).then((cache) => cache.put(request, clone));
+          }
+          return response;
+        })
+        .catch(async () => {
+          const cached = await caches.match(request);
+          return cached || new Response("LumoHub dang ngoai tuyen.", {
+            status: 503,
+            headers: { "Content-Type": "text/plain; charset=utf-8" },
+          });
+        })
+    );
+    return;
+  }
+
+  // Versioned static assets: cache-first
   event.respondWith(
     caches.match(request).then((cached) => {
       if (cached) return cached;

@@ -38,12 +38,12 @@ api.interceptors.response.use(
           original.headers.Authorization = `Bearer ${access_token}`;
           return api(original);
         } catch {
-          localStorage.clear();
-          window.location.href = "/login";
+          localStorage.removeItem("access_token");
+          localStorage.removeItem("refresh_token");
         }
       } else {
-        localStorage.clear();
-        window.location.href = "/login";
+        localStorage.removeItem("access_token");
+        localStorage.removeItem("refresh_token");
       }
     }
 

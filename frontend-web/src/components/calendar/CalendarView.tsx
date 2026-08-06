@@ -10,31 +10,27 @@ import type { Event } from "@/types";
 import EventFormModal from "./EventFormModal";
 import EventDetailModal from "./EventDetailModal";
 import { format, startOfDay, endOfDay, addDays, isToday, isTomorrow, isFuture } from "date-fns";
-import { vi } from "date-fns/locale";
+import { enUS, vi } from "date-fns/locale";
 import { Plus, Search, SlidersHorizontal, Calendar, CalendarDays, Clock, ChevronRight, X, Sparkles } from "lucide-react";
 import { cn, parseUTC } from "@/lib/utils";
 import AIImportModal from "./AIImportModal";
+import { usePreferenceStore } from "@/store/preferenceStore";
 
-const PRIORITY_OPTIONS = [
-  { value: "all", label: "Tất cả" },
-  { value: "high", label: "Cao", color: "bg-red-100 text-red-700" },
-  { value: "normal", label: "Thường", color: "bg-blue-100 text-blue-700" },
-  { value: "low", label: "Thấp", color: "bg-gray-100 text-gray-600" },
-];
-
-function getTimeLabel(dateStr: string) {
+function getTimeLabel(dateStr: string, isEnglish: boolean) {
   const d = parseUTC(dateStr);
-  if (isToday(d)) return "Hôm nay";
-  if (isTomorrow(d)) return "Ngày mai";
-  return format(d, "EEE dd/MM", { locale: vi });
+  if (isToday(d)) return isEnglish ? "Today" : "Hôm nay";
+  if (isTomorrow(d)) return isEnglish ? "Tomorrow" : "Ngày mai";
+  return format(d, isEnglish ? "EEE MM/dd" : "EEE dd/MM", { locale: isEnglish ? enUS : vi });
 }
 
 function UpcomingPanel({
   events,
   onEventClick,
+  isEnglish,
 }: {
   events: Event[];
   onEventClick: (ev: Event) => void;
+  isEnglish: boolean;
 }) {
   const now = new Date();
   const in2Days = endOfDay(addDays(now, 2));
@@ -65,7 +61,7 @@ function UpcomingPanel({
       <div className="min-w-0 flex-1">
         <p className="text-xs font-medium text-gray-800 truncate group-hover:text-primary-700 transition-colors">{ev.title}</p>
         <p className="text-[10px] text-gray-400 mt-0.5">
-          {getTimeLabel(ev.start_time)} · {format(parseUTC(ev.start_time), "HH:mm")}
+          {getTimeLabel(ev.start_time, isEnglish)} · {format(parseUTC(ev.start_time), "HH:mm")}
         </p>
       </div>
       <ChevronRight size={12} className="text-gray-300 group-hover:text-primary-400 mt-1 shrink-0 transition-colors" />
@@ -78,10 +74,10 @@ function UpcomingPanel({
       <div>
         <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2 flex items-center gap-1.5">
           <Calendar size={12} />
-          Hôm nay ({todayEvents.length})
+          {isEnglish ? "Today" : "Hôm nay"} ({todayEvents.length})
         </h3>
         {todayEvents.length === 0 ? (
-          <p className="text-xs text-gray-400 italic pl-1">Không có lịch hôm nay 🎉</p>
+          <p className="text-xs text-gray-400 italic pl-1">{isEnglish ? "No events today" : "Không có lịch hôm nay"}</p>
         ) : (
           <ul className="space-y-1">
             {todayEvents.map((ev) => (
@@ -108,10 +104,10 @@ function UpcomingPanel({
       <div>
         <h3 className="text-xs font-semibold text-orange-400 uppercase tracking-wider mb-2 flex items-center gap-1.5">
           <Clock size={12} />
-          2 ngày tới ({next2Events.length})
+          {isEnglish ? "Next 2 days" : "2 ngày tới"} ({next2Events.length})
         </h3>
         {next2Events.length === 0 ? (
-          <p className="text-xs text-gray-400 italic pl-1">Không có lịch 2 ngày tới</p>
+          <p className="text-xs text-gray-400 italic pl-1">{isEnglish ? "No events in the next 2 days" : "Không có lịch 2 ngày tới"}</p>
         ) : (
           <ul className="space-y-1">
             {next2Events.map((ev) => <EventItem key={ev.id} ev={ev} defaultColor="#f97316" />)}
@@ -124,7 +120,7 @@ function UpcomingPanel({
         <div>
           <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2 flex items-center gap-1.5">
             <CalendarDays size={12} />
-            Sắp tới
+            {isEnglish ? "Upcoming" : "Sắp tới"}
           </h3>
           <ul className="space-y-1">
             {laterEvents.map((ev) => <EventItem key={ev.id} ev={ev} defaultColor="#6366f1" />)}
@@ -149,6 +145,17 @@ export default function CalendarView() {
   const [showFilters, setShowFilters] = useState(false);
   // Start with null — only set after client mounts so we know the real window size
   const [isMobile, setIsMobile] = useState<boolean | null>(null);
+  const language = usePreferenceStore((state) => state.language);
+  const isEnglish = language === "en";
+  const calendarText = isEnglish
+    ? { search: "Search events...", filters: "Filters", ai: "AI import", create: "Create", all: "All", high: "High", normal: "Normal", low: "Low", today: "Today", month: "Month", week: "Week", day: "Day", list: "List", empty: "No events", emptyHint: "Try changing the filters", total: "events total", todayCount: "today", nextSeven: "in the next 7 days", filtering: "Filtered" }
+    : { search: "Tìm sự kiện...", filters: "Bộ lọc", ai: "Nhập bằng AI", create: "Tạo", all: "Tất cả", high: "Cao", normal: "Thường", low: "Thấp", today: "Hôm nay", month: "Tháng", week: "Tuần", day: "Ngày", list: "Danh sách", empty: "Không có sự kiện nào", emptyHint: "Thử thay đổi bộ lọc", total: "sự kiện tổng", todayCount: "hôm nay", nextSeven: "trong 7 ngày tới", filtering: "Đang lọc" };
+  const priorityOptions = [
+    { value: "all", label: calendarText.all },
+    { value: "high", label: calendarText.high, color: "bg-red-100 text-red-700" },
+    { value: "normal", label: calendarText.normal, color: "bg-blue-100 text-blue-700" },
+    { value: "low", label: calendarText.low, color: "bg-gray-100 text-gray-600" },
+  ];
 
   useEffect(() => {
     fetchEvents();
@@ -206,7 +213,7 @@ export default function CalendarView() {
             type="text"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder="Tìm sự kiện..."
+            placeholder={calendarText.search}
             className="w-full pl-8 pr-8 py-2 text-sm border border-gray-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-primary-400 focus:border-transparent transition"
           />
           {search && (
@@ -225,7 +232,7 @@ export default function CalendarView() {
               ? "bg-primary-50 border-primary-200 text-primary-700"
               : "bg-white border-gray-200 text-gray-500 hover:bg-gray-50"
           )}
-          title="Bộ lọc"
+          title={calendarText.filters}
         >
           <SlidersHorizontal size={15} />
           {priorityFilter !== "all" && (
@@ -237,10 +244,10 @@ export default function CalendarView() {
         <button
           onClick={() => setShowAIImport(true)}
           className="flex items-center gap-1.5 px-3 py-2 bg-gradient-to-r from-primary-600 to-primary-700 hover:from-primary-700 hover:to-primary-800 text-white rounded-xl text-sm font-semibold shadow-sm hover:shadow-md transition-all active:scale-95 shrink-0"
-          title="Nhập lịch bằng AI"
+          title={calendarText.ai}
         >
           <Sparkles size={15} />
-          <span className="hidden sm:inline">AI Import</span>
+          <span className="hidden sm:inline">{calendarText.ai}</span>
         </button>
 
         {/* Create button */}
@@ -249,15 +256,15 @@ export default function CalendarView() {
           className="flex items-center gap-1.5 px-3 py-2 bg-primary-600 hover:bg-primary-700 text-white rounded-xl text-sm font-semibold shadow-sm hover:shadow-md transition-all active:scale-95 shrink-0"
         >
           <Plus size={15} />
-          <span className="hidden sm:inline">Tạo sự kiện</span>
-          <span className="sm:hidden">Tạo</span>
+          <span className="hidden sm:inline">{calendarText.create}</span>
+          <span className="sm:hidden">{calendarText.create}</span>
         </button>
       </div>
 
       {/* Priority filter pills */}
       {showFilters && (
         <div className="flex items-center gap-1.5 mb-3 flex-wrap">
-          {PRIORITY_OPTIONS.map((opt) => (
+          {priorityOptions.map((opt) => (
             <button
               key={opt.value}
               onClick={() => setPriorityFilter(opt.value)}
@@ -289,7 +296,7 @@ export default function CalendarView() {
             key={isMobile ? "mobile" : "desktop"}
             plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin, listPlugin]}
             initialView={isMobile ? "listWeek" : "dayGridMonth"}
-            locale="vi"
+            locale={isEnglish ? "en" : "vi"}
             headerToolbar={
               isMobile
                 ? {
@@ -309,14 +316,14 @@ export default function CalendarView() {
                 : false
             }
             buttonText={{
-              today: "Hôm nay",
-              month: "Tháng",
-              week: "Tuần",
-              day: "Ngày",
-              list: "Danh sách",
-              listWeek: "Tuần",
-              listDay: "Ngày",
-              listMonth: "Tháng",
+              today: calendarText.today,
+              month: calendarText.month,
+              week: calendarText.week,
+              day: calendarText.day,
+              list: calendarText.list,
+              listWeek: calendarText.week,
+              listDay: calendarText.day,
+              listMonth: calendarText.month,
             }}
             events={fcEvents}
             height="100%"
@@ -340,9 +347,9 @@ export default function CalendarView() {
             noEventsContent={
               <div className="flex flex-col items-center justify-center py-10 text-gray-400">
                 <Calendar size={32} className="mb-2 opacity-40" />
-                <p className="text-sm">Không có sự kiện nào</p>
+                <p className="text-sm">{calendarText.empty}</p>
                 {(search || priorityFilter !== "all") && (
-                  <p className="text-xs mt-1 text-gray-300">Thử thay đổi bộ lọc</p>
+                  <p className="text-xs mt-1 text-gray-300">{calendarText.emptyHint}</p>
                 )}
               </div>
             }
@@ -351,27 +358,27 @@ export default function CalendarView() {
 
         {/* Upcoming side panel — desktop only */}
         <div className="hidden lg:flex flex-col w-56 xl:w-64 bg-white rounded-2xl shadow-sm border border-gray-100 p-4 overflow-y-auto shrink-0">
-          <UpcomingPanel events={events} onEventClick={(ev) => setViewing(ev)} />
+          <UpcomingPanel events={events} isEnglish={isEnglish} onEventClick={(ev) => setViewing(ev)} />
         </div>
       </div>
 
       {/* Quick stats— desktop only */}
       <div className="hidden sm:flex items-center gap-3 mt-2.5 text-xs text-gray-400">
-        <span>{events.length} sự kiện tổng</span>
+        <span>{events.length} {calendarText.total}</span>
         <span>·</span>
-        <span>{events.filter((e) => isToday(new Date(e.start_time))).length} hôm nay</span>
+        <span>{events.filter((e) => isToday(new Date(e.start_time))).length} {calendarText.todayCount}</span>
         <span>·</span>
         <span>
           {events.filter((e) => {
             const s = new Date(e.start_time);
             return isFuture(s) && s <= addDays(new Date(), 7);
           }).length}{" "}
-          trong 7 ngày tới
+          {calendarText.nextSeven}
         </span>
         {(search || priorityFilter !== "all") && (
           <>
             <span>·</span>
-            <span className="text-primary-500 font-medium">Đang lọc: {filteredEvents.length} kết quả</span>
+            <span className="text-primary-500 font-medium">{calendarText.filtering}: {filteredEvents.length}</span>
           </>
         )}
       </div>

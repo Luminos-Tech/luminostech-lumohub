@@ -74,6 +74,11 @@ export interface Device {
   updated_at: string;
   /** Telemetry-ready field. Older backends omit it and the UI shows an empty state. */
   battery_level?: number;
+  /** Optional wearable telemetry. The current backend may omit these fields. */
+  fall_detected?: boolean;
+  last_fall_at?: string | null;
+  activity_minutes_today?: number;
+  last_activity_at?: string | null;
 }
 
 export interface EventButton {

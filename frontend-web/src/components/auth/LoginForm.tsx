@@ -1,97 +1,83 @@
 "use client";
+
+import { useState } from "react";
+import Link from "next/link";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { useRouter } from "next/navigation";
+import { AlertCircle, CheckCircle2, Eye, EyeOff, Loader2, Lock, Mail } from "lucide-react";
 import { useAuthStore } from "@/store/authStore";
-import Link from "next/link";
-import { useState } from "react";
-import { Mail, Lock, Eye, EyeOff } from "lucide-react";
+import { usePreferenceStore } from "@/store/preferenceStore";
 
 const schema = z.object({
-  email: z.string().email("Email không hợp lệ"),
-  password: z.string().min(6, "Mật khẩu tối thiểu 6 ký tự"),
+  email: z.string().email("Vui lòng nhập đúng địa chỉ email"),
+  password: z.string().min(6, "Mật khẩu cần có ít nhất 6 ký tự"),
 });
 type FormData = z.infer<typeof schema>;
 
-export default function LoginForm() {
+export default function LoginForm({ onSuccess, onSwitchMode }: { onSuccess?: () => void; onSwitchMode?: () => void }) {
   const { login } = useAuthStore();
+  const language = usePreferenceStore((state) => state.language);
+  const text = language === "vi"
+    ? { title: "Đăng nhập", subtitle: "Tiếp tục theo dõi những tín hiệu quan trọng.", email: "Email", password: "Mật khẩu", passwordPlaceholder: "Nhập mật khẩu", show: "Hiện mật khẩu", hide: "Ẩn mật khẩu", loading: "Đang đăng nhập...", submit: "Đăng nhập", prompt: "Chưa có tài khoản?", switch: "Tạo tài khoản" }
+    : { title: "Sign in", subtitle: "Continue monitoring the signals that matter.", email: "Email", password: "Password", passwordPlaceholder: "Enter your password", show: "Show password", hide: "Hide password", loading: "Signing in...", submit: "Sign in", prompt: "New to Lumo?", switch: "Create account" };
   const router = useRouter();
-  const [showPw, setShowPw] = useState(false);
+  const searchParams = useSearchParams();
+  const [showPassword, setShowPassword] = useState(false);
   const [serverError, setServerError] = useState("");
-
-  const { register, handleSubmit, formState: { errors, isSubmitting } } = useForm<FormData>({
-    resolver: zodResolver(schema),
-  });
+  const { register, handleSubmit, formState: { errors, isSubmitting } } = useForm<FormData>({ resolver: zodResolver(schema) });
 
   const onSubmit = async (data: FormData) => {
     setServerError("");
     try {
       await login(data.email, data.password);
-      router.push("/dashboard");
-    } catch (e: any) {
-      setServerError(e?.response?.data?.detail || "Đăng nhập thất bại");
+      if (onSuccess) onSuccess();
+      else router.push("/dashboard");
+    } catch (error: any) {
+      setServerError(error?.response?.data?.detail || "Không thể đăng nhập. Vui lòng kiểm tra lại thông tin.");
     }
   };
 
   return (
-    <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
-      <div className="text-center mb-2">
-        <h2 className="text-xl font-bold text-gray-900">Đăng nhập</h2>
-        <p className="text-gray-500 text-sm">Tiếp tục với tài khoản của bạn</p>
+    <form onSubmit={handleSubmit(onSubmit)} className="auth-form" noValidate>
+      <div className="auth-form-heading">
+        <p>Chào mừng trở lại</p>
+        <h2>{text.title}</h2>
+        <span>{text.subtitle}</span>
       </div>
 
-      {serverError && (
-        <div className="px-4 py-3 bg-red-50 border border-red-200 text-red-600 text-sm rounded-lg">
-          {serverError}
-        </div>
+      {searchParams.get("registered") === "1" && (
+        <div className="auth-message success" role="status"><CheckCircle2 size={18} /><span>Tạo tài khoản thành công. Bạn có thể đăng nhập ngay.</span></div>
       )}
+      {serverError && <div className="auth-message error" role="alert"><AlertCircle size={18} /><span>{serverError}</span></div>}
 
-      <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
-        <div className="relative">
-          <Mail size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-          <input
-            {...register("email")}
-            type="email"
-            placeholder="ban@email.com"
-            className="input-field pl-9"
-          />
-        </div>
-        {errors.email && <p className="mt-1 text-xs text-red-500">{errors.email.message}</p>}
-      </div>
+      <label className="auth-field">
+        <span>{text.email}</span>
+        <span className="auth-input-wrap">
+          <Mail size={18} />
+          <input {...register("email")} type="email" inputMode="email" autoComplete="email" placeholder="ban@email.com" aria-invalid={!!errors.email} />
+        </span>
+        {errors.email && <small>{errors.email.message}</small>}
+      </label>
 
-      <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">Mật khẩu</label>
-        <div className="relative">
-          <Lock size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-          <input
-            {...register("password")}
-            type={showPw ? "text" : "password"}
-            placeholder="••••••••"
-            className="input-field pl-9 pr-9"
-          />
-          <button
-            type="button"
-            onClick={() => setShowPw(!showPw)}
-            className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
-          >
-            {showPw ? <EyeOff size={16} /> : <Eye size={16} />}
+      <label className="auth-field">
+        <span>{text.password}</span>
+        <span className="auth-input-wrap">
+          <Lock size={18} />
+          <input {...register("password")} type={showPassword ? "text" : "password"} autoComplete="current-password" placeholder={text.passwordPlaceholder} aria-invalid={!!errors.password} />
+          <button type="button" onClick={() => setShowPassword((value) => !value)} aria-label={showPassword ? text.hide : text.show}>
+            {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
           </button>
-        </div>
-        {errors.password && <p className="mt-1 text-xs text-red-500">{errors.password.message}</p>}
-      </div>
+        </span>
+        {errors.password && <small>{errors.password.message}</small>}
+      </label>
 
-      <button type="submit" disabled={isSubmitting} className="btn-primary w-full justify-center py-2.5">
-        {isSubmitting ? "Đang đăng nhập..." : "Đăng nhập"}
+      <button type="submit" disabled={isSubmitting} className="auth-submit">
+        {isSubmitting ? <><Loader2 size={18} className="animate-spin" /> {text.loading}</> : text.submit}
       </button>
 
-      <p className="text-center text-sm text-gray-500">
-        Chưa có tài khoản?{" "}
-        <Link href="/register" className="text-primary-600 font-medium hover:underline">
-          Đăng ký ngay
-        </Link>
-      </p>
+      <p className="auth-switch">{text.prompt} {onSwitchMode ? <button type="button" onClick={onSwitchMode}>{text.switch}</button> : <Link href="/register">{text.switch}</Link>}</p>
     </form>
   );
 }

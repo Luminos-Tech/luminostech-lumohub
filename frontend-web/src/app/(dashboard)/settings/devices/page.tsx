@@ -18,17 +18,18 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { formatDistanceToNow, parseISO } from "date-fns";
-import { vi } from "date-fns/locale";
+import { enUS, vi } from "date-fns/locale";
 import { AddDeviceModal } from "@/components/devices/AddDeviceModal";
+import { usePreferenceStore } from "@/store/preferenceStore";
 
 /* ─────────────────────────────────────────────
    Helper: 计算设备在线状态
 ───────────────────────────────────────────── */
-function getDeviceUptime(createdAt: string): string {
+function getDeviceUptime(createdAt: string, isEnglish = false): string {
   try {
-    return formatDistanceToNow(parseISO(createdAt), { addSuffix: true, locale: vi });
+    return formatDistanceToNow(parseISO(createdAt), { addSuffix: true, locale: isEnglish ? enUS : vi });
   } catch {
-    return "không rõ";
+    return isEnglish ? "unknown" : "không rõ";
   }
 }
 
@@ -39,17 +40,19 @@ function getDeviceUptime(createdAt: string): string {
 function DeviceQRModal({
   device,
   onClose,
+  isEnglish,
 }: {
   device: Device;
   onClose: () => void;
+  isEnglish: boolean;
 }) {
   return (
     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
       <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden">
         <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
           <div>
-            <h2 className="text-lg font-bold text-gray-900">Mã QR cặp đôi</h2>
-            <p className="text-xs text-gray-400 mt-0.5">Cho thiết bị LUMO quét</p>
+            <h2 className="text-lg font-bold text-gray-900">{isEnglish ? "Pairing QR code" : "Mã QR cặp đôi"}</h2>
+            <p className="text-xs text-gray-400 mt-0.5">{isEnglish ? "Scan with your Lumo device" : "Cho thiết bị LUMO quét"}</p>
           </div>
           <button
             onClick={onClose}
@@ -66,8 +69,8 @@ function DeviceQRModal({
               <QrCode size={20} className="text-primary-600" />
             </div>
             <div>
-              <p className="text-xs text-primary-600 font-medium">Tự động ghép đôi</p>
-              <p className="text-sm text-gray-700">Thiết bị quét là xong</p>
+              <p className="text-xs text-primary-600 font-medium">{isEnglish ? "Automatic pairing" : "Tự động ghép đôi"}</p>
+              <p className="text-sm text-gray-700">{isEnglish ? "Just scan to connect" : "Thiết bị quét là xong"}</p>
             </div>
           </div>
 
@@ -82,7 +85,7 @@ function DeviceQRModal({
           </div>
 
           <p className="text-xs text-gray-400 mt-4 text-center">
-            Dùng thiết bị LUMO quét mã này để ghép đôi
+            {isEnglish ? "Scan this code with your Lumo device to pair" : "Dùng thiết bị LUMO quét mã này để ghép đôi"}
           </p>
         </div>
       </div>
@@ -96,9 +99,11 @@ function DeviceQRModal({
 function NotifyModal({
   device,
   onClose,
+  isEnglish,
 }: {
   device: Device;
   onClose: () => void;
+  isEnglish: boolean;
 }) {
   const [title, setTitle] = useState("");
   const [body, setBody] = useState("");
@@ -122,7 +127,7 @@ function NotifyModal({
         <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
           <div className="flex items-center gap-2">
             <Bell size={18} className="text-primary-600" />
-            <h2 className="text-lg font-bold text-gray-900">Gửi thông báo</h2>
+            <h2 className="text-lg font-bold text-gray-900">{isEnglish ? "Send notification" : "Gửi thông báo"}</h2>
           </div>
           <button onClick={onClose} className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-xl transition-all">
             <X size={20} />
@@ -136,24 +141,24 @@ function NotifyModal({
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1.5">Tiêu đề</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1.5">{isEnglish ? "Title" : "Tiêu đề"}</label>
             <input
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all text-sm"
-              placeholder="Nhắc lịch học"
+              placeholder={isEnglish ? "Appointment reminder" : "Nhắc lịch học"}
               autoFocus
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1.5">Nội dung</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1.5">{isEnglish ? "Message" : "Nội dung"}</label>
             <textarea
               value={body}
               onChange={(e) => setBody(e.target.value)}
               className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all resize-none text-sm"
               rows={3}
-              placeholder="Bạn có lịch học vào 14:00"
+              placeholder={isEnglish ? "You have an appointment at 14:00" : "Bạn có lịch học vào 14:00"}
             />
           </div>
 
@@ -163,7 +168,7 @@ function NotifyModal({
             className="w-full py-3 bg-primary-600 hover:bg-primary-700 disabled:bg-primary-300 text-white rounded-xl font-semibold text-sm transition-colors flex items-center justify-center gap-2"
           >
             <Zap size={15} />
-            {sending ? "Đang gửi..." : "Gửi thông báo"}
+            {sending ? (isEnglish ? "Sending..." : "Đang gửi...") : (isEnglish ? "Send notification" : "Gửi thông báo")}
           </button>
         </form>
       </div>
@@ -180,15 +185,17 @@ function DeviceCard({
   onNotify,
   onShowQR,
   deletingId,
+  isEnglish,
 }: {
   device: Device;
   onDelete: (id: number) => void;
   onNotify: (device: Device) => void;
   onShowQR: (device: Device) => void;
   deletingId: number | null;
+  isEnglish: boolean;
 }) {
   const isOnline = device.is_active;
-  const uptime = getDeviceUptime(device.created_at);
+  const uptime = getDeviceUptime(device.created_at, isEnglish);
 
   return (
     <div className="bg-white border border-gray-100 rounded-2xl p-4 hover:shadow-md transition-all group">
@@ -220,12 +227,12 @@ function DeviceCard({
           <div className="flex items-center gap-3 mt-1.5">
             <div className="flex items-center gap-1 text-xs text-gray-400">
               {isOnline ? <Wifi size={12} className="text-green-400" /> : <WifiOff size={12} />}
-              {isOnline ? "Đã kết nối" : "Chưa kết nối"}
+              {isOnline ? (isEnglish ? "Connected" : "Đã kết nối") : (isEnglish ? "Disconnected" : "Chưa kết nối")}
             </div>
             <div className="w-1 h-1 rounded-full bg-gray-300" />
             <div className="flex items-center gap-1 text-xs text-gray-400">
               <Calendar size={12} />
-              Thêm {uptime}
+              {isEnglish ? "Added" : "Thêm"} {uptime}
             </div>
           </div>
         </div>
@@ -242,7 +249,7 @@ function DeviceCard({
           <button
             onClick={() => onNotify(device)}
             className="p-2 text-gray-400 hover:text-primary-600 hover:bg-primary-50 rounded-xl transition-all"
-            title="Gửi thông báo"
+            title={isEnglish ? "Send notification" : "Gửi thông báo"}
           >
             <Bell size={16} />
           </button>
@@ -250,7 +257,7 @@ function DeviceCard({
             onClick={() => onDelete(device.id)}
             disabled={deletingId === device.id}
             className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-xl transition-all disabled:opacity-40"
-            title="Xóa thiết bị"
+            title={isEnglish ? "Delete device" : "Xóa thiết bị"}
           >
             <Trash2 size={16} />
           </button>
@@ -264,7 +271,7 @@ function DeviceCard({
           className="flex-1 flex items-center justify-center gap-1.5 py-2 text-xs font-medium text-primary-600 hover:bg-primary-50 rounded-xl transition-colors"
         >
           <Bell size={13} />
-          Gửi thông báo
+          {isEnglish ? "Send notification" : "Gửi thông báo"}
         </button>
         <button
           onClick={() => onShowQR(device)}
@@ -281,22 +288,22 @@ function DeviceCard({
 /* ─────────────────────────────────────────────
    空状态
 ───────────────────────────────────────────── */
-function EmptyState({ onAdd }: { onAdd: () => void }) {
+function EmptyState({ onAdd, isEnglish }: { onAdd: () => void; isEnglish: boolean }) {
   return (
     <div className="flex flex-col items-center justify-center py-16 px-6">
       <div className="w-24 h-24 rounded-full bg-gradient-to-br from-primary-100 to-primary-100 flex items-center justify-center mb-6">
         <Smartphone size={40} className="text-primary-400" />
       </div>
-      <h3 className="text-lg font-bold text-gray-900 mb-2">Chưa có thiết bị nào</h3>
+      <h3 className="text-lg font-bold text-gray-900 mb-2">{isEnglish ? "No devices yet" : "Chưa có thiết bị nào"}</h3>
       <p className="text-sm text-gray-400 text-center mb-6 max-w-xs">
-        Thêm thiết bị LUMO bằng cách quét mã QR trên thiết bị
+        {isEnglish ? "Add a Lumo device by scanning its QR code" : "Thêm thiết bị LUMO bằng cách quét mã QR trên thiết bị"}
       </p>
       <button
         onClick={onAdd}
         className="flex items-center gap-2 px-6 py-3 bg-primary-600 hover:bg-primary-700 text-white rounded-xl font-semibold text-sm transition-colors shadow-lg shadow-primary-200"
       >
         <Plus size={16} />
-        Thêm thiết bị đầu tiên
+        {isEnglish ? "Add your first device" : "Thêm thiết bị đầu tiên"}
       </button>
     </div>
   );
@@ -311,11 +318,12 @@ export default function DevicesPage() {
   const [notifyTarget, setNotifyTarget] = useState<Device | null>(null);
   const [qrTarget, setQrTarget] = useState<Device | null>(null);
   const [deletingId, setDeletingId] = useState<number | null>(null);
+  const isEnglish = usePreferenceStore((state) => state.language === "en");
 
   useEffect(() => { fetchDevices(); }, [fetchDevices]);
 
   const handleDelete = async (id: number) => {
-    if (!confirm("Xóa thiết bị này?")) return;
+    if (!confirm(isEnglish ? "Delete this device?" : "Xóa thiết bị này?")) return;
     setDeletingId(id);
     try { await deleteDevice(id); toast.success("Đã xóa"); }
     catch { toast.error("Xóa thất bại"); }
@@ -332,8 +340,8 @@ export default function DevicesPage() {
               <Smartphone size={16} className="text-white" />
             </div>
             <div>
-              <h1 className="text-base font-bold text-gray-900 leading-tight">Thiết bị</h1>
-              <p className="text-xs text-gray-400">{devices.length} thiết bị đã kết nối</p>
+              <h1 className="text-base font-bold text-gray-900 leading-tight">{isEnglish ? "Devices" : "Thiết bị"}</h1>
+              <p className="text-xs text-gray-400">{devices.length} {isEnglish ? "connected devices" : "thiết bị đã kết nối"}</p>
             </div>
           </div>
           <button
@@ -341,7 +349,7 @@ export default function DevicesPage() {
             className="flex items-center gap-2 px-4 py-2.5 bg-primary-600 hover:bg-primary-700 text-white rounded-xl font-semibold text-sm transition-colors shadow-lg shadow-primary-200"
           >
             <Plus size={15} />
-            Thêm thiết bị
+            {isEnglish ? "Add device" : "Thêm thiết bị"}
           </button>
         </div>
       </div>
@@ -351,10 +359,10 @@ export default function DevicesPage() {
         {loading ? (
           <div className="flex flex-col items-center justify-center py-20">
             <div className="w-10 h-10 border-3 border-primary-600 border-t-transparent rounded-full animate-spin" />
-            <p className="mt-4 text-sm text-gray-400">Đang tải...</p>
+            <p className="mt-4 text-sm text-gray-400">{isEnglish ? "Loading..." : "Đang tải..."}</p>
           </div>
         ) : devices.length === 0 ? (
-          <EmptyState onAdd={() => setShowAdd(true)} />
+          <EmptyState onAdd={() => setShowAdd(true)} isEnglish={isEnglish} />
         ) : (
           <div className="space-y-3">
             {devices.map((device: Device) => (
@@ -365,6 +373,7 @@ export default function DevicesPage() {
                 onNotify={setNotifyTarget}
                 onShowQR={setQrTarget}
                 deletingId={deletingId}
+                isEnglish={isEnglish}
               />
             ))}
           </div>
@@ -384,6 +393,7 @@ export default function DevicesPage() {
         <DeviceQRModal
           device={qrTarget}
           onClose={() => setQrTarget(null)}
+          isEnglish={isEnglish}
         />
       )}
 
@@ -391,6 +401,7 @@ export default function DevicesPage() {
         <NotifyModal
           device={notifyTarget}
           onClose={() => setNotifyTarget(null)}
+          isEnglish={isEnglish}
         />
       )}
     </div>

@@ -1,179 +1,139 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect } from "react";
 import Link from "next/link";
-import {
-  addMonths,
-  eachDayOfInterval,
-  endOfMonth,
-  endOfWeek,
-  format,
-  isSameDay,
-  isSameMonth,
-  startOfMonth,
-  startOfWeek,
-  subDays,
-} from "date-fns";
-import { vi } from "date-fns/locale";
-import {
-  BatteryMedium,
-  Bell,
-  CalendarDays,
-  Check,
-  ChevronLeft,
-  ChevronRight,
-  Clock3,
-  HeartPulse,
-  ShieldCheck,
-  Watch,
-} from "lucide-react";
+import { format } from "date-fns";
+import { CalendarCheck2, CheckCircle2, ChevronRight, ShieldAlert, ShieldCheck, Timer } from "lucide-react";
+import { LumoBandIcon } from "@/components/icons/LumoDeviceIcons";
 import { useAuthStore } from "@/store/authStore";
 import { useDeviceStore } from "@/store/deviceStore";
 import { useEventButtonStore } from "@/store/eventButtonStore";
-import { useEventStore } from "@/store/eventStore";
+import { usePreferenceStore } from "@/store/preferenceStore";
 import { parseUTC } from "@/lib/utils";
 
-export default function DashboardPage() {
-  const { user } = useAuthStore();
-  const { devices, fetchDevices } = useDeviceStore();
-  const { events: checkIns, todayStatus, fetchEvents: fetchCheckIns, fetchTodayStatus } = useEventButtonStore();
-  const { events, fetchEvents } = useEventStore();
-  const [visibleMonth, setVisibleMonth] = useState(startOfMonth(new Date()));
-
-  useEffect(() => {
-    const now = new Date();
-    fetchEvents(now, addMonths(now, 1));
-    fetchCheckIns();
-    fetchTodayStatus();
-    fetchDevices();
-  }, [fetchCheckIns, fetchDevices, fetchEvents, fetchTodayStatus]);
-
-  const checkedDates = useMemo(
-    () => checkIns.map((item) => parseUTC(item.time_button_click)),
-    [checkIns],
-  );
-
-  const currentStreak = useMemo(() => {
-    let streak = 0;
-    let cursor = todayStatus?.clicked_today ? new Date() : subDays(new Date(), 1);
-    while (checkedDates.some((date) => isSameDay(date, cursor))) {
-      streak += 1;
-      cursor = subDays(cursor, 1);
-    }
-    return streak;
-  }, [checkedDates, todayStatus]);
-
-  const calendarDays = eachDayOfInterval({
-    start: startOfWeek(startOfMonth(visibleMonth), { weekStartsOn: 1 }),
-    end: endOfWeek(endOfMonth(visibleMonth), { weekStartsOn: 1 }),
-  });
-
-  const upcoming = events
-    .filter((event) => parseUTC(event.start_time) >= new Date())
-    .sort((a, b) => parseUTC(a.start_time).getTime() - parseUTC(b.start_time).getTime())
-    .slice(0, 3);
-
-  const firstName = user?.full_name?.trim().split(" ").pop() || "bạn";
-  const activeDevice = devices.find((device) => device.is_active);
-  const batteryLevel = activeDevice?.battery_level;
+function SummaryRings({ checkin, today, activity, label }: { checkin: number; today: number; activity: number; label: string }) {
+  const rings = [
+    { path: "M26 112 A64 64 0 1 1 154 112", value: checkin, className: "checkin" },
+    { path: "M40 112 A50 50 0 1 1 140 112", value: today, className: "today" },
+    { path: "M54 112 A36 36 0 1 1 126 112", value: activity, className: "activity" },
+  ];
 
   return (
-    <div className="lumo-page">
-      <section className="lumo-welcome">
-        <div>
-          <p className="lumo-kicker">{format(new Date(), "EEEE, d 'tháng' M", { locale: vi })}</p>
-          <h1>Chào {firstName},</h1>
-          <p>Hôm nay mọi tín hiệu từ gia đình đều đang được theo dõi.</p>
-        </div>
-        <div className="lumo-safe-mark" aria-label="Hệ thống đang hoạt động">
-          <ShieldCheck size={24} />
+    <svg className="health-summary-rings" viewBox="0 0 180 126" role="img" aria-label={label}>
+      {rings.map((ring) => <path key={`${ring.className}-track`} className={`summary-ring-track ${ring.className}`} d={ring.path} pathLength="100" />)}
+      {rings.map((ring) => <path key={ring.className} className={`summary-ring-value ${ring.className}`} d={ring.path} pathLength="100" strokeDasharray={`${ring.value} 100`} />)}
+    </svg>
+  );
+}
+
+export default function DashboardPage() {
+  const { isAuthenticated } = useAuthStore();
+  const { devices, fetchDevices } = useDeviceStore();
+  const { events, todayStatus, fetchEvents, fetchTodayStatus } = useEventButtonStore();
+  const language = usePreferenceStore((state) => state.language);
+  const isEnglish = language === "en";
+
+  useEffect(() => {
+    if (!isAuthenticated) return;
+    void fetchTodayStatus();
+    void fetchEvents();
+    void fetchDevices();
+  }, [fetchDevices, fetchEvents, fetchTodayStatus, isAuthenticated]);
+
+  const activeDevice = devices.find((device) => device.is_active);
+  const batteryLevel = activeDevice?.battery_level;
+  const activityMinutes = activeDevice?.activity_minutes_today;
+  const fallDetected = activeDevice?.fall_detected;
+  const checkedIn = Boolean(todayStatus?.clicked_today);
+  const checkinDays = new Set(events.map((event) => format(parseUTC(event.time_button_click), "yyyy-MM-dd"))).size;
+  const checkinProgress = Math.min((checkinDays / 7) * 100, 100);
+  const activityProgress = typeof activityMinutes === "number" ? Math.min((activityMinutes / 30) * 100, 100) : 0;
+
+  const copy = isEnglish ? {
+    checked: "Checked in today",
+    waiting: "Not checked in yet",
+    lastCheck: "Last check-in",
+    summary: "Daily overview",
+    checkinDays: "Check-in days",
+    dayUnit: "days",
+    today: "Today",
+    done: "Done",
+    notYet: "Not yet",
+    battery: "Band battery",
+    noBattery: "No battery data",
+    safety: "Fall detection",
+    fall: "Fall detected",
+    noFall: "No fall alert",
+    noSafety: "No safety data",
+    activity: "Movement today",
+    minutes: "minutes active",
+    noActivity: "No activity data",
+    device: activeDevice ? `Lumo ${activeDevice.device_id}` : "No device connected",
+    deviceHint: activeDevice ? "Hub and band monitoring is active" : "Connect a Lumo Hub and band to begin",
+  } : {
+    checked: "Đã điểm danh hôm nay",
+    waiting: "Chưa điểm danh hôm nay",
+    lastCheck: "Lần gần nhất",
+    summary: "Tổng quan hôm nay",
+    checkinDays: "Ngày điểm danh",
+    dayUnit: "ngày",
+    today: "Hôm nay",
+    done: "Đã",
+    notYet: "Chưa",
+    battery: "Pin vòng band",
+    noBattery: "Chưa có dữ liệu pin",
+    safety: "Phát hiện té ngã",
+    fall: "Đã phát hiện té ngã",
+    noFall: "Không có cảnh báo té ngã",
+    noSafety: "Chưa có dữ liệu an toàn",
+    activity: "Vận động hôm nay",
+    minutes: "phút vận động",
+    noActivity: "Chưa có dữ liệu vận động",
+    device: activeDevice ? `Lumo ${activeDevice.device_id}` : "Chưa liên kết thiết bị",
+    deviceHint: activeDevice ? "Hub và vòng band đang được theo dõi" : "Liên kết Lumo Hub và vòng band để bắt đầu",
+  };
+
+  return (
+    <div className="lumo-page dashboard-overview">
+      <section className="health-summary-card" aria-label={copy.summary}>
+        <SummaryRings checkin={checkinProgress} today={checkedIn ? 100 : 0} activity={activityProgress} label={copy.summary} />
+        <div className="health-summary-metrics">
+          <div className="summary-metric checkin">
+            <span><CalendarCheck2 size={15} />{copy.checkinDays}</span>
+            <strong>{checkinDays}</strong>
+            <small>{copy.dayUnit}</small>
+          </div>
+          <div className="summary-metric today">
+            <span><CheckCircle2 size={15} />{copy.today}</span>
+            <strong>{checkedIn ? copy.done : copy.notYet}</strong>
+            <small>{todayStatus?.last_click_at ? `${copy.lastCheck} ${format(parseUTC(todayStatus.last_click_at), "HH:mm")}` : copy.waiting}</small>
+          </div>
+          <div className="summary-metric activity">
+            <span><Timer size={15} />{copy.activity}</span>
+            <strong>{typeof activityMinutes === "number" ? activityMinutes : "--"}</strong>
+            <small>{copy.minutes}</small>
+          </div>
         </div>
       </section>
 
-      <section className={`checkin-hero ${todayStatus?.clicked_today ? "is-checked" : ""}`}>
-        <div className="checkin-orbit" aria-hidden="true">
-          <span><Check size={28} strokeWidth={3} /></span>
-        </div>
-        <div className="checkin-copy">
-          <p className="lumo-kicker">Điểm danh hôm nay</p>
-          <h2>{todayStatus?.clicked_today ? "Đã nhận tín hiệu an tâm" : "Đang chờ điểm danh"}</h2>
-          <p>
-            {todayStatus?.last_click_at
-              ? `Lần gần nhất lúc ${format(parseUTC(todayStatus.last_click_at), "HH:mm")}`
-              : "Lumo sẽ báo ngay khi nhận được nhịp chạm đầu tiên."}
-          </p>
-        </div>
-        <Link href="/settings/event-buttons" className="checkin-link" aria-label="Xem lịch sử điểm danh">
-          <ChevronRight size={20} />
+      <section className="wellbeing-grid">
+        <Link href="/settings/devices" className="wellbeing-card battery">
+          <span className="wellbeing-icon"><LumoBandIcon size={26} /></span>
+          <div><small>{copy.battery}</small><strong>{typeof batteryLevel === "number" ? `${batteryLevel}%` : "--"}</strong><p>{typeof batteryLevel === "number" ? copy.battery : copy.noBattery}</p></div>
         </Link>
+
+        <div className={`wellbeing-card safety ${fallDetected ? "alert" : ""}`}>
+          <span className="wellbeing-icon">{fallDetected ? <ShieldAlert size={24} /> : <ShieldCheck size={24} />}</span>
+          <div><small>{copy.safety}</small><strong>{fallDetected === true ? copy.fall : fallDetected === false ? copy.noFall : "--"}</strong><p>{fallDetected === undefined ? copy.noSafety : fallDetected ? copy.fall : copy.noFall}</p></div>
+        </div>
+
       </section>
 
-      <section className="quick-metrics" aria-label="Tổng quan thiết bị">
-        <div className="metric-panel">
-          <span className="metric-icon coral"><HeartPulse size={20} /></span>
-          <div><strong>{currentStreak}</strong><span>ngày liên tiếp</span></div>
-        </div>
-        <Link href="/settings/devices" className="metric-panel">
-          <span className="metric-icon green"><BatteryMedium size={20} /></span>
-          <div>
-            <strong>{typeof batteryLevel === "number" ? `${batteryLevel}%` : "--"}</strong>
-            <span>{typeof batteryLevel === "number" ? "pin vòng tay" : "chưa có dữ liệu pin"}</span>
-          </div>
-        </Link>
-      </section>
-
-      <section className="lumo-section calendar-section">
-        <div className="section-heading">
-          <div>
-            <p className="lumo-kicker">Nhịp an tâm</p>
-            <h2>Lịch điểm danh</h2>
-          </div>
-          <div className="month-switcher">
-            <button onClick={() => setVisibleMonth(addMonths(visibleMonth, -1))} aria-label="Tháng trước"><ChevronLeft size={18} /></button>
-            <span>{format(visibleMonth, "MMMM yyyy", { locale: vi })}</span>
-            <button onClick={() => setVisibleMonth(addMonths(visibleMonth, 1))} aria-label="Tháng sau"><ChevronRight size={18} /></button>
-          </div>
-        </div>
-        <div className="checkin-calendar">
-          {['T2', 'T3', 'T4', 'T5', 'T6', 'T7', 'CN'].map((day) => <span className="weekday" key={day}>{day}</span>)}
-          {calendarDays.map((day) => {
-            const checked = checkedDates.some((date) => isSameDay(date, day));
-            return (
-              <div className={`calendar-day ${!isSameMonth(day, visibleMonth) ? "muted" : ""} ${checked ? "checked" : ""} ${isSameDay(day, new Date()) ? "today" : ""}`} key={day.toISOString()}>
-                <span>{format(day, "d")}</span>
-                {checked && <i><Check size={10} strokeWidth={3} /></i>}
-              </div>
-            );
-          })}
-        </div>
-        <div className="calendar-legend"><span><i className="legend-dot checked" />Đã điểm danh</span><span><i className="legend-dot today" />Hôm nay</span></div>
-      </section>
-
-      <section className="lumo-section">
-        <div className="section-heading">
-          <div><p className="lumo-kicker">Sắp tới</p><h2>Lịch nhắc gần nhất</h2></div>
-          <Link href="/calendar">Xem lịch</Link>
-        </div>
-        {upcoming.length > 0 ? (
-          <div className="upcoming-list">
-            {upcoming.map((event) => (
-              <Link href={`/events/${event.id}`} className="upcoming-row" key={event.id}>
-                <span className="event-date"><b>{format(parseUTC(event.start_time), "dd")}</b>{format(parseUTC(event.start_time), "MMM", { locale: vi })}</span>
-                <span className="event-copy"><strong>{event.title}</strong><small><Clock3 size={13} />{format(parseUTC(event.start_time), "HH:mm")}{event.location ? ` · ${event.location}` : ""}</small></span>
-                <ChevronRight size={18} />
-              </Link>
-            ))}
-          </div>
-        ) : (
-          <div className="empty-state"><CalendarDays size={24} /><span>Chưa có lịch nhắc sắp tới</span></div>
-        )}
-      </section>
-
-      <section className="device-note">
-        <Watch size={22} />
-        <div><strong>{activeDevice ? `Lumo ${activeDevice.device_id}` : "Chưa liên kết thiết bị"}</strong><span>{activeDevice ? "Hub đang được bật theo dõi" : "Liên kết Hub và vòng tay để bắt đầu"}</span></div>
-        <Link href="/settings/devices"><ChevronRight size={18} /></Link>
-      </section>
+      <Link href="/settings/devices" className="device-summary-row">
+        <span><LumoBandIcon size={24} /></span>
+        <div><strong>{copy.device}</strong><small>{copy.deviceHint}</small></div>
+        <ChevronRight size={19} />
+      </Link>
     </div>
   );
 }
