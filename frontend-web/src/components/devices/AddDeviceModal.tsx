@@ -12,6 +12,7 @@ import {
   SwitchCamera,
 } from "lucide-react";
 import { toast } from "sonner";
+import { usePreferenceStore } from "@/store/preferenceStore";
 
 interface AddDeviceModalProps {
   open: boolean;
@@ -40,6 +41,8 @@ function parseQRContent(text: string): { device_id: string; device_name?: string
 ───────────────────────────────────────────── */
 export function AddDeviceModal({ open, onClose, onAdded }: AddDeviceModalProps) {
   const { registerDevice } = useDeviceStore();
+  const en = usePreferenceStore((state) => state.language === "en");
+  const t = en ? { add: "Add device", subtitle: "Scan the QR code on your Lumo device", switchCamera: "Switch camera", refresh: "Refresh", manual: "Enter device ID manually", scanHint: "Place the Lumo device QR code inside the frame", qrContains: "QR code contains", success: "Scan successful!", device: "Device", scanAgain: "Scan again", adding: "Adding...", failed: "Scan failed", retry: "Try again" } : { add: "Thêm thiết bị", subtitle: "Quét mã QR trên thiết bị LUMO", switchCamera: "Đổi camera", refresh: "Làm mới", manual: "Nhập ID thiết bị thủ công", scanHint: "Đưa mã QR trên thiết bị LUMO vào khung", qrContains: "Mã QR chứa", success: "Quét thành công!", device: "Thiết bị", scanAgain: "Quét tiếp", adding: "Đang thêm...", failed: "Quét thất bại", retry: "Thử lại" };
   const [mounted, setMounted] = useState(false);
   const [containerReady, setContainerReady] = useState(false);
   const [status, setStatus] = useState<"scanning" | "success" | "error">("scanning");
@@ -276,8 +279,8 @@ export function AddDeviceModal({ open, onClose, onAdded }: AddDeviceModalProps) 
         {/* Header */}
         <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100 shrink-0">
           <div>
-            <h2 className="text-lg font-bold text-gray-900">Thêm thiết bị</h2>
-            <p className="text-xs text-gray-400 mt-0.5">Quét mã QR trên thiết bị LUMO</p>
+            <h2 className="text-lg font-bold text-gray-900">{t.add}</h2>
+            <p className="text-xs text-gray-400 mt-0.5">{t.subtitle}</p>
           </div>
           <button
             onClick={() => { stopScanner(); onClose(); }}
@@ -310,7 +313,7 @@ export function AddDeviceModal({ open, onClose, onAdded }: AddDeviceModalProps) 
                     className="flex items-center gap-2 px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-600 rounded-xl text-sm font-medium transition-colors"
                   >
                     <SwitchCamera size={15} />
-                    Đổi camera
+                    {t.switchCamera}
                   </button>
                 )}
                 <button
@@ -318,7 +321,7 @@ export function AddDeviceModal({ open, onClose, onAdded }: AddDeviceModalProps) 
                   className="flex items-center gap-2 px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-600 rounded-xl text-sm font-medium transition-colors"
                 >
                   <RefreshCw size={15} />
-                  Làm mới
+                  {t.refresh}
                 </button>
               </div>
 
@@ -338,7 +341,7 @@ export function AddDeviceModal({ open, onClose, onAdded }: AddDeviceModalProps) 
                       onClick={() => setShowManual(true)}
                       className="w-full py-2.5 border border-dashed border-gray-300 text-gray-500 hover:border-primary-400 hover:text-primary-600 rounded-xl text-sm font-medium transition-colors"
                     >
-                      Nhập ID thiết bị thủ công
+                      {t.manual}
                     </button>
                   )}
 
@@ -366,8 +369,8 @@ export function AddDeviceModal({ open, onClose, onAdded }: AddDeviceModalProps) 
               {/* 提示文字 */}
               {!cameraError && (
                 <div className="text-center">
-                  <p className="text-sm text-gray-500">Đưa mã QR trên thiết bị LUMO vào khung</p>
-                  <p className="text-xs text-gray-400 mt-1">Mã QR chứa: {"{device_id, device_name}"}</p>
+                  <p className="text-sm text-gray-500">{t.scanHint}</p>
+                  <p className="text-xs text-gray-400 mt-1">{t.qrContains}: {"{device_id, device_name}"}</p>
                 </div>
               )}
             </div>
@@ -380,7 +383,7 @@ export function AddDeviceModal({ open, onClose, onAdded }: AddDeviceModalProps) 
                 <div className="w-16 h-16 rounded-full bg-green-100 flex items-center justify-center mb-3">
                   <Shield size={32} className="text-green-600" />
                 </div>
-                <p className="text-sm font-semibold text-green-600">Quét thành công!</p>
+                <p className="text-sm font-semibold text-green-600">{t.success}</p>
               </div>
 
               <div className="bg-gray-50 rounded-2xl p-4">
@@ -389,7 +392,7 @@ export function AddDeviceModal({ open, onClose, onAdded }: AddDeviceModalProps) 
                     <Smartphone size={22} className="text-white" />
                   </div>
                   <div>
-                    <p className="text-xs text-gray-400">Thiết bị</p>
+                    <p className="text-xs text-gray-400">{t.device}</p>
                     <p className="font-bold font-mono text-gray-900 text-base tracking-widest">
                       {scannedDevice.device_id}
                     </p>
@@ -404,14 +407,14 @@ export function AddDeviceModal({ open, onClose, onAdded }: AddDeviceModalProps) 
                   className="flex-1 py-3 border border-gray-200 text-gray-600 hover:bg-gray-50 rounded-xl font-medium text-sm transition-colors flex items-center justify-center gap-2"
                 >
                   <Camera size={15} />
-                  Quét tiếp
+                  {t.scanAgain}
                 </button>
                 <button
                   onClick={handleRegister}
                   disabled={submitting}
                   className="flex-1 py-3 bg-primary-600 hover:bg-primary-700 disabled:bg-primary-300 text-white rounded-xl font-semibold text-sm transition-colors flex items-center justify-center gap-2"
                 >
-                  {submitting ? "Đang thêm..." : "Thêm thiết bị"}
+                  {submitting ? t.adding : t.add}
                   <ChevronRight size={15} />
                 </button>
               </div>
@@ -425,7 +428,7 @@ export function AddDeviceModal({ open, onClose, onAdded }: AddDeviceModalProps) 
                 <div className="w-16 h-16 rounded-full bg-red-50 flex items-center justify-center mb-3">
                   <CameraOff size={32} className="text-red-400" />
                 </div>
-                <p className="text-sm font-semibold text-red-600">Quét thất bại</p>
+                <p className="text-sm font-semibold text-red-600">{t.failed}</p>
               </div>
 
               {errorMsg && (
@@ -440,7 +443,7 @@ export function AddDeviceModal({ open, onClose, onAdded }: AddDeviceModalProps) 
                   onClick={() => setShowManual(true)}
                   className="w-full py-3 bg-gray-100 hover:bg-gray-200 text-gray-600 rounded-xl text-sm font-medium transition-colors"
                 >
-                  Nhập ID thiết bị thủ công
+                  {t.manual}
                 </button>
               )}
 
@@ -468,7 +471,7 @@ export function AddDeviceModal({ open, onClose, onAdded }: AddDeviceModalProps) 
                 className="w-full py-3 bg-primary-600 hover:bg-primary-700 text-white rounded-xl font-semibold text-sm transition-colors flex items-center justify-center gap-2"
               >
                 <RefreshCw size={15} />
-                Thử lại
+                {t.retry}
               </button>
             </div>
           )}

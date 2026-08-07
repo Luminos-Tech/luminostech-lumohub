@@ -12,7 +12,20 @@ export function ServiceWorkerRegistration() {
   useEffect(() => {
     if (!("serviceWorker" in navigator)) return;
 
-    window.addEventListener("load", async () => {
+    const setupServiceWorker = async () => {
+      // A development service worker can keep serving an old Next.js bundle.
+      // Remove it and its caches so UI changes are visible immediately.
+      if (process.env.NODE_ENV !== "production") {
+        const registrations = await navigator.serviceWorker.getRegistrations();
+        await Promise.all(registrations.map((registration) => registration.unregister()));
+
+        if ("caches" in window) {
+          const cacheNames = await caches.keys();
+          await Promise.all(cacheNames.map((cacheName) => caches.delete(cacheName)));
+        }
+        return;
+      }
+
       try {
         const registration = await navigator.serviceWorker.register("/sw.js");
         console.log("[PWA] Service Worker registered:", registration.scope);
@@ -34,7 +47,15 @@ export function ServiceWorkerRegistration() {
       } catch (error) {
         console.warn("[PWA] Service Worker registration failed:", error);
       }
-    });
+    };
+
+    if (document.readyState === "complete") {
+      void setupServiceWorker();
+    } else {
+      window.addEventListener("load", setupServiceWorker, { once: true });
+    }
+
+    return () => window.removeEventListener("load", setupServiceWorker);
   }, []);
 
   // Không render gì cả - chỉ đăng ký SW

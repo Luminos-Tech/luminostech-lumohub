@@ -1,398 +1,298 @@
 "use client";
+
+import Image from "next/image";
 import { useEffect, useState } from "react";
-import { useDeviceStore } from "@/store/deviceStore";
-import { adminApi } from "@/features/admin/api";
-import type { Device } from "@/types";
 import {
-  Smartphone,
-  Plus,
-  X,
+  Activity,
+  BatteryMedium,
   Bell,
-  Trash2,
+  Clock3,
+  Plus,
+  Power,
   QrCode,
+  Trash2,
   Wifi,
   WifiOff,
+  X,
   Zap,
-  Calendar,
-  ChevronRight,
 } from "lucide-react";
-import { toast } from "sonner";
 import { formatDistanceToNow, parseISO } from "date-fns";
-import { vi } from "date-fns/locale";
+import { enUS, vi } from "date-fns/locale";
+import { toast } from "sonner";
 import { AddDeviceModal } from "@/components/devices/AddDeviceModal";
+import { adminApi } from "@/features/admin/api";
+import { useDeviceStore } from "@/store/deviceStore";
+import { usePreferenceStore } from "@/store/preferenceStore";
+import type { Device } from "@/types";
 
-/* ─────────────────────────────────────────────
-   Helper: 计算设备在线状态
-───────────────────────────────────────────── */
-function getDeviceUptime(createdAt: string): string {
+const BAND_TYPICAL_BATTERY_DAYS = 730;
+
+function getDeviceUptime(createdAt: string, isEnglish: boolean) {
   try {
-    return formatDistanceToNow(parseISO(createdAt), { addSuffix: true, locale: vi });
+    return formatDistanceToNow(parseISO(createdAt), {
+      addSuffix: true,
+      locale: isEnglish ? enUS : vi,
+    });
   } catch {
-    return "không rõ";
+    return isEnglish ? "unknown" : "không rõ";
   }
 }
 
-/* ─────────────────────────────────────────────
-   Modal: 设备配对码（让设备扫描）
-   用于已添加的设备，让设备反向扫描来重新配对
-───────────────────────────────────────────── */
+function getBatteryData(level?: number) {
+  if (typeof level !== "number" || Number.isNaN(level)) {
+    return { level: null, days: null };
+  }
+  const normalizedLevel = Math.min(100, Math.max(0, Math.round(level)));
+  return {
+    level: normalizedLevel,
+    days: Math.round((normalizedLevel / 100) * BAND_TYPICAL_BATTERY_DAYS),
+  };
+}
+
 function DeviceQRModal({
   device,
   onClose,
+  isEnglish,
 }: {
   device: Device;
   onClose: () => void;
+  isEnglish: boolean;
 }) {
   return (
-    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden">
-        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
+    <div className="device-modal-backdrop" role="presentation" onMouseDown={onClose}>
+      <section className="device-modal" role="dialog" aria-modal="true" aria-labelledby="pairing-title" onMouseDown={(event) => event.stopPropagation()}>
+        <header className="device-modal-heading">
           <div>
-            <h2 className="text-lg font-bold text-gray-900">Mã QR cặp đôi</h2>
-            <p className="text-xs text-gray-400 mt-0.5">Cho thiết bị LUMO quét</p>
+            <p className="lumo-kicker">LUMO HUB</p>
+            <h2 id="pairing-title">{isEnglish ? "Pairing QR code" : "Mã QR ghép đôi"}</h2>
           </div>
-          <button
-            onClick={onClose}
-            className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-xl transition-all"
-          >
-            <X size={20} />
-          </button>
+          <button type="button" onClick={onClose} aria-label={isEnglish ? "Close" : "Đóng"}><X size={19} /></button>
+        </header>
+        <div className="device-qr-content">
+          <Image src="/api/v1/devices/qr" alt={isEnglish ? "Lumo Hub pairing QR code" : "Mã QR ghép đôi Lumo Hub"} width={208} height={208} unoptimized />
+          <strong>{device.device_id}</strong>
+          <p>{isEnglish ? "Scan this code with your Lumo Hub to pair again." : "Dùng Lumo Hub quét mã này để ghép đôi lại."}</p>
         </div>
-
-        <div className="p-6 flex flex-col items-center">
-          {/* 说明 */}
-          <div className="flex items-center gap-3 mb-6 px-4 py-3 bg-primary-50 rounded-xl w-full">
-            <div className="w-10 h-10 rounded-xl bg-primary-100 flex items-center justify-center shrink-0">
-              <QrCode size={20} className="text-primary-600" />
-            </div>
-            <div>
-              <p className="text-xs text-primary-600 font-medium">Tự động ghép đôi</p>
-              <p className="text-sm text-gray-700">Thiết bị quét là xong</p>
-            </div>
-          </div>
-
-          {/* QR码 */}
-          <div className="p-4 bg-white border-2 border-gray-100 rounded-2xl shadow-sm">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src="/api/v1/devices/qr"
-              alt="QR Code"
-              className="w-52 h-52 object-contain"
-            />
-          </div>
-
-          <p className="text-xs text-gray-400 mt-4 text-center">
-            Dùng thiết bị LUMO quét mã này để ghép đôi
-          </p>
-        </div>
-      </div>
+      </section>
     </div>
   );
 }
 
-/* ─────────────────────────────────────────────
-   Modal: 发送通知
-───────────────────────────────────────────── */
 function NotifyModal({
   device,
   onClose,
+  isEnglish,
 }: {
   device: Device;
   onClose: () => void;
+  isEnglish: boolean;
 }) {
   const [title, setTitle] = useState("");
   const [body, setBody] = useState("");
   const [sending, setSending] = useState(false);
 
-  const handleSend = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!title.trim() || !body.trim()) { toast.error("Nhập đủ tiêu đề và nội dung"); return; }
+  const handleSend = async (event: React.FormEvent) => {
+    event.preventDefault();
+    if (!title.trim() || !body.trim()) {
+      toast.error(isEnglish ? "Enter a title and message" : "Nhập đủ tiêu đề và nội dung");
+      return;
+    }
+
     setSending(true);
     try {
       await adminApi.notifyDevice(device.device_id, title.trim(), body.trim());
-      toast.success("Đã gửi thông báo");
+      toast.success(isEnglish ? "Notification sent" : "Đã gửi thông báo");
       onClose();
-    } catch { toast.error("Gửi thất bại"); }
-    finally { setSending(false); }
+    } catch {
+      toast.error(isEnglish ? "Could not send notification" : "Gửi thông báo thất bại");
+    } finally {
+      setSending(false);
+    }
   };
 
   return (
-    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden">
-        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
-          <div className="flex items-center gap-2">
-            <Bell size={18} className="text-primary-600" />
-            <h2 className="text-lg font-bold text-gray-900">Gửi thông báo</h2>
-          </div>
-          <button onClick={onClose} className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-xl transition-all">
-            <X size={20} />
-          </button>
-        </div>
-
-        <form onSubmit={handleSend} className="p-6 space-y-4">
-          <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-xl">
-            <Smartphone size={16} className="text-gray-400" />
-            <p className="font-mono font-bold text-gray-700 text-sm tracking-widest">{device.device_id}</p>
-          </div>
-
+    <div className="device-modal-backdrop" role="presentation" onMouseDown={onClose}>
+      <section className="device-modal" role="dialog" aria-modal="true" aria-labelledby="notify-title" onMouseDown={(event) => event.stopPropagation()}>
+        <header className="device-modal-heading">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1.5">Tiêu đề</label>
-            <input
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all text-sm"
-              placeholder="Nhắc lịch học"
-              autoFocus
-            />
+            <p className="lumo-kicker">LUMO HUB</p>
+            <h2 id="notify-title">{isEnglish ? "Send notification" : "Gửi thông báo"}</h2>
           </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1.5">Nội dung</label>
-            <textarea
-              value={body}
-              onChange={(e) => setBody(e.target.value)}
-              className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all resize-none text-sm"
-              rows={3}
-              placeholder="Bạn có lịch học vào 14:00"
-            />
-          </div>
-
-          <button
-            type="submit"
-            disabled={sending}
-            className="w-full py-3 bg-primary-600 hover:bg-primary-700 disabled:bg-primary-300 text-white rounded-xl font-semibold text-sm transition-colors flex items-center justify-center gap-2"
-          >
-            <Zap size={15} />
-            {sending ? "Đang gửi..." : "Gửi thông báo"}
-          </button>
+          <button type="button" onClick={onClose} aria-label={isEnglish ? "Close" : "Đóng"}><X size={19} /></button>
+        </header>
+        <form className="device-notify-form" onSubmit={handleSend}>
+          <label>
+            <span>{isEnglish ? "Title" : "Tiêu đề"}</span>
+            <input value={title} onChange={(event) => setTitle(event.target.value)} placeholder={isEnglish ? "Medication reminder" : "Nhắc uống thuốc"} autoFocus />
+          </label>
+          <label>
+            <span>{isEnglish ? "Message" : "Nội dung"}</span>
+            <textarea value={body} onChange={(event) => setBody(event.target.value)} rows={3} placeholder={isEnglish ? "It is time to take your medicine." : "Đến giờ uống thuốc rồi ạ."} />
+          </label>
+          <button type="submit" disabled={sending}><Zap size={17} />{sending ? (isEnglish ? "Sending..." : "Đang gửi...") : (isEnglish ? "Send to Hub" : "Gửi đến Hub")}</button>
         </form>
-      </div>
+      </section>
     </div>
   );
 }
 
-/* ─────────────────────────────────────────────
-   设备卡片组件
-───────────────────────────────────────────── */
-function DeviceCard({
+function DevicePair({
   device,
+  isEnglish,
+  deleting,
   onDelete,
   onNotify,
   onShowQR,
-  deletingId,
 }: {
   device: Device;
-  onDelete: (id: number) => void;
-  onNotify: (device: Device) => void;
-  onShowQR: (device: Device) => void;
-  deletingId: number | null;
+  isEnglish: boolean;
+  deleting: boolean;
+  onDelete: () => void;
+  onNotify: () => void;
+  onShowQR: () => void;
 }) {
+  const battery = getBatteryData(device.battery_level);
   const isOnline = device.is_active;
-  const uptime = getDeviceUptime(device.created_at);
+  const connectedText = isOnline
+    ? (isEnglish ? "Connected" : "Đã kết nối")
+    : (isEnglish ? "Disconnected" : "Mất kết nối");
 
   return (
-    <div className="bg-white border border-gray-100 rounded-2xl p-4 hover:shadow-md transition-all group">
-      <div className="flex items-start gap-4">
-        {/* 设备图标 + 状态指示灯 */}
-        <div className="relative shrink-0">
-          <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-primary-500 to-primary-700 flex items-center justify-center shadow-lg shadow-primary-200">
-            <Smartphone size={24} className="text-white" />
+    <section className="device-pair" aria-label={isEnglish ? `Device set ${device.device_id}` : `Bộ thiết bị ${device.device_id}`}>
+      <article className="device-product-card hub">
+        <div className="device-product-main">
+          <div className="device-product-media hub">
+            <Image src="/products/lumo-hub-studio.webp" alt="Lumo Hub" width={800} height={800} priority sizes="132px" />
           </div>
-          <div
-            className={`absolute -bottom-1 -right-1 w-4 h-4 rounded-full border-2 border-white shadow-sm ${
-              isOnline ? "bg-green-500 animate-pulse" : "bg-gray-300"
-            }`}
-          />
-        </div>
-
-        {/* 设备信息 */}
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2">
-            <p className="font-bold font-mono text-gray-900 text-base tracking-widest">
-              {device.device_id}
-            </p>
-            <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${
-              isOnline ? "bg-green-50 text-green-600 border border-green-200" : "bg-gray-100 text-gray-400 border border-gray-200"
-            }`}>
-              {isOnline ? "Online" : "Offline"}
-            </span>
-          </div>
-          <div className="flex items-center gap-3 mt-1.5">
-            <div className="flex items-center gap-1 text-xs text-gray-400">
-              {isOnline ? <Wifi size={12} className="text-green-400" /> : <WifiOff size={12} />}
-              {isOnline ? "Đã kết nối" : "Chưa kết nối"}
+          <div className="device-product-copy">
+            <div className={`device-connection ${isOnline ? "online" : "offline"}`}><i />{connectedText}</div>
+            <p className="lumo-kicker">LUMO HUB</p>
+            <h2>Lumo Hub</h2>
+            <span className="device-code">ID {device.device_id}</span>
+            <div className="device-detail-line">
+              {isOnline ? <Wifi size={17} /> : <WifiOff size={17} />}
+              <span>{isEnglish ? "Home connection" : "Kết nối tại nhà"}</span>
             </div>
-            <div className="w-1 h-1 rounded-full bg-gray-300" />
-            <div className="flex items-center gap-1 text-xs text-gray-400">
-              <Calendar size={12} />
-              Thêm {uptime}
+            <div className="device-detail-line">
+              <Power size={17} />
+              <span>{isEnglish ? "Power connected" : "Đang được cấp nguồn"}</span>
+            </div>
+            <small>{isEnglish ? "Added" : "Đã thêm"} {getDeviceUptime(device.created_at, isEnglish)}</small>
+          </div>
+        </div>
+        <div className="device-card-actions">
+          <button type="button" onClick={onNotify}><span><Bell size={19} /></span>{isEnglish ? "Notify" : "Thông báo"}</button>
+          <button type="button" onClick={onShowQR}><span><QrCode size={19} /></span>{isEnglish ? "Pairing QR" : "Mã QR"}</button>
+          <button type="button" className="danger" onClick={onDelete} disabled={deleting}><span><Trash2 size={19} /></span>{isEnglish ? "Remove" : "Xóa"}</button>
+        </div>
+      </article>
+
+      <article className="device-product-card band">
+        <div className="device-product-main">
+          <div className="device-product-media band">
+            <Image src="/products/lumo-band-indigo-diamond.webp" alt="Lumo Band Indigo Diamond" width={700} height={700} sizes="132px" />
+          </div>
+          <div className="device-product-copy">
+            <div className={`device-connection ${isOnline ? "online" : "offline"}`}><i />{connectedText}</div>
+            <p className="lumo-kicker">LUMO BAND</p>
+            <h2>Lumo Band</h2>
+            <span className="device-code">Indigo Diamond</span>
+            <div className="band-battery-value"><BatteryMedium size={20} /><strong>{battery.level === null ? "--" : battery.level}%</strong></div>
+            <div className="band-battery-track" aria-label={isEnglish ? "Band battery level" : "Mức pin của Band"}>
+              <i style={{ width: `${battery.level ?? 0}%` }} />
             </div>
           </div>
         </div>
-
-        {/* 操作按钮（悬停显示） */}
-        <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-          <button
-            onClick={() => onShowQR(device)}
-            className="p-2 text-gray-400 hover:text-primary-600 hover:bg-primary-50 rounded-xl transition-all"
-            title="Mã QR"
-          >
-            <QrCode size={16} />
-          </button>
-          <button
-            onClick={() => onNotify(device)}
-            className="p-2 text-gray-400 hover:text-primary-600 hover:bg-primary-50 rounded-xl transition-all"
-            title="Gửi thông báo"
-          >
-            <Bell size={16} />
-          </button>
-          <button
-            onClick={() => onDelete(device.id)}
-            disabled={deletingId === device.id}
-            className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-xl transition-all disabled:opacity-40"
-            title="Xóa thiết bị"
-          >
-            <Trash2 size={16} />
-          </button>
+        <div className="band-insight-grid">
+          <div><span><Clock3 size={19} /></span><strong>{battery.days === null ? "--" : `~${battery.days}`}</strong><small>{isEnglish ? "estimated days left" : "ngày sử dụng ước tính"}</small></div>
+          <div><span><Activity size={19} /></span><strong>{device.activity_minutes_today ?? "--"}</strong><small>{isEnglish ? "active minutes today" : "phút vận động hôm nay"}</small></div>
         </div>
-      </div>
-
-      {/* 底部快捷操作 */}
-      <div className="flex items-center gap-2 mt-4 pt-3 border-t border-gray-50">
-        <button
-          onClick={() => onNotify(device)}
-          className="flex-1 flex items-center justify-center gap-1.5 py-2 text-xs font-medium text-primary-600 hover:bg-primary-50 rounded-xl transition-colors"
-        >
-          <Bell size={13} />
-          Gửi thông báo
-        </button>
-        <button
-          onClick={() => onShowQR(device)}
-          className="flex-1 flex items-center justify-center gap-1.5 py-2 text-xs font-medium text-gray-500 hover:bg-gray-50 rounded-xl transition-colors"
-        >
-          <QrCode size={13} />
-          Mã QR
-        </button>
-      </div>
-    </div>
+        <p className="band-estimate-note">
+          {battery.level === null
+            ? (isEnglish ? "Waiting for battery data from the Band." : "Đang chờ dữ liệu pin từ Band.")
+            : (isEnglish ? "Estimate based on a typical two-year battery life." : "Ước tính theo vòng đời pin điển hình 2 năm.")}
+        </p>
+      </article>
+    </section>
   );
 }
 
-/* ─────────────────────────────────────────────
-   空状态
-───────────────────────────────────────────── */
-function EmptyState({ onAdd }: { onAdd: () => void }) {
+function EmptyDevices({ onAdd, isEnglish }: { onAdd: () => void; isEnglish: boolean }) {
   return (
-    <div className="flex flex-col items-center justify-center py-16 px-6">
-      <div className="w-24 h-24 rounded-full bg-gradient-to-br from-primary-100 to-primary-100 flex items-center justify-center mb-6">
-        <Smartphone size={40} className="text-primary-400" />
+    <section className="device-empty-product" aria-label={isEnglish ? "No connected devices" : "Chưa có thiết bị kết nối"}>
+      <div className="device-empty-media">
+        <Image src="/products/lumo-family-set.webp" alt={isEnglish ? "Lumo Hub and Lumo Band" : "Lumo Hub và Lumo Band"} width={900} height={635} priority sizes="220px" />
       </div>
-      <h3 className="text-lg font-bold text-gray-900 mb-2">Chưa có thiết bị nào</h3>
-      <p className="text-sm text-gray-400 text-center mb-6 max-w-xs">
-        Thêm thiết bị LUMO bằng cách quét mã QR trên thiết bị
-      </p>
-      <button
-        onClick={onAdd}
-        className="flex items-center gap-2 px-6 py-3 bg-primary-600 hover:bg-primary-700 text-white rounded-xl font-semibold text-sm transition-colors shadow-lg shadow-primary-200"
-      >
-        <Plus size={16} />
-        Thêm thiết bị đầu tiên
-      </button>
-    </div>
+      <button type="button" onClick={onAdd}><Plus size={19} />{isEnglish ? "Add device" : "Thêm thiết bị"}</button>
+    </section>
   );
 }
 
-/* ─────────────────────────────────────────────
-   主页面
-───────────────────────────────────────────── */
 export default function DevicesPage() {
   const { devices, loading, fetchDevices, deleteDevice } = useDeviceStore();
   const [showAdd, setShowAdd] = useState(false);
   const [notifyTarget, setNotifyTarget] = useState<Device | null>(null);
   const [qrTarget, setQrTarget] = useState<Device | null>(null);
   const [deletingId, setDeletingId] = useState<number | null>(null);
+  const isEnglish = usePreferenceStore((state) => state.language === "en");
 
-  useEffect(() => { fetchDevices(); }, [fetchDevices]);
+  useEffect(() => {
+    void fetchDevices().catch(() => undefined);
+  }, [fetchDevices]);
 
   const handleDelete = async (id: number) => {
-    if (!confirm("Xóa thiết bị này?")) return;
+    if (!window.confirm(isEnglish ? "Remove this Lumo device set?" : "Xóa bộ thiết bị Lumo này?")) return;
     setDeletingId(id);
-    try { await deleteDevice(id); toast.success("Đã xóa"); }
-    catch { toast.error("Xóa thất bại"); }
-    finally { setDeletingId(null); }
+    try {
+      await deleteDevice(id);
+      toast.success(isEnglish ? "Device removed" : "Đã xóa thiết bị");
+    } catch {
+      toast.error(isEnglish ? "Could not remove device" : "Không thể xóa thiết bị");
+    } finally {
+      setDeletingId(null);
+    }
   };
 
+  const copy = isEnglish
+    ? { title: "My devices", count: `${devices.length} connected sets`, add: "Add device", loading: "Loading devices..." }
+    : { title: "Thiết bị của tôi", count: `${devices.length} bộ đã kết nối`, add: "Thêm thiết bị", loading: "Đang tải thiết bị..." };
+
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* 顶部导航 - 紧凑设计，避免与全局 Topbar 叠加过高 */}
-      <div className="bg-white border-b border-gray-100 sticky top-0 z-10">
-        <div className="max-w-2xl mx-auto px-4 py-3 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-primary-500 to-primary-700 flex items-center justify-center shadow-md">
-              <Smartphone size={16} className="text-white" />
-            </div>
-            <div>
-              <h1 className="text-base font-bold text-gray-900 leading-tight">Thiết bị</h1>
-              <p className="text-xs text-gray-400">{devices.length} thiết bị đã kết nối</p>
-            </div>
-          </div>
-          <button
-            onClick={() => setShowAdd(true)}
-            className="flex items-center gap-2 px-4 py-2.5 bg-primary-600 hover:bg-primary-700 text-white rounded-xl font-semibold text-sm transition-colors shadow-lg shadow-primary-200"
-          >
-            <Plus size={15} />
-            Thêm thiết bị
-          </button>
+    <main className="devices-page">
+      <header className="devices-page-heading">
+        <div>
+          <p className="lumo-kicker">LUMO CARE</p>
+          <h1>{copy.title}</h1>
+          <span>{copy.count}</span>
         </div>
-      </div>
-
-      {/* 内容区域 */}
-      <div className="max-w-2xl mx-auto px-4 py-6">
-        {loading ? (
-          <div className="flex flex-col items-center justify-center py-20">
-            <div className="w-10 h-10 border-3 border-primary-600 border-t-transparent rounded-full animate-spin" />
-            <p className="mt-4 text-sm text-gray-400">Đang tải...</p>
-          </div>
-        ) : devices.length === 0 ? (
-          <EmptyState onAdd={() => setShowAdd(true)} />
-        ) : (
-          <div className="space-y-3">
-            {devices.map((device: Device) => (
-              <DeviceCard
-                key={device.id}
-                device={device}
-                onDelete={handleDelete}
-                onNotify={setNotifyTarget}
-                onShowQR={setQrTarget}
-                deletingId={deletingId}
-              />
-            ))}
-          </div>
+        {devices.length > 0 && (
+          <button type="button" onClick={() => setShowAdd(true)}><Plus size={18} />{copy.add}</button>
         )}
-      </div>
+      </header>
 
-      {/* Modals */}
-      {showAdd && (
-        <AddDeviceModal
-          open={showAdd}
-          onClose={() => setShowAdd(false)}
-          onAdded={fetchDevices}
-        />
+      {loading ? (
+        <div className="devices-loading"><i /><span>{copy.loading}</span></div>
+      ) : devices.length === 0 ? (
+        <EmptyDevices onAdd={() => setShowAdd(true)} isEnglish={isEnglish} />
+      ) : (
+        <div className="device-pair-list">
+          {devices.map((device) => (
+            <DevicePair
+              key={device.id}
+              device={device}
+              isEnglish={isEnglish}
+              deleting={deletingId === device.id}
+              onDelete={() => void handleDelete(device.id)}
+              onNotify={() => setNotifyTarget(device)}
+              onShowQR={() => setQrTarget(device)}
+            />
+          ))}
+        </div>
       )}
 
-      {qrTarget && (
-        <DeviceQRModal
-          device={qrTarget}
-          onClose={() => setQrTarget(null)}
-        />
-      )}
-
-      {notifyTarget && (
-        <NotifyModal
-          device={notifyTarget}
-          onClose={() => setNotifyTarget(null)}
-        />
-      )}
-    </div>
+      <AddDeviceModal open={showAdd} onClose={() => setShowAdd(false)} onAdded={fetchDevices} />
+      {qrTarget && <DeviceQRModal device={qrTarget} onClose={() => setQrTarget(null)} isEnglish={isEnglish} />}
+      {notifyTarget && <NotifyModal device={notifyTarget} onClose={() => setNotifyTarget(null)} isEnglish={isEnglish} />}
+    </main>
   );
 }

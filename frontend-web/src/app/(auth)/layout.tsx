@@ -1,40 +1,35 @@
 import Image from "next/image";
+import Link from "next/link";
+import { ShieldCheck } from "lucide-react";
 
 export default function AuthLayout({ children }: { children: React.ReactNode }) {
   return (
-    <div className="min-h-screen bg-gradient-to-b from-[#fdf6e3] to-white flex items-center justify-center p-4">
-      <div className="w-full max-w-xl animate-fade-in">
-        {/* Luminos Tech banner */}
-        <div className="bg-[#fdf6e3] rounded-t-3xl overflow-hidden border border-b-0 border-[#f0e6cc]">
-          <img
-            src="/background.jpg"
-            alt="Luminos Tech"
-            className="w-full h-auto object-contain"
-          />
+    <main className="auth-shell">
+      <section className="auth-panel" aria-label="Lumo">
+        <Link href="/" className="auth-brand" aria-label="Lumo - Trang chủ">
+          <span className="auth-brand-mark">
+            <Image src="/logo-luminostech.png" alt="" width={47} height={62} priority />
+          </span>
+          <span><strong>Lumo</strong><small>by LuminosTech</small></span>
+        </Link>
+
+        <div className="auth-intro">
+          <span className="auth-trust"><ShieldCheck size={15} /> An tâm mỗi ngày</span>
+          <h1>Luôn gần bên,<br />dù ở xa.</h1>
+          <p>Theo dõi điểm danh, lịch nhắc và thiết bị của người thân trong một nơi riêng tư, dễ sử dụng.</p>
         </div>
 
-        {/* Login card */}
-        <div className="bg-white rounded-b-3xl shadow-xl border border-t-0 border-gray-100 px-8 sm:px-12 py-8">
-          {/* LumoHub logo */}
-          <div className="flex justify-center mb-6">
-            <Image
-              src="/logo_lumohub.png"
-              alt="LumoHub Logo"
-              width={200}
-              height={90}
-              unoptimized
-              priority
-              className="object-contain h-auto"
-            />
-          </div>
+        <div className="auth-form-card">{children}</div>
 
-          {children}
+        <p className="auth-footer">© 2026 LuminosTech · Dữ liệu của gia đình luôn được bảo vệ</p>
+      </section>
+      <aside className="auth-story" aria-hidden="true">
+        <div className="auth-story-copy">
+          <span>Một nhịp chạm nhỏ</span>
+          <strong>Một tín hiệu<br />bình an.</strong>
         </div>
-
-        <p className="text-center text-xs text-gray-400 mt-4">
-          © 2026 Luminos Tech
-        </p>
-      </div>
-    </div>
+        <div className="auth-rings"><i /><i /><i /></div>
+      </aside>
+    </main>
   );
 }

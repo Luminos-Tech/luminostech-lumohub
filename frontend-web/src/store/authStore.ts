@@ -45,8 +45,13 @@ export const useAuthStore = create<AuthState>()(
       },
 
       fetchMe: async () => {
-        const res = await api.get("/auth/me");
-        set({ user: res.data, isAuthenticated: true });
+        try {
+          const res = await api.get("/auth/me");
+          set({ user: res.data, isAuthenticated: true });
+        } catch (error) {
+          set({ user: null, isAuthenticated: false });
+          throw error;
+        }
       },
     }),
     { name: "lumohub-auth", partialize: (s) => ({ user: s.user, isAuthenticated: s.isAuthenticated }) }
