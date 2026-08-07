@@ -1,0 +1,15 @@
+{
+  "mcpServers": {
+    "serena": {"type": "stdio", "command": "uvx", "args": ["-p", "3.13", "serena-agent", "start-mcp-server", "--project-from-cwd", "--context", "claude-code"]},
+    "context7": {"type": "stdio", "command": "cmd", "args": ["/c", "npx", "-y", "@upstash/context7-mcp@latest"]},
+    "fetch": {"type": "stdio", "command": "uvx", "args": ["--with", "mcp<2", "mcp-server-fetch"], "env": {"PYTHONIOENCODING": "utf-8"}},
+    "github": {"type": "stdio", "command": "docker", "args": ["run", "-i", "--rm", "-e", "GITHUB_PERSONAL_ACCESS_TOKEN", "-e", "GITHUB_DYNAMIC_TOOLSETS", "-e", "GITHUB_TOOLSETS", "ghcr.io/github/github-mcp-server"], "env": {"GITHUB_PERSONAL_ACCESS_TOKEN": "${GITHUB_PERSONAL_ACCESS_TOKEN}", "GITHUB_DYNAMIC_TOOLSETS": "1", "GITHUB_TOOLSETS": "context,repos"}},
+    "dbhub": {"type": "stdio", "command": "cmd", "args": ["/c", "npx", "-y", "@bytebase/dbhub@latest", "--transport", "stdio", "--dsn", "${DATABASE_URL}"]},
+    "memory-kg": {"type": "stdio", "command": "cmd", "args": ["/c", "npx", "-y", "@modelcontextprotocol/server-memory"], "env": {"MEMORY_FILE_PATH": "${LUMOHUB_MCP_MEMORY_FILE}"}},
+    "sequential-thinking": {"type": "stdio", "command": "cmd", "args": ["/c", "npx", "-y", "@modelcontextprotocol/server-sequential-thinking"]},
+    "playwright": {"type": "stdio", "command": "cmd", "args": ["/c", "npx", "-y", "@playwright/mcp@latest"]},
+    "sentry": {"type": "http", "url": "https://mcp.sentry.dev/mcp"},
+    "grafana": {"type": "stdio", "command": "uvx", "args": ["mcp-grafana"], "env": {"GRAFANA_URL": "${GRAFANA_URL}", "GRAFANA_SERVICE_ACCOUNT_TOKEN": "${GRAFANA_SERVICE_ACCOUNT_TOKEN}"}},
+    "docker-gateway": {"type": "stdio", "command": "docker", "args": ["mcp", "gateway", "run", "--profile", "lumohub"]}
+  }
+}

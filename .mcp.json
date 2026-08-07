@@ -1,0 +1,20 @@
+{
+  "mcpServers": {
+    "serena": {
+      "type": "stdio",
+      "command": "uvx",
+      "args": ["-p", "3.13", "serena-agent", "start-mcp-server", "--project-from-cwd", "--context", "claude-code"]
+    },
+    "context7": {
+      "type": "stdio",
+      "command": "cmd",
+      "args": ["/c", "npx", "-y", "@upstash/context7-mcp@latest"]
+    },
+    "fetch": {
+      "type": "stdio",
+      "command": "uvx",
+      "args": ["--with", "mcp<2", "mcp-server-fetch"],
+      "env": {"PYTHONIOENCODING": "utf-8"}
+    }
+  }
+}

@@ -1,636 +1,221 @@
-# LumoHub - Hệ thống quản lý lịch thông minh và thiết bị IoT
+# LUMO Hub
 
-<p align="center">
-  <strong>Được phát triển bởi Luminos Tech</strong>
-</p>
+LUMO Hub is an assistive-technology project by Luminos Tech. The product vision is an AI companion ecosystem for older adults and people with disabilities: simple voice interaction, calendar and reminder support, family connection, and privacy-conscious safety monitoring without cameras.
 
----
+This repository contains the current software platform and an ESP32 Hub prototype. The project proposal also describes future hardware, wearable fall detection, private AI infrastructure, care-organization pilots, and insurance distribution. Those proposal items are marked as roadmap items below and must not be presented as completed features.
 
-## Mục lục
+## Current Status
 
-- [Tổng quan dự án](#tổng-quan-dự-án)
-- [Kiến trúc hệ thống](#kiến-trúc-hệ-thống)
-- [Công nghệ sử dụng](#công-nghệ-sử-dụng)
-- [Cấu trúc dự án](#cấu-trúc-dự-án)
-- [Tính năng chính](#tính-năng-chính)
-- [API Endpoints](#api-endpoints)
-- [WebSocket Protocol](#websocket-protocol)
-- [Cấu hình](#cấu-hình)
-- [Hướng dẫn cài đặt](#hướng-dẫn-cài-đặt)
-- [Hướng dẫn sử dụng](#hướng-dẫn-sử-dụng)
-- [Thiết bị ESP32](#thiết-bị-esp32)
-- [Bảo mật](#bảo-mật)
-- [Giấy phép](#giấy-phép)
+Implemented in this repository:
 
----
+- FastAPI REST API with PostgreSQL/SQLAlchemy models, Alembic migrations, JWT authentication, and admin operations.
+- Events, calendar views, reminders, in-app notifications, Web Push subscriptions, devices, and physical event-button records.
+- AI text/audio endpoints and LUMO WebSockets for text, STT, LLM, and TTS flows.
+- Next.js dashboard for calendar, events, notifications, devices, settings, and administration.
+- ESP-IDF firmware for the current ESP32 Hub prototype, including Wi-Fi, microphone/recording, OLED, I2S audio, buttons, and HTTP integration.
 
-## Tổng quan dự án
+Roadmap or proposal-level capabilities include the production 4G Hub, nRF52840 + MPU6050 BLE fall-detection wearable, activity trend analytics, abnormal-silence escalation, self-hosted private LLM infrastructure, clinical validation, and insurance integration.
 
-**LumoHub** là hệ thống quản lý lịch và sự kiện thông minh tích hợp với thiết bị IoT **Lumo LuminosTech**, cung cấp:
+## Product Direction
 
-- **Quản lý lịch**: Tạo sự kiện, nhắc nhở và thông báo đa kênh
-- **AI Assistant LUMO**: Trợ lý giọng nói dựa trên Gemini/Groq với khả năng tương tác tự nhiên
-- **Tích hợp ESP32**: Kết nối thiết bị IoT qua WebSocket để phát giọng nói (TTS) và nhận lệnh thoại
-- **Quản trị hệ thống**: Quản lý người dùng, thiết bị và giám sát hệ thống
-- **Giao diện web responsive**: Xây dựng bằng Next.js + Tailwind CSS, hỗ trợ mobile
+The intended experience is voice-first and accessible: an older adult should not need to learn a complex application or carry a smartphone for the core interaction. A physical check-in button, scheduled family voice recordings, reminders, and conversational prompts are designed to support independence and reduce isolation.
 
-Hệ thống kết nối thiết bị IoT vật lý với lịch đám mây, cho phép người dùng tương tác với lịch trình thông qua lệnh thoại trên thiết bị ESP32.
+The proposal's planned wearable uses a six-axis IMU and a three-phase fall-detection algorithm (free fall -> impact -> prolonged immobility). Its targets are BLE 5.0, a CR2450 battery lasting one to three years, IP67 protection, and a lightweight non-medical design. These are targets requiring hardware validation, pilot data, certification, and production testing.
 
----
+The proposal positions the product for B2C, B2B, and B2B2C distribution through families, nursing homes, disability support organizations, and insurance add-on services. The proposal prices are planning assumptions, not audited commercial commitments.
 
-## Kiến trúc hệ thống
+## Architecture
 
-```
-┌─────────────────────────────────────────────────────────────┐
-│                    Thiết bị ESP32 LUMO                        │
-│         (Màn hình OLED + Mic + Loa + Nút bấm vật lý)          │
-└──────────────────────────┬────────────────────────────────────┘
-                           │ WebSocket (WSS)
-                           ▼
-┌─────────────────────────────────────────────────────────────┐
-│                FastAPI Backend (Port 8000)                    │
-│                                                              │
-│  ┌──────────────┐  ┌──────────────┐  ┌──────────────────┐  │
-│  │ REST API     │  │ WebSocket    │  │ Background Tasks │  │
-│  │ (Auth/CRUD)  │  │ (LUMO/TTS)   │  │ (APScheduler)    │  │
-│  └──────────────┘  └──────────────┘  └──────────────────┘  │
-│                                                              │
-│  ┌──────────────┐  ┌──────────────┐  ┌──────────────────┐  │
-│  │ LUMO AI      │  │ TTS Stream   │  │ Notification     │  │
-│  │(Gemini/Groq) │  │(Google TTS)  │  │ Engine           │  │
-│  └──────────────┘  └──────────────┘  └──────────────────┘  │
-└──────────────────────────┬────────────────────────────────────┘
-                           │ SQLAlchemy ORM
-                           ▼
-┌─────────────────────────────────────────────────────────────┐
-│                PostgreSQL 16 (Port 5432)                      │
-│                                                              │
-│  users | events | reminders | notifications | devices |      │
-│  event_buttons | user_sessions | system_logs                 │
-└─────────────────────────────────────────────────────────────┘
-                           ▲
-                           │ Next.js API Proxy
-                           ▼
-┌─────────────────────────────────────────────────────────────┐
-│                Next.js Frontend (Port 3000)                   │
-│                                                              │
-│  Dashboard | Calendar | Events | Notifications | Settings    │
-│  Admin Panel | WebSocket Test Tool                           │
-└─────────────────────────────────────────────────────────────┘
+```text
+ESP32 LUMO Hub / future wearable
+          | WebSocket, HTTP, BLE (roadmap)
+          v
+FastAPI backend :8000 ---- PostgreSQL :5432
+          |
+          +-- REST API (/api/v1)
+          +-- LUMO AI and audio pipelines
+          +-- WebSockets (/ws/lumo, /ws/stream)
+          +-- APScheduler reminder/session jobs
+          +-- Web Push and device delivery
+          ^
+Next.js frontend :3000
+  same-origin /api/v1 proxy -> INTERNAL_API_URL
 ```
 
-### Luồng dữ liệu
+Backend entry point: `backend/app/main.py` (`app.main:app`). The application creates database tables and starts APScheduler in its lifespan.
 
-1. Người dùng tạo sự kiện qua Web Dashboard
-2. APScheduler kiểm tra và kích hoạt nhắc nhở khi đến giờ
-3. Thông báo được lưu vào database và gửi qua WebSocket
-4. Thiết bị LUMO nhận thông báo và phát giọng nói qua TTS
-5. Người dùng có thể tương tác bằng giọng nói (STT → Gemini → TTS)
-6. Lịch sử bấm nút vật lý được hiển thị trên Web Dashboard
+Firmware entry point: `Lumo/Lumo-LuminosTech/main/Lumo-LuminosTech.c` with modules under `main/{wifi,http_api,mic,record,audio,oled,button}`.
 
----
+## Repository Layout
 
-## Công nghệ sử dụng
-
-### Backend
-
-| Công nghệ | Phiên bản | Mục đích |
-|-----------|-----------|----------|
-| Python | 3.12 | Ngôn ngữ lập trình |
-| FastAPI | 0.111.0 | Web framework, hỗ trợ async |
-| Uvicorn | 0.29.0 | ASGI server |
-| SQLAlchemy | 2.0.30 | ORM |
-| PostgreSQL | 16 | Cơ sở dữ liệu |
-| Alembic | 1.13.1 | Database migration |
-| Pydantic | 2.7.1 | Validation & serialization |
-| python-jose | 3.3.0 | JWT token (HS256) |
-| passlib[bcrypt] | 1.7.4 | Password hashing |
-| google-genai | 1.11.0 | Gemini API (LLM + TTS) |
-| groq | ≥0.12.0 | Groq API (Whisper STT) |
-| APScheduler | 3.10.4 | Task scheduling |
-| httpx | 0.28.1 | HTTP client |
-
-### Frontend
-
-| Công nghệ | Phiên bản | Mục đích |
-|-----------|-----------|----------|
-| Next.js | 14.2.29 | React framework (App Router) |
-| React | 18.3.1 | UI library |
-| TypeScript | 5.4.5 | Type-safe JavaScript |
-| Tailwind CSS | 3.4.3 | CSS framework |
-| Zustand | 4.5.2 | State management |
-| react-hook-form | 7.51.5 | Form handling |
-| zod | 3.23.8 | Schema validation |
-| @fullcalendar | 6.1.11 | Calendar UI |
-| axios | 1.7.2 | HTTP client |
-| lucide-react | 0.383.0 | Icons |
-| sonner | 2.0.7 | Toast notifications |
-| date-fns | 3.6.0 | Date utilities |
-
-### Infrastructure
-
-- Docker & Docker Compose
-- PostgreSQL 16 Alpine
-
----
-
-## Cấu trúc dự án
-
-```
-lumohub/
-├── backend/                      # FastAPI backend
-│   ├── app/
-│   │   ├── main.py              # Entry point
-│   │   ├── core/                # Config & security
-│   │   │   ├── config.py
-│   │   │   └── security.py
-│   │   ├── crud/                # Database operations
-│   │   │   ├── user.py
-│   │   │   ├── event.py
-│   │   │   ├── reminder.py
-│   │   │   ├── notification.py
-│   │   │   ├── device.py
-│   │   │   ├── event_button.py
-│   │   │   ├── session.py
-│   │   │   └── log.py
-│   │   ├── db/                  # Database setup
-│   │   │   ├── session.py
-│   │   │   ├── init_db.py
-│   │   │   └── seed.py
-│   │   ├── models/              # SQLAlchemy models
-│   │   │   ├── user.py
-│   │   │   ├── event.py
-│   │   │   ├── reminder.py
-│   │   │   ├── notification.py
-│   │   │   ├── device.py
-│   │   │   ├── event_button.py
-│   │   │   ├── user_session.py
-│   │   │   ├── system_log.py
-│   │   │   └── admin_action.py
-│   │   ├── routes/              # API endpoints
-│   │   │   ├── auth.py
-│   │   │   ├── users.py
-│   │   │   ├── events.py
-│   │   │   ├── reminders.py
-│   │   │   ├── notifications.py
-│   │   │   ├── calendar.py
-│   │   │   ├── devices.py
-│   │   │   ├── event_buttons.py
-│   │   │   ├── admin.py
-│   │   │   └── lumo.py
-│   │   ├── schemas/             # Pydantic schemas
-│   │   ├── services/            # Dependencies
-│   │   ├── tasks/               # Background tasks
-│   │   │   └── scheduler.py
-│   │   ├── utils/               # Utilities
-│   │   └── websocket/           # WebSocket handlers
-│   │       ├── manager.py
-│   │       ├── routes.py
-│   │       └── tts_stream.py
-│   ├── alembic/                 # Database migrations
-│   ├── requirements.txt
-│   ├── Dockerfile
-│   └── .env
-│
-├── frontend-web/                # Next.js frontend
-│   ├── src/
-│   │   ├── app/                 # App Router
-│   │   │   ├── (auth)/
-│   │   │   │   ├── login/
-│   │   │   │   └── register/
-│   │   │   ├── (dashboard)/
-│   │   │   │   ├── dashboard/
-│   │   │   │   ├── calendar/
-│   │   │   │   ├── events/
-│   │   │   │   ├── notifications/
-│   │   │   │   ├── settings/
-│   │   │   │   │   ├── devices/
-│   │   │   │   │   └── event-buttons/
-│   │   │   │   └── admin/
-│   │   │   │       ├── users/
-│   │   │   │       ├── logs/
-│   │   │   │       └── websocket/
-│   │   │   └── api/
-│   │   │       ├── v1/[...path]/  # API proxy
-│   │   │       ├── extract-events/
-│   │   │       └── health/
-│   │   ├── components/
-│   │   │   ├── layout/
-│   │   │   ├── calendar/
-│   │   │   ├── notifications/
-│   │   │   ├── auth/
-│   │   │   ├── profile/
-│   │   │   ├── admin/
-│   │   │   ├── common/
-│   │   │   └── ui/
-│   │   ├── features/            # API functions
-│   │   │   ├── auth/
-│   │   │   ├── events/
-│   │   │   ├── notifications/
-│   │   │   ├── calendar/
-│   │   │   ├── devices/
-│   │   │   ├── event-buttons/
-│   │   │   └── admin/
-│   │   ├── hooks/
-│   │   ├── lib/
-│   │   ├── store/               # Zustand stores
-│   │   └── types/
-│   ├── public/
-│   ├── package.json
-│   ├── next.config.js
-│   ├── tailwind.config.ts
-│   └── tsconfig.json
-│
-├── Lumo/                        # ESP32 firmware
-│   └── Lumo-LuminosTech/
-│
-├── docker-compose.yml
-├── docker-compose.dev.yml
-├── test_audio.py                # Audio pipeline test
-├── test_ws.py                   # WebSocket test
-└── README.md
+```text
+backend/                         FastAPI application
+  app/routes/                    REST routes
+  app/models/                    SQLAlchemy models
+  app/schemas/                   Pydantic schemas
+  app/crud/                      Database operations
+  app/tasks/scheduler.py        Reminder and session jobs
+  app/websocket/                 Device and TTS WebSockets
+  alembic/                       Database migrations
+frontend-web/                    Next.js application
+  src/app/                       App Router pages and proxy routes
+  src/features/                  API modules
+  src/store/                     Zustand stores
+  src/components/                UI components
+Lumo/Lumo-LuminosTech/           ESP-IDF firmware
+docs/                            Technical notes and library documentation
+docker-compose.yml               Production-like local stack
+docker-compose.dev.yml           Hot-reload development stack
+AGENTS.md                        Agent and architecture guidance
+MCP_LUMOHUB_SETUP.md             Project MCP setup
 ```
 
----
+## Backend API
 
-## Tính năng chính
+All REST routes use the `/api/v1` prefix and Bearer JWT authentication unless noted.
 
-### 1. Xác thực người dùng
+| Area | Routes |
+| --- | --- |
+| Auth | `POST /auth/register`, `/auth/login`, `/auth/refresh`, `/auth/logout`; `GET /auth/me` |
+| Users | `GET/PATCH /users/me`; `PATCH /users/me/password` |
+| Events | CRUD `/events`; `GET /calendar`; `POST /events/extract` |
+| Reminders | `GET /reminders`; CRUD reminder routes under `/events/{event_id}/reminders` and `/reminders/{reminder_id}` |
+| Notifications | `GET /notifications`; read-one and read-all patches |
+| Devices | CRUD `/devices`; `GET /devices/qr` |
+| Event buttons | `POST/GET /event-buttons`; `GET /event-buttons/today` |
+| Push | `/push/public-key`, subscribe/unsubscribe, send, and status |
+| Admin | User, password, lock, role, logs, events, and device commands under `/admin` |
+| LUMO | `/lumo/`, `version1`, `version2`, `version3`, wake-word verification, and `/lumo/audio/` |
+| Check notifications | CRUD `/check-noti` |
 
-- Đăng ký với email, mật khẩu (bcrypt hash)
-- Đăng nhập với JWT (access token 30 phút, refresh token 7 ngày)
-- Phân quyền theo vai trò: `user` và `admin`
-- Quản lý session với refresh token lưu trong database
+Health check: `GET /health` returns `{"status":"ok","service":"LumoHub API"}`.
 
-### 2. Quản lý lịch và sự kiện
+## Reminder Flow
 
-- Tích hợp FullCalendar: xem theo ngày/tuần/tháng/danh sách
-- CRUD sự kiện: tiêu đề, mô tả, địa điểm, thời gian bắt đầu/kết thúc
-- Lọc sự kiện theo khoảng thời gian
-- Hiển thị chi tiết sự kiện và nhắc nhở liên quan
+1. A user creates an event and optional reminder.
+2. `check_reminders` runs every minute and evaluates `event.start_time - remind_before_minutes`.
+3. A triggered reminder creates a notification and is marked sent.
+4. `lumo` reminders are forwarded through the WebSocket manager to connected devices.
+5. `cleanup_expired_sessions` removes expired refresh sessions hourly.
 
-### 3. Nhắc nhở và thông báo
+## LUMO WebSocket Protocol
 
-- 3 loại nhắc nhở:
-  - `web`: Thông báo trong ứng dụng qua WebSocket
-  - `mobile`: Push notification (dự phòng)
-  - `lumo`: Phát giọng nói qua thiết bị ESP32
-- Lập lịch nhắc nhở dựa trên offset từ thời gian sự kiện
-- Tự động tạo notification khi nhắc nhở được kích hoạt
-- Đánh dấu đã đọc (từng cái hoặc tất cả)
+Basic device connection:
 
-### 4. LUMO AI Assistant
-
-- 3 phiên bản LLM:
-  - Version 1: Gemini 2.5 + Google Search
-  - Version 2: Gemini 3.1 + Tavily Search
-  - Version 3: Perplexity AI
-- Pipeline audio đầy đủ: STT (Groq Whisper) → LLM → TTS (Gemini)
-- AI trả lời bằng tiếng Việt, ngắn gọn (<25 từ), thân thiện
-- TTS output: 24kHz mono 16-bit WAV, stream qua WebSocket
-- Chế độ text-only qua REST API
-
-### 5. Tích hợp thiết bị IoT
-
-- Đăng ký thiết bị ESP32 bằng mã 4 chữ số
-- Kết nối WebSocket: `/ws/lumo?device_id=XXXX`
-- Quản lý tên thiết bị qua Web Dashboard
-- Gửi tin nhắn text đến màn hình OLED của ESP32
-- Stream TTS đến loa ESP32
-- Ghi lại lịch sử bấm nút vật lý và liên kết với sự kiện
-- Theo dõi trạng thái kết nối thiết bị
-
-### 6. Quản trị hệ thống
-
-- Quản lý người dùng: tạo, khóa/mở khóa, đổi vai trò, reset mật khẩu
-- Nhật ký hệ thống: audit log cho các thao tác quản trị
-- Xem tất cả sự kiện của người dùng
-- Công cụ test WebSocket cho ESP32
-- Gửi thông báo đến thiết bị cụ thể
-
----
-
-## API Endpoints
-
-Tất cả API có prefix `/api/v1`. Xác thực qua Bearer token trong header:
-
-```
-Authorization: Bearer <access_token>
+```text
+ws://localhost:8000/ws/lumo?device_id=<device-id>
 ```
 
-### Authentication
+Audio/TTS stream:
 
-| Method | Endpoint | Mô tả | Auth |
-|--------|----------|-------|------|
-| POST | `/auth/register` | Đăng ký người dùng mới | Không |
-| POST | `/auth/login` | Đăng nhập, trả về token | Không |
-| POST | `/auth/refresh` | Làm mới access token | Không |
-| POST | `/auth/logout` | Đăng xuất (thu hồi session) | Có |
-| GET | `/auth/me` | Lấy thông tin người dùng hiện tại | Có |
-
-### Events
-
-| Method | Endpoint | Mô tả | Auth |
-|--------|----------|-------|------|
-| GET | `/events` | Danh sách sự kiện (hỗ trợ `?start=&end=`) | Có |
-| GET | `/events/{id}` | Chi tiết sự kiện | Có |
-| POST | `/events` | Tạo sự kiện | Có |
-| PATCH | `/events/{id}` | Cập nhật sự kiện | Có |
-| DELETE | `/events/{id}` | Xóa sự kiện | Có |
-
-### Notifications
-
-| Method | Endpoint | Mô tả | Auth |
-|--------|----------|-------|------|
-| GET | `/notifications` | Danh sách thông báo | Có |
-| PATCH | `/notifications/{id}/read` | Đánh dấu đã đọc | Có |
-| PATCH | `/notifications/read-all` | Đánh dấu tất cả đã đọc | Có |
-
-### Devices
-
-| Method | Endpoint | Mô tả | Auth |
-|--------|----------|-------|------|
-| GET | `/devices` | Danh sách thiết bị | Có |
-| POST | `/devices` | Đăng ký thiết bị (cần mã 4 số) | Có |
-| PATCH | `/devices/{id}` | Cập nhật tên thiết bị | Có |
-| DELETE | `/devices/{id}` | Xóa thiết bị | Có |
-
-### LUMO AI
-
-| Method | Endpoint | Mô tả | Auth |
-|--------|----------|-------|------|
-| GET | `/lumo/version1` | Gemini 2.5 + Google Search | Có |
-| GET | `/lumo/version2` | Gemini 3.1 + Tavily Search | Có |
-| GET | `/lumo/version3` | Perplexity AI | Có |
-| POST | `/lumo/audio/` | Pipeline audio (STT → LLM → TTS) | Có |
-| GET | `/lumo/` | Health check | Không |
-
-### Admin
-
-| Method | Endpoint | Mô tả | Auth |
-|--------|----------|-------|------|
-| GET | `/admin/users` | Danh sách người dùng (phân trang) | Admin |
-| POST | `/admin/users` | Tạo người dùng | Admin |
-| PATCH | `/admin/users/{id}/password` | Reset mật khẩu | Admin |
-| PATCH | `/admin/users/{id}/lock` | Khóa tài khoản | Admin |
-| PATCH | `/admin/users/{id}/unlock` | Mở khóa tài khoản | Admin |
-| GET | `/admin/logs` | Xem system logs | Admin |
-
----
-
-## WebSocket Protocol
-
-### Endpoint: `/ws/stream`
-
-Kết nối thiết bị ESP32 với LUMO AI.
-
-**Kết nối:**
-```
-wss://api.example.com/ws/stream?device_id=1234
+```text
+ws://localhost:8000/ws/stream?device_id=<device-id>
 ```
 
-**Thiết bị → Server:**
+The stream accepts JSON text or binary UTF-8 frames:
+
 ```json
-// Text-to-Speech
-{"action": "tts", "text": "Bạn có cuộc họp lúc 3 giờ chiều"}
-
-// Speech pipeline (STT → LLM → TTS)
-{"action": "stt_tts", "audio_b64": "UklGRl..."}
-
-// Ping
-"ping"
+{"action":"tts","text":"Your reminder text"}
+{"action":"stt_tts","audio_b64":"<base64 WAV>"}
 ```
 
-**Server → Thiết bị:**
-```json
-// Lỗi
-{"type": "error", "message": "TTS service unavailable"}
+Responses include binary WAV audio and JSON messages such as `{"type":"done"}` or `{"type":"error","message":"..."}`. The current implementation uses a 24 kHz mono 16-bit WAV output for TTS.
 
-// Hoàn thành
-{"type": "done"}
+## Technology
 
-// Binary audio frames
-<raw WAV audio data>
-```
+Backend: Python, FastAPI 0.111, Uvicorn, SQLAlchemy 2, PostgreSQL 16, Alembic, Pydantic 2, JWT, bcrypt, APScheduler, Google GenAI, Groq, HTTPX, pywebpush, Pillow, and qrcode.
 
----
+Frontend: Next.js 14, React 18, TypeScript, Tailwind CSS, Zustand, Axios, FullCalendar, Zod, react-hook-form, Sonner, Lucide React, date-fns, and html5-qrcode.
 
-## Cấu hình
+Firmware: ESP-IDF/C, FreeRTOS, Wi-Fi, HTTP client/server, I2S audio, OLED, GPIO buttons, SNTP, and cJSON. The planned wearable is based on nRF52840 + MPU6050, but it is not part of the current firmware tree.
 
-### Backend (.env)
+## Configuration
+
+Backend variables are documented in `backend/.env.example`:
 
 ```env
-# Database
-DATABASE_URL=postgresql+asyncpg://lumohub:lumohub123@postgres:5432/lumohub_db
-
-# Security
-SECRET_KEY=your-super-secret-key-at-least-32-characters-long
+DATABASE_URL=postgresql://lumohub:lumohub123@localhost:5432/lumohub_db
+SECRET_KEY=replace-with-a-long-random-secret
 ALGORITHM=HS256
 ACCESS_TOKEN_EXPIRE_MINUTES=30
 REFRESH_TOKEN_EXPIRE_DAYS=7
-
-# CORS
-CORS_ORIGINS=http://localhost:3000,https://yourdomain.com
-
-# AI APIs
-GEMINI_API_KEY=your-gemini-api-key
-PERPLEXITY_API_KEY=your-perplexity-api-key
-GROQ_API_KEY=your-groq-api-key
-TAVILY_API_KEY=your-tavily-api-key
-
-# Logging
-LUMO_LOG_PATH=system.log
+CORS_ORIGINS=http://localhost:3000,http://127.0.0.1:3000
+GEMINI_API_KEY=
+GROQ_API_KEY=
+PERPLEXITY_API_KEY=
+GOOGLE_API_KEY=
+TAVILY_API_KEY=
+VAPID_PUBLIC_KEY=
+VAPID_PRIVATE_KEY=
+VAPID_SUBJECT=mailto:admin@example.com
 ```
 
-### Frontend (.env.local)
+The frontend proxy uses `INTERNAL_API_URL`; see `frontend-web/.env.local.example`. WebSocket clients use `NEXT_PUBLIC_WS_URL` when configured.
 
-```env
-INTERNAL_API_URL=http://127.0.0.1:8000
-```
+Never commit `.env` files or real credentials.
 
----
-
-## Hướng dẫn cài đặt
-
-### Yêu cầu
-
-- Docker & Docker Compose
-- Python 3.11+ (cho development)
-- Node.js 18+ (cho development)
-- API keys: Gemini, Groq, Tavily
-
-### Cài đặt với Docker (Khuyến nghị)
+## Running with Docker
 
 ```bash
-# 1. Clone repository
-git clone https://github.com/luminostech/lumohub.git
-cd lumohub
-
-# 2. Cấu hình environment
-cp backend/.env.example backend/.env
-# Chỉnh sửa backend/.env và điền API keys
-
-# 3. Khởi động services
-docker compose up -d --build
-
-# 4. Chạy migrations
-docker compose exec backend alembic upgrade head
-
-# 5. Seed dữ liệu mẫu
-docker compose exec backend python -m app.db.seed
-
-# 6. Truy cập ứng dụng
-# Frontend: http://localhost:3000
-# Backend API: http://localhost:8000
-# API Docs: http://localhost:8000/docs
+docker compose up --build
 ```
 
-### Development (Local)
+Open `http://localhost:3000`, backend docs at `http://localhost:8000/docs`, and health at `http://localhost:8000/health`.
 
-**Backend:**
+For hot reload:
+
 ```bash
+docker compose -f docker-compose.dev.yml up --build
+```
+
+## Running Without Docker
+
+Backend (PowerShell):
+
+```powershell
 cd backend
-python -m venv venv
-source venv/bin/activate  # Windows: venv\Scripts\activate
+python -m venv .venv
+.\.venv\Scripts\Activate.ps1
 pip install -r requirements.txt
-cp .env.example .env
-# Chỉnh sửa .env
-alembic upgrade head
-python -m app.db.seed
+Copy-Item .env.example .env
 uvicorn app.main:app --reload --port 8000
 ```
 
-**Frontend:**
-```bash
+Frontend:
+
+```powershell
 cd frontend-web
-npm install
-cp .env.local.example .env.local
-# Chỉnh sửa .env.local
+npm ci
+Copy-Item .env.local.example .env.local
 npm run dev
 ```
 
----
+PostgreSQL must be available and `DATABASE_URL` must point to it. The application creates tables at startup; use Alembic explicitly when applying migrations to an existing database.
 
-## Hướng dẫn sử dụng
+## Validation
 
-### Dashboard
-
-Trang chủ (`/dashboard`) hiển thị:
-- Lời chào với tên người dùng và ngày hiện tại
-- Thống kê số sự kiện hôm nay và trong tháng
-- Danh sách sự kiện hôm nay
-- Thông báo gần đây
-
-### Calendar
-
-Trang lịch (`/calendar`) với FullCalendar:
-- Xem theo tháng/tuần/ngày/danh sách
-- Click vào ngày để tạo sự kiện
-- Click vào sự kiện để xem chi tiết
-
-### Events
-
-Trang sự kiện (`/events`):
-- Danh sách tất cả sự kiện
-- Tìm kiếm và lọc theo ngày
-- Tạo/sửa/xóa sự kiện
-- Thêm nhắc nhở cho sự kiện
-
-### Settings
-
-**Profile** (`/settings`):
-- Đổi tên hiển thị
-- Đổi số điện thoại
-- Đổi mật khẩu
-
-**Devices** (`/settings/devices`):
-- Xem thiết bị ESP32 đã đăng ký
-- Thêm thiết bị mới (nhập mã 4 số)
-- Đổi tên/xóa thiết bị
-
-**Event Buttons** (`/settings/event-buttons`):
-- Lịch sử bấm nút
-- Xem sự kiện được kích hoạt
-- Thống kê hôm nay
-
-### Admin Panel
-
-Chỉ dành cho admin (`/admin`):
-- Quản lý người dùng
-- Xem system logs
-- Test WebSocket với ESP32
-- Gửi thông báo đến thiết bị
-
----
-
-## Thiết bị ESP32
-
-Thiết bị Lumo LuminosTech có các tính năng:
-
-1. **Kết nối**: WebSocket đến `/ws/stream?device_id=XXXX`
-2. **Hiển thị**: Màn hình OLED hiển thị tin nhắn text
-3. **Phát âm**: Loa phát TTS cho nhắc nhở và phản hồi AI
-4. **Nghe**: Mic thu âm lệnh thoại (STT)
-5. **Nút bấm**: Nút vật lý kích hoạt sự kiện liên kết
-
-### Luồng giao tiếp
-
-```
-ESP32 → WebSocket → Backend
-                   ↓
-             [Xác thực device_id]
-                   ↓
-             [Xử lý message]
-                   ↓
-    ┌───────────┬───┴────┐
-    ↓           ↓         ↓
-  Gemini    Groq STT   TTS Stream
-  (LLM)     (Speech)   (Audio)
-    ↓           ↓         ↓
-    └───────────┴─────────┘
-                   ↓
-            WebSocket Response
-                   ↓
-               ESP32
-          (Hiển thị/Phát âm)
+```powershell
+python -m compileall -q backend\app
+cd frontend-web
+npm run lint
+npm run build
 ```
 
----
+Firmware requires an installed ESP-IDF toolchain and the correct board configuration. API-dependent AI, Web Push, database, and device tests require their respective services and credentials.
 
-## Bảo mật
+## Security and Product Limits
 
-### Mật khẩu
-- Hash bằng bcrypt (passlib)
-- Yêu cầu độ mạnh tối thiểu khi đăng ký
+- Passwords are hashed with bcrypt; JWT access and refresh sessions are stored and validated by the backend.
+- Admin routes require admin authorization; user routes are scoped to the current user.
+- Pydantic validation, SQLAlchemy parameters, and configured CORS provide baseline protections, not a complete security review.
+- Current AI routes call external providers. Do not describe the current deployment as fully self-hosted or third-party-free.
+- LUMO Hub is a prototype and is not currently a certified medical device, emergency-response service, or diagnostic system.
+- Any fall-detection accuracy, battery life, IP67 rating, cognitive analysis, or insurance savings claim requires measured evidence and appropriate regulatory review.
 
-### JWT Token
-- Thuật toán HS256
-- Access token: 30 phút
-- Refresh token: 7 ngày, lưu trong DB, có thể thu hồi
+## MCP and Agent Setup
 
-### Phân quyền
-- Admin endpoints được bảo vệ bởi `require_admin`
-- User endpoints được bảo vệ bởi `get_current_user`
-- Người dùng chỉ truy cập được dữ liệu của mình
+See [MCP_LUMOHUB_SETUP.md](MCP_LUMOHUB_SETUP.md) for the project-local MCP configuration and progressive memory files. See [AGENTS.md](AGENTS.md) for source-verified architecture, roadmap boundaries, and coding-agent rules.
 
-### Validation
-- Tất cả input qua Pydantic schemas
-- SQLAlchemy ORM (parameterized queries) chống SQL injection
-- CORS chỉ cho phép nguồn tin cậy
+## License
 
----
-
-## Tài khoản mặc định (Chỉ dùng cho development)
-
-> ⚠️ **KHÔNG sử dụng trong production!**
-
-| Vai trò | Email | Mật khẩu |
-|---------|-------|----------|
-| Admin | `admin@lumohub.com` | `Admin@123` |
-| Demo User | `demo@lumohub.com` | `Demo@123` |
-
----
-
-## Giấy phép
-
-Bản quyền © 2026 **Luminos Tech**. Bảo lưu mọi quyền.
+Copyright 2026 Luminos Tech. All rights reserved unless a separate license is provided.

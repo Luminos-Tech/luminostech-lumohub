@@ -98,6 +98,10 @@ npm-debug.log*
 # Optional
 .cache/
 
+# Project-local MCP memory and runtime state
+.mcp-memory/*.jsonl
+.mcp-memory/*.sqlite
+
 # IoT / ESP32 / Arduino
 *.bin
 *.elf
