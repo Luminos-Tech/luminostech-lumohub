@@ -1,4 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, Request, status
+from fastapi.security import OAuth2PasswordRequestForm
+from pydantic import ValidationError
 from sqlalchemy.orm import Session
 from app.db.session import get_db
 from app.schemas.auth import RegisterRequest, LoginRequest, TokenResponse, RefreshRequest
@@ -13,6 +15,29 @@ from app.models.user import User
 router = APIRouter(prefix="/auth", tags=["Auth"])
 
 
+def _authenticate_and_create_tokens(
+    email: str,
+    password: str,
+    request: Request,
+    db: Session,
+) -> TokenResponse:
+    user = authenticate_user(db, email, password)
+    if not user:
+        raise HTTPException(status_code=401, detail="Invalid email or password")
+    if not user.is_active:
+        raise HTTPException(status_code=400, detail="Account is disabled")
+    access_token = create_access_token({"sub": str(user.id)})
+    refresh_token = create_refresh_token({"sub": str(user.id)})
+    create_session(db, user_id=user.id, token=refresh_token)
+    log_action(
+        db,
+        action="login",
+        user_id=user.id,
+        ip_address=request.client.host if request.client else None,
+    )
+    return TokenResponse(access_token=access_token, refresh_token=refresh_token)
+
+
 @router.post("/register", response_model=UserResponse, status_code=201)
 def register(body: RegisterRequest, request: Request, db: Session = Depends(get_db)):
     existing = get_user_by_email(db, body.email)
@@ -24,18 +49,61 @@ def register(body: RegisterRequest, request: Request, db: Session = Depends(get_
     return user
 
 
-@router.post("/login", response_model=TokenResponse)
-def login(body: LoginRequest, request: Request, db: Session = Depends(get_db)):
-    user = authenticate_user(db, body.email, body.password)
-    if not user:
-        raise HTTPException(status_code=401, detail="Invalid email or password")
-    if not user.is_active:
-        raise HTTPException(status_code=400, detail="Account is disabled")
-    access_token = create_access_token({"sub": str(user.id)})
-    refresh_token = create_refresh_token({"sub": str(user.id)})
-    create_session(db, user_id=user.id, token=refresh_token)
-    log_action(db, action="login", user_id=user.id, ip_address=request.client.host if request.client else None)
-    return TokenResponse(access_token=access_token, refresh_token=refresh_token)
+@router.post(
+    "/login",
+    response_model=TokenResponse,
+    openapi_extra={
+        "requestBody": {
+            "required": True,
+            "content": {
+                "application/json": {"schema": LoginRequest.model_json_schema()},
+                "application/x-www-form-urlencoded": {
+                    "schema": {
+                        "type": "object",
+                        "required": ["username", "password"],
+                        "properties": {
+                            "username": {"type": "string", "format": "email"},
+                            "password": {"type": "string", "format": "password"},
+                        },
+                    }
+                },
+            },
+        }
+    },
+)
+async def login(request: Request, db: Session = Depends(get_db)):
+    content_type = request.headers.get("content-type", "").lower()
+    if content_type.startswith("application/x-www-form-urlencoded"):
+        form = await request.form()
+        payload = {
+            "email": form.get("username") or form.get("email"),
+            "password": form.get("password"),
+        }
+    else:
+        try:
+            payload = await request.json()
+        except ValueError as exc:
+            raise HTTPException(status_code=422, detail="Invalid login payload") from exc
+
+    try:
+        body = LoginRequest.model_validate(payload)
+    except ValidationError as exc:
+        raise HTTPException(status_code=422, detail=exc.errors()) from exc
+
+    return _authenticate_and_create_tokens(body.email, body.password, request, db)
+
+
+@router.post("/token", response_model=TokenResponse, include_in_schema=False)
+def token(request: Request,
+          form_data: OAuth2PasswordRequestForm = Depends(),
+          db: Session = Depends(get_db)):
+    """OAuth2 form endpoint used by Swagger's Authorize dialog."""
+    return _authenticate_and_create_tokens(
+        form_data.username,
+        form_data.password,
+        request,
+        db,
+    )
 
 
 @router.post("/refresh", response_model=TokenResponse)

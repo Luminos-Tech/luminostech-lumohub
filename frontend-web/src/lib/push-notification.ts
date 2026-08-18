@@ -51,6 +51,18 @@ async function urlBase64ToUint8Array(base64String: string): Promise<Uint8Array> 
   return outputArray;
 }
 
+async function usesApplicationServerKey(
+  subscription: PushSubscription,
+  publicKey: string
+): Promise<boolean> {
+  const existingKey = subscription.options.applicationServerKey;
+  if (!existingKey) return false;
+
+  const existing = new Uint8Array(existingKey);
+  const expected = await urlBase64ToUint8Array(publicKey);
+  return existing.length === expected.length && existing.every((value, index) => value === expected[index]);
+}
+
 /**
  * 订阅 Web Push
  * @param publicKey VAPID 公钥
@@ -175,6 +187,10 @@ export async function initPushNotifications(): Promise<{
   }
 
   const permission = Notification.permission;
+  const publicKey = await getVapidPublicKey();
+  if (!publicKey) {
+    return { success: false, permission, alreadySubscribed: false };
+  }
 
   // 已经授权
   if (permission === "granted") {
@@ -182,15 +198,12 @@ export async function initPushNotifications(): Promise<{
     const registration = await navigator.serviceWorker.ready;
     const existing = await registration.pushManager.getSubscription();
     if (existing) {
-      return { success: true, permission, alreadySubscribed: true };
+      if (await usesApplicationServerKey(existing, publicKey)) {
+        const registered = await registerPushSubscription(existing.toJSON());
+        return { success: registered, permission, alreadySubscribed: true };
+      }
+      await existing.unsubscribe();
     }
-  }
-
-  // 获取公钥
-  const publicKey = await getVapidPublicKey();
-  if (!publicKey) {
-    // 后端未配置 VAPID 密钥，跳过
-    return { success: false, permission, alreadySubscribed: false };
   }
 
   // 订阅

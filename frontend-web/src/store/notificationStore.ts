@@ -6,6 +6,7 @@ interface NotificationState {
   notifications: Notification[];
   unreadCount: number;
   fetchNotifications: () => Promise<void>;
+  receiveNotification: (notification: Notification) => void;
   markRead: (id: number) => Promise<void>;
   markAllRead: () => Promise<void>;
 }
@@ -18,6 +19,19 @@ export const useNotificationStore = create<NotificationState>((set, get) => ({
     const res = await api.get<Notification[]>("/notifications");
     const notifs = res.data;
     set({ notifications: notifs, unreadCount: notifs.filter((n) => !n.is_read).length });
+  },
+
+  receiveNotification: (notification) => {
+    set((state) => {
+      if (state.notifications.some((item) => item.id === notification.id)) {
+        return state;
+      }
+      const notifications = [notification, ...state.notifications].slice(0, 50);
+      return {
+        notifications,
+        unreadCount: notifications.filter((item) => !item.is_read).length,
+      };
+    });
   },
 
   markRead: async (id) => {

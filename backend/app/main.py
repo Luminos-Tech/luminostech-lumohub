@@ -21,7 +21,7 @@ async def lifespan(app: FastAPI):
 app = FastAPI(
     title="LumoHub API",
     description="Backend for LumoHub calendar & event management system",
-    version="0.9.0",
+    version=settings.APP_VERSION,
     lifespan=lifespan,
 )
 
@@ -40,4 +40,8 @@ app.include_router(ws_api_router)
 
 @app.get("/health", tags=["Health"])
 def health_check():
-    return {"status": "ok", "service": "LumoHub API"}
+    return {
+        "status": "ok",
+        "service": "LumoHub API",
+        "version": settings.APP_VERSION,
+    }

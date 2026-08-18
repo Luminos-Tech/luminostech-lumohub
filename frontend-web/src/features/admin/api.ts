@@ -14,6 +14,9 @@ export interface PushStatusResponse {
 }
 
 export interface PushSendResponse {
+  created: number;
+  realtime_delivered: number;
+  event_version: number;
   sent: number;
   total: number;
   target: string;

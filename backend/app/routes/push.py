@@ -2,16 +2,24 @@
 import json
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException
 from pydantic import BaseModel
+from sqlalchemy import select
 from sqlalchemy.orm import Session
+from app.core.config import settings
 from app.db.session import get_db
+from app.crud.notification import create_notification
 from app.crud.push_subscription import (
     get_user_subscriptions,
     get_all_active_subscriptions,
     upsert_subscription,
     deactivate_subscription,
 )
-from app.services.deps import get_current_active_user
+from app.crud.user import get_user_by_id
+from app.services.deps import get_current_active_user, get_current_admin
 from app.models.user import User
+from app.websocket.notification_manager import (
+    NOTIFICATION_EVENT_VERSION,
+    notification_manager,
+)
 
 router = APIRouter(prefix="/push", tags=["Push Notifications"])
 
@@ -41,7 +49,6 @@ def _get_vapid_keys_for_pywebpush():
     Lấy VAPID keys dạng string base64url cho pywebpush.
     Vapid.from_string() nhận chuỗi base64url và tự decode.
     """
-    from app.core.config import settings
     pub = settings.VAPID_PUBLIC_KEY
     priv = settings.VAPID_PRIVATE_KEY
 
@@ -94,7 +101,7 @@ async def _send_web_push(subscription, title: str, body: str, tag: str = "lumohu
             },
             data=payload,
             vapid_private_key=priv_key,
-            vapid_claims={"sub": "mailto:admin@luminostech.tech"},
+            vapid_claims={"sub": settings.VAPID_SUBJECT},
             ttl=3600,
         )
         return True
@@ -154,17 +161,43 @@ def unsubscribe_push(
 async def send_push(
     body: AdminPushRequest,
     db: Session = Depends(get_db),
-    admin: User = Depends(get_current_active_user),
+    admin: User = Depends(get_current_admin),
 ):
-    if body.user_id:
+    if body.user_id is not None:
+        user = get_user_by_id(db, body.user_id)
+        if not user:
+            raise HTTPException(status_code=404, detail="User not found")
+        target_users = [user]
         subs = get_user_subscriptions(db, body.user_id)
         target_label = f"user_id={body.user_id}"
     else:
+        target_users = list(db.execute(
+            select(User).where(User.is_active.is_(True))
+        ).scalars().all())
         subs = get_all_active_subscriptions(db)
         target_label = "all users"
 
+    realtime_delivered = 0
+    for user in target_users:
+        notification = create_notification(
+            db,
+            user_id=user.id,
+            title=body.title,
+            content=body.body,
+            channel="push",
+        )
+        realtime_delivered += await notification_manager.publish_notification(notification)
+
     if not subs:
-        return {"sent": 0, "target": target_label, "message": "No active subscriptions"}
+        return {
+            "created": len(target_users),
+            "realtime_delivered": realtime_delivered,
+            "event_version": NOTIFICATION_EVENT_VERSION,
+            "sent": 0,
+            "total": 0,
+            "target": target_label,
+            "message": "Notification saved; no active browser subscriptions",
+        }
 
     results = await _notify_subscriptions(subs, body.title, body.body, body.tag)
     sent_count = sum(1 for _, ok in results if ok)
@@ -172,6 +205,9 @@ async def send_push(
     print(f"📬 Push sent: {sent_count}/{len(subs)} to {target_label}")
 
     return {
+        "created": len(target_users),
+        "realtime_delivered": realtime_delivered,
+        "event_version": NOTIFICATION_EVENT_VERSION,
         "sent": sent_count,
         "total": len(subs),
         "target": target_label,
@@ -181,7 +217,7 @@ async def send_push(
 @router.get("/status")
 def push_status(
     db: Session = Depends(get_db),
-    admin: User = Depends(get_current_active_user),
+    admin: User = Depends(get_current_admin),
 ):
     all_subs = get_all_active_subscriptions(db)
     users_with_subs = len(set(s.user_id for s in all_subs))

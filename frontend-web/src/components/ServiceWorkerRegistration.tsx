@@ -7,8 +7,11 @@
  */
 import { useEffect } from "react";
 import { initPushNotifications, isPushSupported, getNotificationPermission } from "@/lib/push-notification";
+import { useAuthStore } from "@/store/authStore";
 
 export function ServiceWorkerRegistration() {
+  const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
+
   useEffect(() => {
     if (!("serviceWorker" in navigator)) return;
 
@@ -37,7 +40,7 @@ export function ServiceWorkerRegistration() {
           if (permission === "default") {
             // 静默初始化，等用户主动开启通知
             console.log("[PWA] Push notification: awaiting user permission");
-          } else if (permission === "granted") {
+          } else if (permission === "granted" && isAuthenticated) {
             const result = await initPushNotifications();
             if (result.success) {
               console.log("[PWA] Push notifications enabled");
@@ -56,7 +59,7 @@ export function ServiceWorkerRegistration() {
     }
 
     return () => window.removeEventListener("load", setupServiceWorker);
-  }, []);
+  }, [isAuthenticated]);
 
   // Không render gì cả - chỉ đăng ký SW
   return null;

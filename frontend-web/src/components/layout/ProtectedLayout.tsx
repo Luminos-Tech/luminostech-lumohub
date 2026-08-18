@@ -15,7 +15,7 @@ const NotificationModal = dynamic(() => import("@/components/notifications/Notif
 const PRELOAD_ROUTES = ["/dashboard", "/calendar", "/settings/event-buttons", "/settings/devices", "/notifications", "/settings"];
 
 export default function ProtectedLayout({ children }: { children: React.ReactNode }) {
-  const { user, isAuthenticated, fetchMe } = useAuthStore();
+  const { isAuthenticated, fetchMe, logout } = useAuthStore();
   const router = useRouter();
   const [authOpen, setAuthOpen] = useState(false);
   const [notificationsOpen, setNotificationsOpen] = useState(false);
@@ -24,7 +24,8 @@ export default function ProtectedLayout({ children }: { children: React.ReactNod
 
   useEffect(() => {
     const token = localStorage.getItem("access_token");
-    if (token && !user) fetchMe().catch(() => undefined);
+    if (token) fetchMe().catch(() => undefined);
+    else if (isAuthenticated) void logout();
 
     const timers: ReturnType<typeof setTimeout>[] = [];
     const startPreload = () => PRELOAD_ROUTES.forEach((route, index) => {
@@ -37,7 +38,7 @@ export default function ProtectedLayout({ children }: { children: React.ReactNod
       timers.forEach(clearTimeout);
       if (idleId !== undefined) idleWindow.cancelIdleCallback?.(idleId);
     };
-  }, [fetchMe, router, user]);
+  }, [fetchMe, isAuthenticated, logout, router]);
 
   useEffect(() => {
     const openAuth = () => setAuthOpen(true);

@@ -1,6 +1,7 @@
 "use client";
 import { Github, Heart } from "lucide-react";
 import Image from "next/image";
+import { APP_VERSION } from "@/lib/version";
 
 const links = [
   { label: "Tài liệu", href: "#" },
@@ -21,7 +22,7 @@ export default function Footer() {
             height={60}
             className="object-contain w-auto h-8"
           />
-          <span className="text-xs text-gray-300 ml-1">v1.0.0 Beta © 2026</span>
+          <span className="text-xs text-gray-300 ml-1">v{APP_VERSION} Prototype © 2026</span>
         </div>
 
         {/* Links — hidden on mobile to keep it clean */}

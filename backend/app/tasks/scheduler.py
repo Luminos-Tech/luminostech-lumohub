@@ -7,6 +7,7 @@ from app.models.event import Event
 from app.crud.reminder import mark_reminder_sent
 from app.crud.notification import create_notification
 from app.websocket.manager import manager
+from app.websocket.notification_manager import notification_manager
 from datetime import datetime, timezone
 from sqlalchemy import select
 import json
@@ -44,9 +45,15 @@ async def check_reminders():
                 f"Sự kiện '{event.title}' sẽ bắt đầu lúc "
                 f"{event.start_time.strftime('%H:%M %d/%m/%Y')}."
             )
-            create_notification(db, user_id=user_id, title=title,
-                                content=content, event_id=event.id,
-                                channel=reminder.channel)
+            notification = create_notification(
+                db,
+                user_id=user_id,
+                title=title,
+                content=content,
+                event_id=event.id,
+                channel=reminder.channel,
+            )
+            await notification_manager.publish_notification(notification)
 
             # Send via WebSocket if channel = lumo
             if reminder.channel == "lumo":

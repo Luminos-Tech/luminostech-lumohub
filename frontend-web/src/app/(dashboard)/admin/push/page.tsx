@@ -23,7 +23,14 @@ export default function AdminPushPage() {
   const [targetType, setTargetType] = useState<"all" | "specific">("all");
   const [selectedUser, setSelectedUser] = useState<number | null>(null);
   const [sending, setSending] = useState(false);
-  const [result, setResult] = useState<{ sent: number; total: number; target: string } | null>(null);
+  const [result, setResult] = useState<{
+    created: number;
+    realtime_delivered: number;
+    event_version: number;
+    sent: number;
+    total: number;
+    target: string;
+  } | null>(null);
 
   useEffect(() => {
     // 加载订阅状态
@@ -54,7 +61,7 @@ export default function AdminPushPage() {
         tag: "lumohub-admin",
       });
       setResult(data);
-      toast.success(`Đã gửi ${data.sent}/${data.total} thông báo`);
+      toast.success(`Đã lưu ${data.created}, realtime ${data.realtime_delivered}, Web Push ${data.sent}/${data.total}`);
     } catch {
       toast.error("Gửi thất bại");
     } finally {
@@ -201,15 +208,15 @@ export default function AdminPushPage() {
           {/* 结果反馈 */}
           {result && (
             <div className={`flex items-center gap-2 p-3 rounded-xl text-sm ${
-              result.sent > 0 ? "bg-green-50 text-green-700" : "bg-red-50 text-red-700"
+              result.created > 0 ? "bg-green-50 text-green-700" : "bg-red-50 text-red-700"
             }`}>
-              {result.sent > 0 ? (
+              {result.created > 0 ? (
                 <CheckCircle2 size={16} className="shrink-0" />
               ) : (
                 <XCircle size={16} className="shrink-0" />
               )}
               <span>
-                Đã gửi {result.sent}/{result.total} thông báo đến {result.target}
+                Đã lưu {result.created}; realtime {result.realtime_delivered}; Web Push {result.sent}/{result.total}; event v{result.event_version}
               </span>
             </div>
           )}

@@ -53,6 +53,7 @@ class Settings(BaseSettings):
     REFRESH_TOKEN_EXPIRE_DAYS: int = 7
     CORS_ORIGINS: str = "https://lumohub.luminostech.tech, https://api.luminostech.tech"
     APP_ENV: str = ""
+    APP_VERSION: str = "0.10.0"
 
     GEMINI_API_KEY: str = ""
     PERPLEXITY_API_KEY: str = ""
@@ -64,8 +65,8 @@ class Settings(BaseSettings):
     # Web Push 通知配置 (VAPID keys)
     # Nếu không có trong .env, sẽ tự động tạo (chỉ dùng cho dev)
     # Production nên set cố định trong .env
-    VAPID_PUBLIC_KEY: str = " BN5N0FhiJ20HgL6TQfCgdTbE3Y2ZfV_yqt7obBicZLZXNn61wKda4tEuH2SOFxg7aDtrj-WSSctzurPBLPzSWbw "
-    VAPID_PRIVATE_KEY: str = " BN5N0FhiJ20HgL6TQfCgdTbE3Y2ZfV_yqt7obBicZLZXNn61wKda4tEuH2SOFxg7aDtrj-WSSctzurPBLPzSWbw "
+    VAPID_PUBLIC_KEY: str = ""
+    VAPID_PRIVATE_KEY: str = ""
     VAPID_SUBJECT: str = "mailto:admin@luminostech.tech"
 
     @property

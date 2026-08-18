@@ -30,6 +30,13 @@ import { api } from "@/lib/api";
 import { useAuthStore } from "@/store/authStore";
 import { usePreferenceStore } from "@/store/preferenceStore";
 import { LumoBandIcon } from "@/components/icons/LumoDeviceIcons";
+import { APP_VERSION } from "@/lib/version";
+import {
+  getNotificationPermission,
+  initPushNotifications,
+  isPushSupported,
+  requestNotificationPermission,
+} from "@/lib/push-notification";
 
 const profileSchema = z.object({
   full_name: z.string().min(2, "Vui lòng nhập họ tên đầy đủ"),
@@ -48,10 +55,12 @@ export default function AccountPage() {
   const router = useRouter();
   const { user, setUser, logout } = useAuthStore();
   const [showSecurity, setShowSecurity] = useState(false);
+  const [pushStatus, setPushStatus] = useState<NotificationPermission | "unsupported">("default");
+  const [pushLoading, setPushLoading] = useState(false);
   const { language, theme, setLanguage, setTheme } = usePreferenceStore();
   const preferenceText = language === "vi"
-    ? { title: "Tùy chọn ứng dụng", subtitle: "Cá nhân hóa ngôn ngữ và giao diện.", language: "Ngôn ngữ", theme: "Giao diện", light: "Sáng", dark: "Tối", account: "Tài khoản", profile: "Hồ sơ của bạn", profileHint: "Quản lý thông tin cá nhân và bảo mật tại một nơi.", protected: "Đã bảo vệ", devices: "Thiết bị", devicesHint: "Kết nối vòng đeo tay", checkin: "Lời nhắn", checkinHint: "Ghi âm giọng nói cho Lumo Hub", notifications: "Thông báo", notificationsHint: "Xem cảnh báo mới nhất", personal: "Thông tin cá nhân", personalHint: "Dùng để nhận diện tài khoản Lumo.", name: "Họ và tên", phone: "Số điện thoại", save: "Lưu thay đổi", saving: "Đang lưu...", password: "Đổi mật khẩu", passwordHint: "Nên thay đổi định kỳ để bảo vệ tài khoản", currentPassword: "Mật khẩu hiện tại", newPassword: "Mật khẩu mới", confirmPassword: "Xác nhận mật khẩu mới", comfort: "Thông báo an tâm", comfortHint: "Nhận cảnh báo điểm danh và thiết bị", enabled: "Đang bật", logout: "Đăng xuất", version: "Lumo phiên bản 1.0 · LuminosTech" }
-    : { title: "App preferences", subtitle: "Personalize language and appearance.", language: "Language", theme: "Appearance", light: "Light", dark: "Dark", account: "Account", profile: "Your profile", profileHint: "Manage your personal details and security in one place.", protected: "Protected", devices: "Devices", devicesHint: "Connect your wearable band", checkin: "Voice messages", checkinHint: "Record familiar messages for Lumo Hub", notifications: "Notifications", notificationsHint: "View the latest alerts", personal: "Personal information", personalHint: "Used to identify your Lumo account.", name: "Full name", phone: "Phone number", save: "Save changes", saving: "Saving...", password: "Change password", passwordHint: "Update it regularly to protect your account", currentPassword: "Current password", newPassword: "New password", confirmPassword: "Confirm new password", comfort: "Care notifications", comfortHint: "Receive check-in and device alerts", enabled: "Enabled", logout: "Sign out", version: "Lumo version 1.0 · LuminosTech" };
+    ? { title: "Tùy chọn ứng dụng", subtitle: "Cá nhân hóa ngôn ngữ và giao diện.", language: "Ngôn ngữ", theme: "Giao diện", light: "Sáng", dark: "Tối", account: "Tài khoản", profile: "Hồ sơ của bạn", profileHint: "Quản lý thông tin cá nhân và bảo mật tại một nơi.", protected: "Đã bảo vệ", devices: "Thiết bị", devicesHint: "Kết nối vòng đeo tay", checkin: "Lời nhắn", checkinHint: "Ghi âm giọng nói cho Lumo Hub", notifications: "Thông báo", notificationsHint: "Xem cảnh báo mới nhất", personal: "Thông tin cá nhân", personalHint: "Dùng để nhận diện tài khoản Lumo.", name: "Họ và tên", phone: "Số điện thoại", save: "Lưu thay đổi", saving: "Đang lưu...", password: "Đổi mật khẩu", passwordHint: "Nên thay đổi định kỳ để bảo vệ tài khoản", currentPassword: "Mật khẩu hiện tại", newPassword: "Mật khẩu mới", confirmPassword: "Xác nhận mật khẩu mới", comfort: "Thông báo an tâm", comfortHint: "Nhận cảnh báo điểm danh và thiết bị", enabled: "Đang bật", logout: "Đăng xuất" }
+    : { title: "App preferences", subtitle: "Personalize language and appearance.", language: "Language", theme: "Appearance", light: "Light", dark: "Dark", account: "Account", profile: "Your profile", profileHint: "Manage your personal details and security in one place.", protected: "Protected", devices: "Devices", devicesHint: "Connect your wearable band", checkin: "Voice messages", checkinHint: "Record familiar messages for Lumo Hub", notifications: "Notifications", notificationsHint: "View the latest alerts", personal: "Personal information", personalHint: "Used to identify your Lumo account.", name: "Full name", phone: "Phone number", save: "Save changes", saving: "Saving...", password: "Change password", passwordHint: "Update it regularly to protect your account", currentPassword: "Current password", newPassword: "New password", confirmPassword: "Confirm new password", comfort: "Care notifications", comfortHint: "Receive check-in and device alerts", enabled: "Enabled", logout: "Sign out" };
 
   const profile = useForm<ProfileForm>({
     resolver: zodResolver(profileSchema),
@@ -62,6 +71,10 @@ export default function AccountPage() {
   useEffect(() => {
     profile.reset({ full_name: user?.full_name || "", phone: user?.phone || "" });
   }, [profile, user]);
+
+  useEffect(() => {
+    setPushStatus(getNotificationPermission());
+  }, []);
 
   const saveProfile = async (data: ProfileForm) => {
     try {
@@ -87,6 +100,37 @@ export default function AccountPage() {
   const handleLogout = async () => {
     await logout();
     router.replace("/dashboard");
+  };
+
+  const enablePushNotifications = async () => {
+    if (!isPushSupported()) {
+      setPushStatus("unsupported");
+      toast.error(language === "vi" ? "Trình duyệt không hỗ trợ thông báo" : "Notifications are not supported");
+      return;
+    }
+    if (Notification.permission === "denied") {
+      setPushStatus("denied");
+      toast.error(language === "vi" ? "Hãy cho phép thông báo trong cài đặt trình duyệt" : "Allow notifications in browser settings");
+      return;
+    }
+
+    setPushLoading(true);
+    try {
+      const granted = Notification.permission === "granted" || await requestNotificationPermission();
+      if (!granted) {
+        setPushStatus(Notification.permission);
+        return;
+      }
+      const result = await initPushNotifications();
+      setPushStatus(Notification.permission);
+      if (result.success) {
+        toast.success(language === "vi" ? "Đã bật thông báo" : "Notifications enabled");
+      } else {
+        toast.error(language === "vi" ? "Không thể đăng ký Web Push" : "Could not register Web Push");
+      }
+    } finally {
+      setPushLoading(false);
+    }
   };
 
   const initials = user?.full_name
@@ -181,11 +225,17 @@ export default function AccountPage() {
         )}
 
         <div className="account-divider" />
-        <div className="account-action static">
+        <button className="account-action" type="button" onClick={() => void enablePushNotifications()} disabled={pushLoading}>
           <span className="account-action-icon coral"><Bell size={19} /></span>
           <span><strong>{preferenceText.comfort}</strong><small>{preferenceText.comfortHint}</small></span>
-          <span className="status-on">{preferenceText.enabled}</span>
-        </div>
+          <span className="status-on">
+            {pushLoading
+              ? "..."
+              : pushStatus === "granted"
+                ? preferenceText.enabled
+                : language === "vi" ? "Bật" : "Enable"}
+          </span>
+        </button>
       </section>
 
       <section className="account-section preference-section">
@@ -212,7 +262,9 @@ export default function AccountPage() {
       </section>
 
       <button className="account-logout" type="button" onClick={handleLogout}><LogOut size={19} /> {preferenceText.logout}</button>
-      <p className="account-version">{preferenceText.version}</p>
+      <p className="account-version">
+        {language === "vi" ? "Lumo phiên bản" : "Lumo version"} {APP_VERSION} · LuminosTech
+      </p>
     </div>
   );
 }
