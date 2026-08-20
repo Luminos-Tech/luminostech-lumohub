@@ -419,6 +419,23 @@ button:focus-visible, a:focus-visible, input:focus-visible, textarea:focus-visib
 [data-theme="dark"] .bottom-nav-item.active, .dark .bottom-nav-item.active { color: #0e2e38; background: #dff7ff; }
 [data-theme="dark"] .notification-modal, .dark .notification-modal { border-color: rgba(200,229,232,.16); background: #102a31; }
 [data-theme="dark"] .notification-modal-heading small, .dark .notification-modal-heading small { background: #183840; }
+[data-theme="dark"] .auth-submit, .dark .auth-submit, [data-theme="dark"] .auth-modal-tabs button.active, .dark .auth-modal-tabs button.active { color: #08191e; }
+[data-theme="dark"] .auth-submit:hover, .dark .auth-submit:hover { background: #dff7ff; }
+.auth-input-wrap input:-webkit-autofill,
+.auth-input-wrap input:-webkit-autofill:hover,
+.auth-input-wrap input:-webkit-autofill:focus,
+.auth-input-wrap input:-webkit-autofill:active {
+  -webkit-box-shadow: 0 0 0 30px #f8fbfb inset !important;
+  -webkit-text-fill-color: var(--lumo-ink) !important;
+}
+[data-theme="dark"] .auth-input-wrap input:-webkit-autofill, .dark .auth-input-wrap input:-webkit-autofill,
+[data-theme="dark"] .auth-input-wrap input:-webkit-autofill:hover, .dark .auth-input-wrap input:-webkit-autofill:hover,
+[data-theme="dark"] .auth-input-wrap input:-webkit-autofill:focus, .dark .auth-input-wrap input:-webkit-autofill:focus,
+[data-theme="dark"] .auth-input-wrap input:-webkit-autofill:active, .dark .auth-input-wrap input:-webkit-autofill:active {
+  -webkit-box-shadow: 0 0 0 30px #183840 inset !important;
+  -webkit-text-fill-color: #e8f5f5 !important;
+  transition: background-color 5000s ease-in-out 0s;
+}
 @media (min-width: 600px) {
   .account-page { padding: 30px 24px 44px; }
   .account-identity { grid-template-columns: 58px minmax(0,1fr) auto; }
