@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { addDays, format, startOfWeek } from "date-fns";
-import { CalendarCheck2, Check, CheckCircle2, ChevronRight, Clock3, ShieldAlert, ShieldCheck, Timer } from "lucide-react";
+import { BatteryFull, BatteryMedium, BatteryWarning, CalendarCheck2, Check, CheckCircle2, ChevronRight, Clock3, ShieldAlert, ShieldCheck, Timer } from "lucide-react";
 import { LumoBandIcon } from "@/components/icons/LumoDeviceIcons";
 import { useAuthStore } from "@/store/authStore";
 import { useDeviceStore } from "@/store/deviceStore";
@@ -132,6 +132,26 @@ export default function DashboardPage() {
   };
 
 
+  const getBatteryDisplay = (level: number | null | undefined) => {
+    if (typeof level !== "number") return { icon: null, text: "--", color: "" };
+    let Icon = BatteryFull;
+    let color = "text-emerald-500 dark:text-emerald-400";
+    if (level <= 20) {
+      Icon = BatteryWarning;
+      color = "text-red-500 dark:text-red-400";
+    } else if (level <= 50) {
+      Icon = BatteryMedium;
+      color = "text-amber-500 dark:text-amber-400";
+    }
+    return {
+      icon: <Icon size={20} strokeWidth={2.5} className={`mr-1 ${color}`} />,
+      text: `${level}%`,
+      color
+    };
+  };
+
+  const batteryData = getBatteryDisplay(batteryLevel);
+
   return (
     <div className="lumo-page dashboard-overview">
       <section className="health-summary-card" aria-label={copy.summary}>
@@ -178,7 +198,14 @@ export default function DashboardPage() {
       <section className="wellbeing-grid">
         <Link href="/settings/devices" className="wellbeing-card battery">
           <span className="wellbeing-icon"><LumoBandIcon size={26} /></span>
-          <div><small>{copy.battery}</small><strong>{typeof batteryLevel === "number" ? `${batteryLevel}%` : "--"}</strong><p>{typeof batteryLevel === "number" ? copy.batteryNormal : copy.noBattery}</p></div>
+          <div>
+            <small>{copy.battery}</small>
+            <strong className="flex items-center">
+              {batteryData.icon}
+              <span className={batteryData.color}>{batteryData.text}</span>
+            </strong>
+            <p>{typeof batteryLevel === "number" ? copy.batteryNormal : copy.noBattery}</p>
+          </div>
         </Link>
 
         <div className={`wellbeing-card safety ${fallDetected ? "alert" : ""}`}>
