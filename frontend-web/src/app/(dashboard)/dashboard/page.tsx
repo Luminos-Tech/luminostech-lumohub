@@ -119,11 +119,14 @@ export default function DashboardPage() {
     noBattery: "Chưa có dữ liệu pin",
     batteryNormal: "Hoạt động bình thường",
     safety: "Cảm biến té ngã",
-    fall: "Phát hiện té ngã!",
-    noFall: "Cha Mẹ an toàn (Không té ngã)",
-    noSafety: "Chưa có dữ liệu an toàn",
+    safetyAlertLabel: "Cảm biến té ngã ⚠️",
+    safetyNoDataLabel: "Cảm biến té ngã ⚪",
+    fall: "Phát hiện té ngã",
+    noFall: "Cha Mẹ vẫn ổn",
+    noSafety: "Chưa có tín hiệu",
     safetyActive: "Đang theo dõi 24/7",
-    safetyAlert: "Cần kiểm tra ngay!",
+    safetyAlert: "Vừa xảy ra · Nhấn kiểm tra",
+    safetyConnecting: "Đang kết nối lại thiết bị",
     activity: "Vận động Cha Mẹ hôm nay",
     minutes: "phút vận động",
     noActivity: "Chưa có dữ liệu vận động",
@@ -210,7 +213,7 @@ export default function DashboardPage() {
 
         <div className={`wellbeing-card safety ${fallDetected ? "alert" : ""}`}>
           <span className="wellbeing-icon">{fallDetected ? <ShieldAlert size={24} /> : <ShieldCheck size={24} />}</span>
-          <div><small>{copy.safety}</small><strong>{fallDetected === true ? copy.fall : fallDetected === false ? copy.noFall : "--"}</strong><p>{fallDetected === undefined ? copy.noSafety : fallDetected ? copy.safetyAlert : copy.safetyActive}</p></div>
+          <div><small>{fallDetected === undefined ? copy.safetyNoDataLabel : fallDetected ? copy.safetyAlertLabel : copy.safety}</small><strong>{fallDetected === true ? copy.fall : fallDetected === false ? copy.noFall : copy.noSafety}</strong><p>{fallDetected === undefined ? copy.safetyConnecting : fallDetected ? copy.safetyAlert : copy.safetyActive}</p></div>
         </div>
 
       </section>
