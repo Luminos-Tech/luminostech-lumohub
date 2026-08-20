@@ -1,5 +1,6 @@
 /** @type {import('tailwindcss').Config} */
 module.exports = {
+  darkMode: ["class", '[data-theme="dark"]'],
   content: ["./src/**/*.{js,ts,jsx,tsx,mdx}"],
   theme: {
     extend: {
@@ -28,6 +29,14 @@ module.exports = {
           300: "#ffad99",
           400: "#ff947b",
           500: "#ff846b",
+        },
+        darkSurface: {
+          bg: "#08191e",
+          card: "#102a31",
+          elevated: "#183840",
+          border: "rgba(200, 229, 232, 0.16)",
+          text: "#edf8f8",
+          muted: "#98adb2",
         },
       },
       fontFamily: {

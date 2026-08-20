@@ -156,6 +156,7 @@ export default function AccountPage() {
   const [pushStatus, setPushStatus] = useState<NotificationPermission | "unsupported">("default");
   const [pushLoading, setPushLoading] = useState(false);
   const [isPlayingVoice, setIsPlayingVoice] = useState(false);
+  const audioInstanceRef = useState<HTMLAudioElement | null>(null);
 
   const { language, theme, aiVoice, aiVoiceEn, aiVoiceRate, setLanguage, setTheme, setAiVoice, setAiVoiceEn, setAiVoiceRate } = usePreferenceStore();
 
@@ -163,7 +164,15 @@ export default function AccountPage() {
   const currentVoiceId = language === "vi" ? aiVoice : aiVoiceEn;
 
   const playVoicePreview = async (voiceId: string, rate: number) => {
+    // Dừng âm thanh đang phát nếu người dùng bấm lại
     if (isPlayingVoice) {
+      if (typeof window !== "undefined") {
+        const audios = document.querySelectorAll("audio");
+        audios.forEach((a) => {
+          a.pause();
+          a.currentTime = 0;
+        });
+      }
       setIsPlayingVoice(false);
       return;
     }
@@ -187,13 +196,16 @@ export default function AccountPage() {
         audio.onerror = () => {
           setIsPlayingVoice(false);
           URL.revokeObjectURL(audioUrl);
+          toast.error(language === "vi" ? "Lỗi phát âm thanh" : "Audio playback error");
         };
 
         await audio.play();
         return;
+      } else {
+        toast.error(language === "vi" ? "Không thể tải giọng đọc thử" : "Failed to load voice preview");
       }
     } catch {
-      setIsPlayingVoice(false);
+      toast.error(language === "vi" ? "Lỗi kết nối âm thanh" : "Audio connection error");
     }
     setIsPlayingVoice(false);
   };
@@ -326,64 +338,69 @@ export default function AccountPage() {
         </Link>
       </section>
 
-      {/* Cụm Quản lý Tài khoản & Bảo mật Pop-up */}
       <section className="account-section compact" aria-label="Account Settings">
-        {/* Row 1: Thông tin cá nhân (Bấm mở Pop-up Modal) */}
         <button
           type="button"
-          className="account-action cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800/40 px-3 rounded-2xl transition-colors"
           onClick={() => setShowEditProfileModal(true)}
+          className="account-action cursor-pointer hover:bg-slate-50 dark:hover:bg-[#183840]/50 px-3 rounded-2xl transition-colors"
         >
-          <span className="account-action-icon">
-            <UserRound size={19} />
-          </span>
-          <span>
-            <strong className="text-slate-900 dark:text-slate-100">{preferenceText.personal}</strong>
-            <small className="text-slate-500 dark:text-slate-400">
-              {activeUser?.full_name || "LUMO User"} {activeUser?.phone ? `· ${activeUser.phone}` : ""}
-            </small>
-          </span>
+          <div className="flex items-center gap-3">
+            <span className="w-10 h-10 rounded-xl bg-teal-500/10 text-teal-600 dark:text-teal-400 flex items-center justify-center">
+              <UserRound size={20} />
+            </span>
+            <div className="text-left">
+              <strong className="text-slate-900 dark:text-[#edf8f8]">{preferenceText.personal}</strong>
+              <small className="text-slate-500 dark:text-[#98adb2] block">
+                {user?.phone ? `${user.phone} • ` : ""}{preferenceText.personalHint}
+              </small>
+            </div>
+          </div>
           <div className="flex items-center gap-1 text-xs text-teal-600 dark:text-teal-400 font-semibold px-2 py-1 rounded-lg bg-teal-500/10">
-            <Edit3 size={14} />
-            <span>{language === "vi" ? "Sửa" : "Edit"}</span>
+            <Edit3 size={13} />
+            <span>Sửa</span>
           </div>
         </button>
 
         <div className="account-divider" />
 
-        {/* Row 2: Đổi mật khẩu (Bấm mở Pop-up Modal) */}
         <button
           type="button"
-          className="account-action cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800/40 px-3 rounded-2xl transition-colors"
           onClick={() => setShowChangePasswordModal(true)}
+          className="account-action cursor-pointer hover:bg-slate-50 dark:hover:bg-[#183840]/50 px-3 rounded-2xl transition-colors"
         >
-          <span className="account-action-icon">
-            <KeyRound size={19} />
-          </span>
-          <span>
-            <strong className="text-slate-900 dark:text-slate-100">{preferenceText.password}</strong>
-            <small className="text-slate-500 dark:text-slate-400">{preferenceText.passwordHint}</small>
-          </span>
-          <ChevronRight size={19} className="text-slate-400" />
+          <div className="flex items-center gap-3">
+            <span className="w-10 h-10 rounded-xl bg-amber-500/10 text-amber-600 dark:text-amber-400 flex items-center justify-center">
+              <KeyRound size={20} />
+            </span>
+            <div className="text-left">
+              <strong className="text-slate-900 dark:text-[#edf8f8]">{preferenceText.password}</strong>
+              <small className="text-slate-500 dark:text-[#98adb2] block">{preferenceText.passwordHint}</small>
+            </div>
+          </div>
+          <div className="flex items-center gap-1 text-xs text-amber-600 dark:text-amber-400 font-semibold px-2 py-1 rounded-lg bg-amber-500/10">
+            <Lock size={13} />
+            <span>Đổi</span>
+          </div>
         </button>
 
         <div className="account-divider" />
 
-        {/* Row 3: Thông báo an tâm */}
         <button
           type="button"
-          className="account-action cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800/40 px-3 rounded-2xl transition-colors"
           onClick={() => void enablePushNotifications()}
-          disabled={pushLoading}
+          disabled={pushLoading || pushStatus === "unsupported"}
+          className="account-action cursor-pointer hover:bg-slate-50 dark:hover:bg-[#183840]/50 px-3 rounded-2xl transition-colors"
         >
-          <span className="account-action-icon coral">
-            <Bell size={19} />
-          </span>
-          <span>
-            <strong className="text-slate-900 dark:text-slate-100">{preferenceText.comfort}</strong>
-            <small className="text-slate-500 dark:text-slate-400">{preferenceText.comfortHint}</small>
-          </span>
-          <span className="status-on">
+          <div className="flex items-center gap-3">
+            <span className="w-10 h-10 rounded-xl bg-sky-500/10 text-sky-600 dark:text-sky-400 flex items-center justify-center">
+              <BellRing size={20} />
+            </span>
+            <div className="text-left">
+              <strong className="text-slate-900 dark:text-[#edf8f8]">{preferenceText.comfort}</strong>
+              <small className="text-slate-500 dark:text-[#98adb2] block">{preferenceText.comfortHint}</small>
+            </div>
+          </div>
+          <span className={`status-pill ${pushStatus === "granted" ? "status-on" : ""}`}>
             {pushLoading
               ? "..."
               : pushStatus === "granted"
@@ -395,10 +412,9 @@ export default function AccountPage() {
         </button>
       </section>
 
-      {/* Pop-up Modal: Chỉnh sửa thông tin cá nhân */}
       {showEditProfileModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-sm animate-in fade-in duration-150">
-          <div className="relative w-full max-w-md overflow-hidden rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-2xl p-6 text-slate-800 dark:text-slate-100">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-150">
+          <div className="relative w-full max-w-md overflow-hidden rounded-3xl bg-white dark:bg-[#102a31] border border-slate-200 dark:border-[rgba(200,229,232,0.16)] shadow-2xl p-6 text-slate-800 dark:text-[#edf8f8]">
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center gap-2.5">
                 <div className="w-9 h-9 rounded-full bg-teal-500/10 text-teal-600 dark:text-teal-400 flex items-center justify-center">
@@ -406,13 +422,13 @@ export default function AccountPage() {
                 </div>
                 <div>
                   <h3 className="font-bold text-base">{preferenceText.personal}</h3>
-                  <p className="text-xs text-slate-500 dark:text-slate-400">{preferenceText.personalHint}</p>
+                  <p className="text-xs text-slate-500 dark:text-[#98adb2]">{preferenceText.personalHint}</p>
                 </div>
               </div>
               <button
                 type="button"
                 onClick={() => setShowEditProfileModal(false)}
-                className="text-slate-400 hover:text-slate-600 dark:hover:text-white p-1.5 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                className="text-slate-400 hover:text-slate-600 dark:hover:text-white p-1.5 rounded-full hover:bg-slate-100 dark:hover:bg-[#183840] transition-colors"
               >
                 <X size={18} />
               </button>
@@ -440,7 +456,7 @@ export default function AccountPage() {
                 <button
                   type="button"
                   onClick={() => setShowEditProfileModal(false)}
-                  className="px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 text-xs font-semibold text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-all"
+                  className="px-4 py-2.5 rounded-xl border border-slate-200 dark:border-[rgba(200,229,232,0.18)] text-xs font-semibold text-slate-600 dark:text-[#c1d2d5] hover:bg-slate-100 dark:hover:bg-[#183840] transition-all"
                 >
                   Hủy
                 </button>
@@ -458,10 +474,9 @@ export default function AccountPage() {
         </div>
       )}
 
-      {/* Pop-up Modal: Đổi mật khẩu */}
       {showChangePasswordModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-sm animate-in fade-in duration-150">
-          <div className="relative w-full max-w-md overflow-hidden rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-2xl p-6 text-slate-800 dark:text-slate-100">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-150">
+          <div className="relative w-full max-w-md overflow-hidden rounded-3xl bg-white dark:bg-[#102a31] border border-slate-200 dark:border-[rgba(200,229,232,0.16)] shadow-2xl p-6 text-slate-800 dark:text-[#edf8f8]">
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center gap-2.5">
                 <div className="w-9 h-9 rounded-full bg-amber-500/10 text-amber-600 dark:text-amber-400 flex items-center justify-center">
@@ -469,13 +484,13 @@ export default function AccountPage() {
                 </div>
                 <div>
                   <h3 className="font-bold text-base">{preferenceText.password}</h3>
-                  <p className="text-xs text-slate-500 dark:text-slate-400">{preferenceText.passwordHint}</p>
+                  <p className="text-xs text-slate-500 dark:text-[#98adb2]">{preferenceText.passwordHint}</p>
                 </div>
               </div>
               <button
                 type="button"
                 onClick={() => setShowChangePasswordModal(false)}
-                className="text-slate-400 hover:text-slate-600 dark:hover:text-white p-1.5 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                className="text-slate-400 hover:text-slate-600 dark:hover:text-white p-1.5 rounded-full hover:bg-slate-100 dark:hover:bg-[#183840] transition-colors"
               >
                 <X size={18} />
               </button>
@@ -504,7 +519,7 @@ export default function AccountPage() {
                 <button
                   type="button"
                   onClick={() => setShowChangePasswordModal(false)}
-                  className="px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 text-xs font-semibold text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-all"
+                  className="px-4 py-2.5 rounded-xl border border-slate-200 dark:border-[rgba(200,229,232,0.18)] text-xs font-semibold text-slate-600 dark:text-[#c1d2d5] hover:bg-slate-100 dark:hover:bg-[#183840] transition-all"
                 >
                   Hủy
                 </button>
@@ -564,7 +579,7 @@ export default function AccountPage() {
                 }
                 playVoicePreview(newVoice, aiVoiceRate);
               }}
-              className="px-3 py-1.5 text-xs font-semibold rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 cursor-pointer focus:outline-none focus:ring-2 focus:ring-teal-500 shadow-sm"
+              className="px-3 py-1.5 text-xs font-semibold rounded-xl border border-slate-200 dark:border-[rgba(200,229,232,0.18)] bg-white dark:bg-[#183840] text-slate-800 dark:text-[#edf8f8] cursor-pointer focus:outline-none focus:ring-2 focus:ring-teal-500 shadow-sm"
             >
               {language === "vi"
                 ? VOICE_OPTIONS_VI.map((v) => (
@@ -598,7 +613,7 @@ export default function AccountPage() {
               className={aiVoiceRate === 0.85 ? "active" : ""}
               onClick={() => {
                 setAiVoiceRate(0.85);
-                playVoicePreview(aiVoice, 0.85);
+                playVoicePreview(currentVoiceId, 0.85);
               }}
             >
               0.85x ({language === "vi" ? "Chậm" : "Slow"})
@@ -608,7 +623,7 @@ export default function AccountPage() {
               className={aiVoiceRate === 0.95 ? "active" : ""}
               onClick={() => {
                 setAiVoiceRate(0.95);
-                playVoicePreview(aiVoice, 0.95);
+                playVoicePreview(currentVoiceId, 0.95);
               }}
             >
               0.95x ({language === "vi" ? "Vừa" : "Normal"})
@@ -618,7 +633,7 @@ export default function AccountPage() {
               className={aiVoiceRate === 1.1 ? "active" : ""}
               onClick={() => {
                 setAiVoiceRate(1.1);
-                playVoicePreview(aiVoice, 1.1);
+                playVoicePreview(currentVoiceId, 1.1);
               }}
             >
               1.1x ({language === "vi" ? "Nhanh" : "Fast"})

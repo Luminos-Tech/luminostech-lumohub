@@ -404,21 +404,21 @@ button:focus-visible, a:focus-visible, input:focus-visible, textarea:focus-visib
 
 
 /* Dark appearance */
-[data-theme="dark"] { --lumo-ink: #e8f5f5; --lumo-muted: #98adb2; --lumo-line: rgba(211,235,235,.14); --lumo-green-soft: #123c42; --lumo-coral-soft: #123c42; color-scheme: dark; }
-[data-theme="dark"] body,[data-theme="dark"] .mobile-app-shell { background: #08191e; color: #e8f5f5; }
-[data-theme="dark"] .mobile-topbar { background: rgba(8,25,30,.94); }
-[data-theme="dark"] .icon-button,[data-theme="dark"] .user-avatar.guest,[data-theme="dark"] .lumo-section,[data-theme="dark"] .metric-panel,[data-theme="dark"] .account-section,[data-theme="dark"] .account-shortcut { background: #10262c; }
-[data-theme="dark"] .month-switcher button,[data-theme="dark"] .account-input,[data-theme="dark"] .auth-input-wrap,[data-theme="dark"] .preference-toggle,[data-theme="dark"] .auth-modal-tabs { background: #18343b; }
-[data-theme="dark"] .auth-modal { border-color: rgba(255,255,255,.12); background: #10262c; }
-[data-theme="dark"] .auth-input-wrap input,[data-theme="dark"] .account-input input { color: #e8f5f5; }
-[data-theme="dark"] .calendar-day.muted { color: #52666b; }
-[data-theme="dark"] .calendar-legend,[data-theme="dark"] .upcoming-row,[data-theme="dark"] .preference-row { border-color: rgba(211,235,235,.1); }
-[data-theme="dark"] .account-logout { color: #ffad9d; background: #321e1d; }
-[data-theme="dark"] .mobile-bottom-nav { background: rgba(14,46,56,.96); border-color: rgba(255,255,255,.14); box-shadow: 0 16px 40px rgba(0,0,0,.38); }
-[data-theme="dark"] .bottom-nav-item { color: rgba(255,255,255,.66); }
-[data-theme="dark"] .bottom-nav-item.active { color: #0e2e38; background: #dff7ff; }
-[data-theme="dark"] .notification-modal { border-color: rgba(255,255,255,.12); background: #10262c; }
-[data-theme="dark"] .notification-modal-heading small { background: #18343b; }
+[data-theme="dark"], .dark { --lumo-ink: #e8f5f5; --lumo-muted: #98adb2; --lumo-line: rgba(200,229,232,.16); --lumo-green-soft: #123c42; --lumo-coral-soft: #123c42; color-scheme: dark; }
+[data-theme="dark"] body, .dark body, [data-theme="dark"] .mobile-app-shell, .dark .mobile-app-shell { background: #08191e; color: #e8f5f5; }
+[data-theme="dark"] .mobile-topbar, .dark .mobile-topbar { background: rgba(8,25,30,.94); }
+[data-theme="dark"] .icon-button, .dark .icon-button, [data-theme="dark"] .user-avatar.guest, .dark .user-avatar.guest, [data-theme="dark"] .lumo-section, .dark .lumo-section, [data-theme="dark"] .metric-panel, .dark .metric-panel, [data-theme="dark"] .account-section, .dark .account-section, [data-theme="dark"] .account-shortcut, .dark .account-shortcut { background: #102a31; }
+[data-theme="dark"] .month-switcher button, .dark .month-switcher button, [data-theme="dark"] .account-input, .dark .account-input, [data-theme="dark"] .auth-input-wrap, .dark .auth-input-wrap, [data-theme="dark"] .preference-toggle, .dark .preference-toggle, [data-theme="dark"] .auth-modal-tabs, .dark .auth-modal-tabs { background: #183840; }
+[data-theme="dark"] .auth-modal, .dark .auth-modal { border-color: rgba(200,229,232,.16); background: #102a31; }
+[data-theme="dark"] .auth-input-wrap input, .dark .auth-input-wrap input, [data-theme="dark"] .account-input input, .dark .account-input input { color: #e8f5f5; }
+[data-theme="dark"] .calendar-day.muted, .dark .calendar-day.muted { color: #52666b; }
+[data-theme="dark"] .calendar-legend, .dark .calendar-legend, [data-theme="dark"] .upcoming-row, .dark .upcoming-row, [data-theme="dark"] .preference-row, .dark .preference-row { border-color: rgba(200,229,232,.1); }
+[data-theme="dark"] .account-logout, .dark .account-logout { color: #ffad9d; background: #321e1d; }
+[data-theme="dark"] .mobile-bottom-nav, .dark .mobile-bottom-nav { background: rgba(14,46,56,.96); border-color: rgba(200,229,232,.16); box-shadow: 0 16px 40px rgba(0,0,0,.38); }
+[data-theme="dark"] .bottom-nav-item, .dark .bottom-nav-item { color: rgba(255,255,255,.66); }
+[data-theme="dark"] .bottom-nav-item.active, .dark .bottom-nav-item.active { color: #0e2e38; background: #dff7ff; }
+[data-theme="dark"] .notification-modal, .dark .notification-modal { border-color: rgba(200,229,232,.16); background: #102a31; }
+[data-theme="dark"] .notification-modal-heading small, .dark .notification-modal-heading small { background: #183840; }
 @media (min-width: 600px) {
   .account-page { padding: 30px 24px 44px; }
   .account-identity { grid-template-columns: 58px minmax(0,1fr) auto; }
@@ -630,33 +630,33 @@ button:focus-visible, a:focus-visible, input:focus-visible, textarea:focus-visib
 }
 
 /* Dark-mode contrast compatibility for legacy Tailwind surfaces */
-[data-theme="dark"] .bg-white,
-[data-theme="dark"] .card,
-[data-theme="dark"] .card-glass,
-[data-theme="dark"] .bg-white\/80 { background-color: #102a31; }
-[data-theme="dark"] .bg-gray-50,
-[data-theme="dark"] .bg-gray-100,
-[data-theme="dark"] .hover\:bg-gray-50:hover,
-[data-theme="dark"] .hover\:bg-gray-100:hover { background-color: #183840; }
-[data-theme="dark"] .text-gray-900,
-[data-theme="dark"] .text-gray-800,
-[data-theme="dark"] .text-gray-700 { color: #edf8f8; }
-[data-theme="dark"] .text-gray-600 { color: #c1d2d5; }
-[data-theme="dark"] .text-gray-500 { color: #a9bec2; }
-[data-theme="dark"] .text-gray-400,
-[data-theme="dark"] .text-gray-300 { color: #8fa9ae; }
-[data-theme="dark"] .border-gray-50,
-[data-theme="dark"] .border-gray-100,
-[data-theme="dark"] .border-gray-200,
-[data-theme="dark"] .border-gray-300,
-[data-theme="dark"] .border-b,
-[data-theme="dark"] .divide-y > :not([hidden]) ~ :not([hidden]) { border-color: rgba(200,229,232,.16); }
-[data-theme="dark"] input.bg-white,
-[data-theme="dark"] textarea.bg-white,
-[data-theme="dark"] select.bg-white,
-[data-theme="dark"] .input-field { color: #edf8f8; background-color: #102a31; border-color: rgba(200,229,232,.22); }
-[data-theme="dark"] input::placeholder,
-[data-theme="dark"] textarea::placeholder { color: #839da2; opacity: 1; }
+[data-theme="dark"] .bg-white, .dark .bg-white,
+[data-theme="dark"] .card, .dark .card,
+[data-theme="dark"] .card-glass, .dark .card-glass,
+[data-theme="dark"] .bg-white\/80, .dark .bg-white\/80 { background-color: #102a31; }
+[data-theme="dark"] .bg-gray-50, .dark .bg-gray-50,
+[data-theme="dark"] .bg-gray-100, .dark .bg-gray-100,
+[data-theme="dark"] .hover\:bg-gray-50:hover, .dark .hover\:bg-gray-50:hover,
+[data-theme="dark"] .hover\:bg-gray-100:hover, .dark .hover\:bg-gray-100:hover { background-color: #183840; }
+[data-theme="dark"] .text-gray-900, .dark .text-gray-900,
+[data-theme="dark"] .text-gray-800, .dark .text-gray-800,
+[data-theme="dark"] .text-gray-700, .dark .text-gray-700 { color: #edf8f8; }
+[data-theme="dark"] .text-gray-600, .dark .text-gray-600 { color: #c1d2d5; }
+[data-theme="dark"] .text-gray-500, .dark .text-gray-500 { color: #a9bec2; }
+[data-theme="dark"] .text-gray-400, .dark .text-gray-400,
+[data-theme="dark"] .text-gray-300, .dark .text-gray-300 { color: #8fa9ae; }
+[data-theme="dark"] .border-gray-50, .dark .border-gray-50,
+[data-theme="dark"] .border-gray-100, .dark .border-gray-100,
+[data-theme="dark"] .border-gray-200, .dark .border-gray-200,
+[data-theme="dark"] .border-gray-300, .dark .border-gray-300,
+[data-theme="dark"] .border-b, .dark .border-b,
+[data-theme="dark"] .divide-y > :not([hidden]) ~ :not([hidden]), .dark .divide-y > :not([hidden]) ~ :not([hidden]) { border-color: rgba(200,229,232,.16); }
+[data-theme="dark"] input.bg-white, .dark input.bg-white,
+[data-theme="dark"] textarea.bg-white, .dark textarea.bg-white,
+[data-theme="dark"] select.bg-white, .dark select.bg-white,
+[data-theme="dark"] .input-field, .dark .input-field { color: #edf8f8; background-color: #102a31; border-color: rgba(200,229,232,.22); }
+[data-theme="dark"] input::placeholder, .dark input::placeholder,
+[data-theme="dark"] textarea::placeholder, .dark textarea::placeholder { color: #839da2; opacity: 1; }
 
 [data-theme="dark"] .account-save { color: #fff; background: #087f86; box-shadow: 0 8px 20px rgba(0,0,0,.22); }
 [data-theme="dark"] .account-save:hover { background: #0a9298; }

@@ -540,20 +540,33 @@ async def lumo_tts_preview(
 
     def _tts():
         client = genai.Client(api_key=settings.GEMINI_API_KEY)
-        return client.models.generate_content(
-            model="gemini-3.1-flash-tts-preview",
-            contents=tts_prompt,
-            config=gtypes.GenerateContentConfig(
-                response_modalities=["AUDIO"],
-                speech_config=gtypes.SpeechConfig(
-                    voice_config=gtypes.VoiceConfig(
-                        prebuilt_voice_config=gtypes.PrebuiltVoiceConfig(
-                            voice_name=selected_voice,
-                        )
-                    )
-                ),
-            ),
-        )
+        models_to_try = [
+            "gemini-3.1-flash-tts-preview",
+            "gemini-2.5-flash-preview-tts",
+            "gemini-2.0-flash-exp",
+        ]
+        last_err = None
+        for model_name in models_to_try:
+            try:
+                return client.models.generate_content(
+                    model=model_name,
+                    contents=tts_prompt,
+                    config=gtypes.GenerateContentConfig(
+                        response_modalities=["AUDIO"],
+                        speech_config=gtypes.SpeechConfig(
+                            voice_config=gtypes.VoiceConfig(
+                                prebuilt_voice_config=gtypes.PrebuiltVoiceConfig(
+                                    voice_name=selected_voice,
+                                )
+                            )
+                        ),
+                    ),
+                )
+            except Exception as ex:
+                last_err = ex
+                lumo_logger.warning(f"[TTS PREVIEW] Model {model_name} failed: {ex}, trying fallback...")
+                continue
+        raise last_err or RuntimeError("No TTS model succeeded")
 
     try:
         tts_resp = await _run_sync_in_executor(_tts)
