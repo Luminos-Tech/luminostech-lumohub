@@ -1,13 +1,14 @@
 import asyncio
 import base64
 import binascii
+import io
 import logging
 import os
 import wave
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime
 
-from fastapi import APIRouter, Depends, HTTPException, Query, UploadFile, File
+from fastapi import APIRouter, Depends, HTTPException, Query, UploadFile, File, Response
 from google import genai
 import google.genai.types as gtypes
 from groq import Groq
@@ -16,6 +17,7 @@ import requests
 from app.core.config import settings
 
 router = APIRouter(prefix="/lumo", tags=["LUMO"])
+
 
 executor = ThreadPoolExecutor(max_workers=4)
 
@@ -354,7 +356,7 @@ async def lumo_wakeword_verify(audio: UploadFile = File(...)):
 
 
 @router.post("/audio/", tags=["LUMO Audio"])
-async def lumo_audio(audio: UploadFile = File(...)):
+async def lumo_audio(audio: UploadFile = File(...), voice_name: str = Query("Kore")):
     pid = os.getpid()
     suffix = os.path.splitext(audio.filename)[-1] or ".wav"
     tmp_in = f"/tmp/esp32_in_{pid}{suffix}"
@@ -411,21 +413,24 @@ async def lumo_audio(audio: UploadFile = File(...)):
                 raise ValueError("GEMINI_API_KEY not set")
             tts_client = genai.Client(api_key=settings.GEMINI_API_KEY)
 
+            selected_voice = voice_name if voice_name in ["Kore", "Aoede", "Puck", "Fenrir", "Charon", "Zephyr"] else "Kore"
+
             def _tts():
                 return tts_client.models.generate_content(
-                    model="gemini-2.5-flash-preview-tts",
+                    model="gemini-3.1-flash-tts-preview",
                     contents=v2_answer,
                     config=gtypes.GenerateContentConfig(
                         response_modalities=["AUDIO"],
                         speech_config=gtypes.SpeechConfig(
                             voice_config=gtypes.VoiceConfig(
                                 prebuilt_voice_config=gtypes.PrebuiltVoiceConfig(
-                                    voice_name="Kore",
+                                    voice_name=selected_voice,
                                 )
                             )
                         ),
                     ),
                 )
+
 
             lumo_logger.info(f"[AUDIO] TTS start")
             tts_resp = await _run_sync_in_executor(_tts)
@@ -474,3 +479,97 @@ async def lumo_audio(audio: UploadFile = File(...)):
             os.unlink(tmp_in)
         if os.path.exists(tmp_out):
             os.unlink(tmp_out)
+
+
+# Voice style configurations for natural-sounding TTS
+VOICE_STYLES_VI = {
+    "Kore": {"name": "Nhi", "style": "giọng nữ miền Bắc, ấm áp, điềm tĩnh, tự nhiên"},
+    "Aoede": {"name": "Thư", "style": "giọng nữ miền Nam, nhẹ nhàng, thân thiện, truyền cảm"},
+    "Puck": {"name": "Kiệt", "style": "giọng nam miền Bắc, rõ ràng, dõng dạc, truyền cảm"},
+    "Fenrir": {"name": "Hà", "style": "giọng nam miền Nam, trầm ấm, cẩn trọng, điềm tĩnh"},
+    "Charon": {"name": "Bảo", "style": "giọng nam trầm, sâu sắc, đáng tin cậy, chậm rãi"},
+}
+
+VOICE_STYLES_EN = {
+    "Kore": {"name": "Kore", "style": "warm, calm and gentle female voice"},
+    "Zephyr": {"name": "Zephyr", "style": "bright, friendly and cheerful female voice"},
+    "Puck": {"name": "Puck", "style": "clear, bold and expressive male voice"},
+    "Fenrir": {"name": "Fenrir", "style": "steady, thoughtful and warm male voice"},
+    "Charon": {"name": "Charon", "style": "deep, soothing and trustworthy male voice"},
+}
+
+ALL_VOICES = set(list(VOICE_STYLES_VI.keys()) + list(VOICE_STYLES_EN.keys()))
+
+
+def _build_tts_prompt(text: str, lang: str, voice_name: str) -> str:
+    """Wrap text with style instructions for natural-sounding Gemini TTS."""
+    if lang == "vi":
+        style_info = VOICE_STYLES_VI.get(voice_name, {})
+        style = style_info.get("style", "ấm áp, tự nhiên")
+        return f"Hãy đọc đoạn sau bằng tiếng Việt, {style}:\n\n{text}"
+    else:
+        style_info = VOICE_STYLES_EN.get(voice_name, {})
+        style = style_info.get("style", "warm and natural")
+        return f"Read the following in a {style}:\n\n{text}"
+
+
+@router.get("/tts-preview", tags=["LUMO Audio"])
+async def lumo_tts_preview(
+    text: str = Query(None, description="Nội dung đọc thử (tùy chọn, nếu không truyền sẽ dùng câu mẫu)"),
+    voice_name: str = Query("Kore", description="Tên giọng AI: Kore, Aoede, Puck, Fenrir, Charon, Zephyr"),
+    lang: str = Query("vi", description="Ngôn ngữ: vi hoặc en"),
+):
+    """Tạo audio WAV nghe thử giọng nói AI từ Gemini 3.1 Flash TTS."""
+    if not settings.GEMINI_API_KEY:
+        raise HTTPException(status_code=500, detail="GEMINI_API_KEY chưa được cấu hình")
+
+    selected_voice = voice_name if voice_name in ALL_VOICES else "Kore"
+
+    # Câu mẫu mặc định theo ngôn ngữ
+    if not text:
+        if lang == "vi":
+            vi_style = VOICE_STYLES_VI.get(selected_voice, {})
+            vi_name = vi_style.get("name", "LUMO")
+            text = f"Xin chào! Tôi là {vi_name}, trợ lý LUMO AI. Tôi luôn sẵn sàng đồng hành và chăm sóc gia đình bạn mỗi ngày."
+        else:
+            en_style = VOICE_STYLES_EN.get(selected_voice, {})
+            en_name = en_style.get("name", "LUMO")
+            text = f"Hello! I am {en_name}, your LUMO AI assistant. I am always here to support and care for your family."
+
+    tts_prompt = _build_tts_prompt(text, lang, selected_voice)
+
+    def _tts():
+        client = genai.Client(api_key=settings.GEMINI_API_KEY)
+        return client.models.generate_content(
+            model="gemini-3.1-flash-tts-preview",
+            contents=tts_prompt,
+            config=gtypes.GenerateContentConfig(
+                response_modalities=["AUDIO"],
+                speech_config=gtypes.SpeechConfig(
+                    voice_config=gtypes.VoiceConfig(
+                        prebuilt_voice_config=gtypes.PrebuiltVoiceConfig(
+                            voice_name=selected_voice,
+                        )
+                    )
+                ),
+            ),
+        )
+
+    try:
+        tts_resp = await _run_sync_in_executor(_tts)
+        inline_data = tts_resp.candidates[0].content.parts[0].inline_data
+        audio_bytes = _extract_inline_audio_bytes(inline_data.data)
+        sample_rate = _sample_rate_from_mime(inline_data.mime_type, default=24000)
+
+        wav_io = io.BytesIO()
+        with wave.open(wav_io, "wb") as wf:
+            wf.setnchannels(1)
+            wf.setsampwidth(2)
+            wf.setframerate(sample_rate)
+            wf.writeframes(audio_bytes)
+
+        return Response(content=wav_io.getvalue(), media_type="audio/wav")
+    except Exception as e:
+        lumo_logger.error(f"[TTS PREVIEW] Error: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=f"TTS preview failed: {str(e)}")
+

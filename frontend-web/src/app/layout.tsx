@@ -24,8 +24,8 @@ export const metadata: Metadata = {
     siteName: "Lumo Hub",
   },
   icons: {
-    icon: "/favicon.ico",
-    apple: "/apple-touch-icon.png",
+    icon: "/icons/favicon.ico",
+    apple: "/icons/apple-touch-icon.png",
   },
 };
 

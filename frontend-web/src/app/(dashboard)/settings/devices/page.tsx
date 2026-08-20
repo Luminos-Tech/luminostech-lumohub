@@ -23,6 +23,7 @@ import { AddDeviceModal } from "@/components/devices/AddDeviceModal";
 import { adminApi } from "@/features/admin/api";
 import { useDeviceStore } from "@/store/deviceStore";
 import { usePreferenceStore } from "@/store/preferenceStore";
+import { useDemoStore } from "@/store/demoStore";
 import type { Device } from "@/types";
 
 const BAND_TYPICAL_BATTERY_DAYS = 730;
@@ -230,6 +231,7 @@ function EmptyDevices({ onAdd, isEnglish }: { onAdd: () => void; isEnglish: bool
 
 export default function DevicesPage() {
   const { devices, loading, fetchDevices, deleteDevice } = useDeviceStore();
+  const { isDemoMode, mockDevice, batteryLevel, hubOnline, activityMinutes } = useDemoStore();
   const [showAdd, setShowAdd] = useState(false);
   const [notifyTarget, setNotifyTarget] = useState<Device | null>(null);
   const [qrTarget, setQrTarget] = useState<Device | null>(null);
@@ -240,8 +242,19 @@ export default function DevicesPage() {
     void fetchDevices().catch(() => undefined);
   }, [fetchDevices]);
 
+  const effectiveDevices: Device[] = devices.length > 0 ? devices : (isDemoMode ? [{
+    ...mockDevice,
+    battery_level: batteryLevel,
+    is_active: hubOnline,
+    activity_minutes_today: activityMinutes,
+  }] : []);
+
   const handleDelete = async (id: number) => {
     if (!window.confirm(isEnglish ? "Remove this Lumo device set?" : "Xóa bộ thiết bị Lumo này?")) return;
+    if (isDemoMode && id === mockDevice.id) {
+      toast.success(isEnglish ? "Demo device reset" : "Đã thiết lập lại thiết bị demo");
+      return;
+    }
     setDeletingId(id);
     try {
       await deleteDevice(id);
@@ -254,8 +267,8 @@ export default function DevicesPage() {
   };
 
   const copy = isEnglish
-    ? { title: "My devices", count: `${devices.length} connected sets`, add: "Add device", loading: "Loading devices..." }
-    : { title: "Thiết bị của tôi", count: `${devices.length} bộ đã kết nối`, add: "Thêm thiết bị", loading: "Đang tải thiết bị..." };
+    ? { title: "My devices", count: `${effectiveDevices.length} connected sets`, add: "Add device", loading: "Loading devices..." }
+    : { title: "Thiết bị của tôi", count: `${effectiveDevices.length} bộ đã kết nối`, add: "Thêm thiết bị", loading: "Đang tải thiết bị..." };
 
   return (
     <main className="devices-page">
@@ -265,18 +278,18 @@ export default function DevicesPage() {
           <h1>{copy.title}</h1>
           <span>{copy.count}</span>
         </div>
-        {devices.length > 0 && (
+        {effectiveDevices.length > 0 && (
           <button type="button" onClick={() => setShowAdd(true)}><Plus size={18} />{copy.add}</button>
         )}
       </header>
 
       {loading ? (
         <div className="devices-loading"><i /><span>{copy.loading}</span></div>
-      ) : devices.length === 0 ? (
+      ) : effectiveDevices.length === 0 ? (
         <EmptyDevices onAdd={() => setShowAdd(true)} isEnglish={isEnglish} />
       ) : (
         <div className="device-pair-list">
-          {devices.map((device) => (
+          {effectiveDevices.map((device) => (
             <DevicePair
               key={device.id}
               device={device}
@@ -296,3 +309,4 @@ export default function DevicesPage() {
     </main>
   );
 }
+

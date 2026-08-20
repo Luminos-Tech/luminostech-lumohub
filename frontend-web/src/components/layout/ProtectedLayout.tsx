@@ -4,18 +4,24 @@ import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import dynamic from "next/dynamic";
 import { useAuthStore } from "@/store/authStore";
+import { useDemoStore } from "@/store/demoStore";
 import BottomNav from "./BottomNav";
 import DesktopSidebar from "./DesktopSidebar";
 import Topbar from "./Topbar";
-import { OPEN_AUTH_EVENT, OPEN_NOTIFICATIONS_EVENT } from "@/lib/uiEvents";
+import { OPEN_AUTH_EVENT, OPEN_DEMO_DRAWER_EVENT, OPEN_NOTIFICATIONS_EVENT } from "@/lib/uiEvents";
 
 const AuthModal = dynamic(() => import("@/components/auth/AuthModal"), { ssr: false });
 const NotificationModal = dynamic(() => import("@/components/notifications/NotificationModal"), { ssr: false });
+const DemoControlDrawer = dynamic(() => import("@/components/demo/DemoControlDrawer"), { ssr: false });
+const DemoFallAlertModal = dynamic(() => import("@/components/demo/DemoFallAlertModal"), { ssr: false });
+const DemoMedicationModal = dynamic(() => import("@/components/demo/DemoMedicationModal"), { ssr: false });
+const DemoVoiceCompanionModal = dynamic(() => import("@/components/demo/DemoVoiceCompanionModal"), { ssr: false });
 
 const PRELOAD_ROUTES = ["/dashboard", "/calendar", "/settings/event-buttons", "/settings/devices", "/notifications", "/settings"];
 
 export default function ProtectedLayout({ children }: { children: React.ReactNode }) {
   const { isAuthenticated, fetchMe, logout } = useAuthStore();
+  const { isDemoMode, toggleDrawer } = useDemoStore();
   const router = useRouter();
   const [authOpen, setAuthOpen] = useState(false);
   const [notificationsOpen, setNotificationsOpen] = useState(false);
@@ -43,13 +49,18 @@ export default function ProtectedLayout({ children }: { children: React.ReactNod
   useEffect(() => {
     const openAuth = () => setAuthOpen(true);
     const openNotifications = () => setNotificationsOpen(true);
+    const openDemoDrawer = () => toggleDrawer();
+
     window.addEventListener(OPEN_AUTH_EVENT, openAuth);
     window.addEventListener(OPEN_NOTIFICATIONS_EVENT, openNotifications);
+    window.addEventListener(OPEN_DEMO_DRAWER_EVENT, openDemoDrawer);
+
     return () => {
       window.removeEventListener(OPEN_AUTH_EVENT, openAuth);
       window.removeEventListener(OPEN_NOTIFICATIONS_EVENT, openNotifications);
+      window.removeEventListener(OPEN_DEMO_DRAWER_EVENT, openDemoDrawer);
     };
-  }, []);
+  }, [toggleDrawer]);
 
   return (
     <div className="mobile-app-shell">
@@ -59,12 +70,12 @@ export default function ProtectedLayout({ children }: { children: React.ReactNod
         <main className="mobile-app-content" onClickCapture={(event) => {
           const anchor = (event.target as HTMLElement).closest("a");
           const href = anchor?.getAttribute("href");
-          if (isAuthenticated && href === "/notifications") {
+          if ((isAuthenticated || isDemoMode) && href === "/notifications") {
             event.preventDefault();
             window.dispatchEvent(new CustomEvent(OPEN_NOTIFICATIONS_EVENT));
             return;
           }
-          if (isAuthenticated) return;
+          if (isAuthenticated || isDemoMode) return;
           if (href && href.startsWith("/") && href !== "/dashboard") {
             event.preventDefault();
             window.dispatchEvent(new CustomEvent(OPEN_AUTH_EVENT));
@@ -72,8 +83,16 @@ export default function ProtectedLayout({ children }: { children: React.ReactNod
         }}>{children}</main>
         <BottomNav />
       </div>
+
       {authOpen && <AuthModal onClose={closeAuth} />}
       {notificationsOpen && <NotificationModal onClose={closeNotifications} />}
+
+      {/* Demo Suite: Presenter floating drawer & scenario modals */}
+      <DemoControlDrawer />
+      <DemoFallAlertModal />
+      <DemoMedicationModal />
+      <DemoVoiceCompanionModal />
     </div>
   );
 }
+

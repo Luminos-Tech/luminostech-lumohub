@@ -9,12 +9,25 @@ import { useAuthStore } from "@/store/authStore";
 import { useDeviceStore } from "@/store/deviceStore";
 import { useEventButtonStore } from "@/store/eventButtonStore";
 import { usePreferenceStore } from "@/store/preferenceStore";
+import { useDemoStore } from "@/store/demoStore";
 import { parseUTC } from "@/lib/utils";
 
 export default function DashboardPage() {
   const { isAuthenticated } = useAuthStore();
   const { devices, fetchDevices } = useDeviceStore();
   const { events, todayStatus, fetchEvents, fetchTodayStatus } = useEventButtonStore();
+  const {
+    isDemoMode,
+    mockDevice,
+    mockTodayStatus,
+    mockRecentEvents,
+    batteryLevel: demoBattery,
+    activityMinutes: demoActivity,
+    fallDetected: demoFall,
+    checkedInToday: demoCheckedIn,
+    lastCheckInTime: demoLastCheckIn,
+  } = useDemoStore();
+
   const language = usePreferenceStore((state) => state.language);
   const isEnglish = language === "en";
   const [now, setNow] = useState<Date | null>(null);
@@ -30,26 +43,38 @@ export default function DashboardPage() {
     void fetchDevices();
   }, [fetchDevices, fetchEvents, fetchTodayStatus, isAuthenticated]);
 
-  const activeDevice = devices.find((device) => device.is_active);
-  const batteryLevel = activeDevice?.battery_level;
-  const activityMinutes = activeDevice?.activity_minutes_today;
-  const fallDetected = activeDevice?.fall_detected;
-  const checkedIn = Boolean(todayStatus?.clicked_today);
-  const eventDays = new Set(events.map((event) => format(parseUTC(event.time_button_click), "yyyy-MM-dd")));
+  const rawActiveDevice = devices.find((device) => device.is_active);
+  const activeDevice = rawActiveDevice || (isDemoMode ? {
+    ...mockDevice,
+    battery_level: demoBattery,
+    activity_minutes_today: demoActivity,
+    fall_detected: demoFall,
+  } : undefined);
+
+  const batteryLevel = isDemoMode ? demoBattery : (activeDevice?.battery_level);
+  const activityMinutes = isDemoMode ? demoActivity : (activeDevice?.activity_minutes_today);
+  const fallDetected = isDemoMode ? demoFall : (activeDevice?.fall_detected);
+  const checkedIn = isDemoMode ? demoCheckedIn : Boolean(todayStatus?.clicked_today);
+
+  const effectiveEvents = events.length > 0 ? events : (isDemoMode ? mockRecentEvents : []);
+  const eventDays = new Set(effectiveEvents.map((event) => format(parseUTC(event.time_button_click), "yyyy-MM-dd")));
   const weekStart = now ? startOfWeek(now, { weekStartsOn: 1 }) : null;
   const dayLabels = isEnglish ? ["M", "T", "W", "T", "F", "S", "S"] : ["T2", "T3", "T4", "T5", "T6", "T7", "CN"];
   const weekDays = dayLabels.map((label, index) => {
     const date = weekStart ? addDays(weekStart, index) : null;
     const key = date ? format(date, "yyyy-MM-dd") : "";
+    const isTodayKey = Boolean(date && now && format(date, "yyyy-MM-dd") === format(now, "yyyy-MM-dd"));
     return {
       label,
-      checked: Boolean(key && eventDays.has(key)),
-      today: Boolean(date && now && format(date, "yyyy-MM-dd") === format(now, "yyyy-MM-dd")),
+      checked: isTodayKey ? checkedIn : Boolean(key && eventDays.has(key)),
+      today: isTodayKey,
       future: Boolean(date && now && date.getTime() > now.getTime()),
     };
   });
   const weeklyCheckins = weekDays.filter((day) => day.checked).length;
-  const lastCheckTime = todayStatus?.last_click_at ? format(parseUTC(todayStatus.last_click_at), "HH:mm") : null;
+  const lastCheckTime = isDemoMode
+    ? (demoCheckedIn ? (demoLastCheckIn || "07:15") : null)
+    : (todayStatus?.last_click_at ? format(parseUTC(todayStatus.last_click_at), "HH:mm") : null);
 
   const copy = isEnglish ? {
     checked: "Checked in today",
@@ -77,31 +102,32 @@ export default function DashboardPage() {
     device: activeDevice ? `Lumo ${activeDevice.device_id}` : "No device connected",
     deviceHint: activeDevice ? "Hub and band monitoring is active" : "Connect a Lumo Hub and band to begin",
   } : {
-    checked: "Đã điểm danh hôm nay",
-    waiting: "Chưa điểm danh hôm nay",
+    checked: "Mẹ đã chạm xác nhận trên LUMO Band",
+    waiting: "Chưa nhận chạm xác nhận hôm nay",
     reassuring: "An tâm",
-    pending: "Đang chờ",
-    waitingHint: "Lumo đang chờ lần điểm danh hôm nay.",
-    lastCheck: "Lần gần nhất",
-    summary: "Tổng quan hôm nay",
+    pending: "Đang chờ Cha Mẹ",
+    waitingHint: "Lumo đang chờ Cha Mẹ chạm mặt cảm biến trên LUMO Band để báo an tâm.",
+    lastCheck: "Lần chạm Band gần nhất",
+    summary: "Theo dõi an tâm Cha Mẹ từ xa",
     thisWeek: "Tuần này",
-    checkinDays: "Ngày điểm danh",
+    checkinDays: "Ngày chạm xác nhận",
     dayUnit: "ngày",
     today: "Hôm nay",
-    done: "Đã",
-    notYet: "Chưa",
-    battery: "Pin vòng band",
+    done: "Đã xác nhận",
+    notYet: "Chưa chạm Band",
+    battery: "Pin LUMO Band",
     noBattery: "Chưa có dữ liệu pin",
-    safety: "Phát hiện té ngã",
-    fall: "Đã phát hiện té ngã",
-    noFall: "Không có cảnh báo té ngã",
+    safety: "Cảm biến té ngã",
+    fall: "Phát hiện té ngã!",
+    noFall: "Cha Mẹ an toàn (Không té ngã)",
     noSafety: "Chưa có dữ liệu an toàn",
-    activity: "Vận động hôm nay",
+    activity: "Vận động Cha Mẹ hôm nay",
     minutes: "phút vận động",
     noActivity: "Chưa có dữ liệu vận động",
-    device: activeDevice ? `Lumo ${activeDevice.device_id}` : "Chưa liên kết thiết bị",
-    deviceHint: activeDevice ? "Hub và vòng band đang được theo dõi" : "Liên kết Lumo Hub và vòng band để bắt đầu",
+    device: activeDevice ? `Lumo Hub & Band (${activeDevice.device_id})` : "Chưa liên kết thiết bị",
+    deviceHint: activeDevice ? "Đang kết nối bảo vệ Cha Mẹ 24/7 từ xa" : "Liên kết Lumo Hub và vòng Band để bắt đầu theo dõi",
   };
+
 
   return (
     <div className="lumo-page dashboard-overview">

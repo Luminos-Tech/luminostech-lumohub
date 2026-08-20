@@ -355,17 +355,19 @@ button:focus-visible, a:focus-visible, input:focus-visible, textarea:focus-visib
 .account-identity strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-family: 'Be Vietnam Pro','Manrope',Arial,sans-serif; font-size: 15px; font-weight: 600; }
 .account-identity div span { display: flex; align-items: center; gap: 5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: rgba(255,255,255,.72); font-size: 9px; }
 .account-verified { grid-column: 1 / -1; width: fit-content; display: inline-flex; align-items: center; gap: 5px; padding: 5px 8px; color: #dff7ff; background: rgba(255,255,255,.1); border-radius: 5px; font-size: 8px; font-weight: 800; }
-.account-shortcuts { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 9px; margin-bottom: 14px; }
-.account-shortcut { min-width: 0; min-height: 82px; display: grid; grid-template-columns: 36px minmax(0,1fr); align-items: center; gap: 9px; padding: 12px; border: 1px solid var(--lumo-line); border-radius: var(--lumo-radius); color: var(--lumo-ink); background: white; box-shadow: 0 8px 22px rgba(7,59,71,.06); }
-.account-shortcut:last-child { grid-column: 1 / -1; min-height: 68px; grid-template-columns: 36px minmax(0,1fr) auto; }
-.account-shortcut > span { width: 36px; height: 36px; display: grid; place-items: center; border-radius: 7px; }
+.account-shortcuts { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 10px; margin-bottom: 14px; }
+.account-shortcut { min-width: 0; min-height: 84px; display: grid; grid-template-columns: 40px minmax(0,1fr) auto; align-items: center; gap: 10px; padding: 14px 12px; border: 1px solid var(--lumo-line); border-radius: var(--lumo-radius); color: var(--lumo-ink); background: white; box-shadow: 0 8px 22px rgba(7,59,71,.06); transition: all 0.18s ease; }
+.account-shortcut:hover { transform: translateY(-1px); box-shadow: 0 12px 28px rgba(7,59,71,.1); }
+.account-shortcut:last-child { grid-column: 1 / -1; min-height: 68px; grid-template-columns: 40px minmax(0,1fr) auto; }
+.account-shortcut > span { width: 40px; height: 40px; display: grid; place-items: center; border-radius: 10px; flex-shrink: 0; }
 .account-shortcut.aqua > span { color: #087c79; background: #dff7f3; }
 .account-shortcut.coral > span { color: #a94d3c; background: #ffe4dd; }
 .account-shortcut.sky > span { color: #176c8d; background: #dff4ff; }
-.account-shortcut > div { min-width: 0; display: flex; flex-direction: column; gap: 3px; }
-.account-shortcut strong { font-size: 10px; font-weight: 800; }
-.account-shortcut small { overflow: hidden; color: var(--lumo-muted); font-size: 8px; line-height: 1.35; }
-.account-shortcut > svg { color: #91a3a7; }
+.account-shortcut > div { min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.account-shortcut strong { font-size: 13px; font-weight: 700; line-height: 1.25; }
+.account-shortcut small { overflow: hidden; color: var(--lumo-muted); font-size: 11px; line-height: 1.35; }
+.account-shortcut > svg { color: #91a3a7; flex-shrink: 0; }
+
 .account-section { display: flex; flex-direction: column; gap: 14px; margin-top: 13px; padding: 17px 15px; border: 1px solid var(--lumo-line); border-radius: var(--lumo-radius); background: white; }
 .account-section.compact { gap: 0; padding-block: 7px; }
 .account-section-title { display: flex; align-items: center; gap: 10px; margin-bottom: 2px; }
@@ -396,9 +398,10 @@ button:focus-visible, a:focus-visible, input:focus-visible, textarea:focus-visib
 .preference-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 11px 0; border-top: 1px solid rgba(14,46,56,.09); }
 .preference-row > div:first-child { flex: 0 0 auto; display: flex; align-items: center; gap: 8px; color: var(--lumo-muted); }
 .preference-row > div:first-child strong { color: var(--lumo-ink); font-size: 10px; }
-.preference-toggle { min-width: 0; display: flex; align-items: center; gap: 3px; padding: 3px; border-radius: 9px; background: #edf6f6; }
-.preference-toggle button { min-height: 32px; display: inline-flex; align-items: center; justify-content: center; gap: 4px; padding: 0 10px; border: 0; border-radius: 7px; color: var(--lumo-muted); background: transparent; font-size: 9px; font-weight: 800; white-space: nowrap; cursor: pointer; }
-.preference-toggle button.active { color: white; background: var(--lumo-ink); box-shadow: 0 4px 10px rgba(14,46,56,.16); }
+.preference-toggle { min-width: 0; display: inline-flex; align-items: center; gap: 3px; padding: 3px; border-radius: 10px; background: #edf6f6; box-sizing: border-box; }
+.preference-toggle button { height: 28px; min-height: 28px; max-height: 28px; display: inline-flex; align-items: center; justify-content: center; gap: 4px; padding: 0 10px; border: 0; border-radius: 7px; color: var(--lumo-muted); background: transparent; font-size: 11px; font-weight: 600; line-height: 1; white-space: nowrap; cursor: pointer; box-sizing: border-box; }
+.preference-toggle button.active { color: white; background: var(--lumo-ink); box-shadow: 0 2px 6px rgba(14,46,56,.16); }
+
 
 /* Dark appearance */
 [data-theme="dark"] { --lumo-ink: #e8f5f5; --lumo-muted: #98adb2; --lumo-line: rgba(211,235,235,.14); --lumo-green-soft: #123c42; --lumo-coral-soft: #123c42; color-scheme: dark; }

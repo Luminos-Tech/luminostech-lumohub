@@ -222,11 +222,30 @@ export default function VoiceMessagesPage() {
   const togglePlayback = async (key: VoiceRecordingKey) => {
     if (playingKey === key) {
       playbackRef.current?.pause();
+      if (typeof window !== "undefined" && "speechSynthesis" in window) {
+        window.speechSynthesis.cancel();
+      }
       setPlayingKey(null);
       return;
     }
     const url = audioUrls[key];
-    if (!url) return;
+    if (!url) {
+      if (typeof window !== "undefined" && "speechSynthesis" in window) {
+        window.speechSynthesis.cancel();
+        const slot = slots.find((s) => s.key === key);
+        if (slot) {
+          const utterance = new SpeechSynthesisUtterance(slot.prompt);
+          utterance.lang = isEnglish ? "en-US" : "vi-VN";
+          utterance.rate = 0.95;
+          utterance.onend = () => setPlayingKey(null);
+          utterance.onerror = () => setPlayingKey(null);
+          setPlayingKey(key);
+          window.speechSynthesis.speak(utterance);
+          return;
+        }
+      }
+      return;
+    }
     playbackRef.current?.pause();
     const audio = new Audio(url);
     playbackRef.current = audio;
@@ -249,8 +268,12 @@ export default function VoiceMessagesPage() {
       await removeVoiceRecording(key);
       setRecordings((current) => ({ ...current, [key]: null }));
       setAudioUrls((current) => {
-        if (current[key]) URL.revokeObjectURL(current[key]!);
-        return { ...current, [key]: null };
+        const next = { ...current };
+        if (next[key]) {
+          URL.revokeObjectURL(next[key]!);
+          next[key] = null;
+        }
+        return next;
       });
       toast.success(text.deleted);
     } catch {
@@ -330,3 +353,4 @@ export default function VoiceMessagesPage() {
     </main>
   );
 }
+
