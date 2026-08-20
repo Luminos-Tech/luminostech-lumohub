@@ -616,7 +616,7 @@ export default function AccountPage() {
                 playVoicePreview(currentVoiceId, 0.85);
               }}
             >
-              0.85x
+              0.85x ({language === "vi" ? "Chậm" : "Slow"})
             </button>
             <button
               type="button"
@@ -626,7 +626,7 @@ export default function AccountPage() {
                 playVoicePreview(currentVoiceId, 0.95);
               }}
             >
-              0.95x
+              0.95x ({language === "vi" ? "Vừa" : "Normal"})
             </button>
             <button
               type="button"
@@ -636,7 +636,7 @@ export default function AccountPage() {
                 playVoicePreview(currentVoiceId, 1.1);
               }}
             >
-              1.1x
+              1.1x ({language === "vi" ? "Nhanh" : "Fast"})
             </button>
           </div>
         </div>
