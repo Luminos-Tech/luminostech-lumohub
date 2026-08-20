@@ -342,7 +342,7 @@ export default function AccountPage() {
         <button
           type="button"
           onClick={() => setShowEditProfileModal(true)}
-          className="account-action cursor-pointer hover:bg-slate-50 dark:hover:bg-[#183840]/50 px-3 rounded-2xl transition-colors"
+          className="account-action cursor-pointer"
         >
           <span className="w-10 h-10 rounded-xl bg-teal-500/10 text-teal-600 dark:text-teal-400 flex items-center justify-center">
             <UserRound size={20} />
@@ -364,7 +364,7 @@ export default function AccountPage() {
         <button
           type="button"
           onClick={() => setShowChangePasswordModal(true)}
-          className="account-action cursor-pointer hover:bg-slate-50 dark:hover:bg-[#183840]/50 px-3 rounded-2xl transition-colors"
+          className="account-action cursor-pointer"
         >
           <span className="w-10 h-10 rounded-xl bg-amber-500/10 text-amber-600 dark:text-amber-400 flex items-center justify-center">
             <KeyRound size={20} />
@@ -385,7 +385,7 @@ export default function AccountPage() {
           type="button"
           onClick={() => void enablePushNotifications()}
           disabled={pushLoading || pushStatus === "unsupported"}
-          className="account-action cursor-pointer hover:bg-slate-50 dark:hover:bg-[#183840]/50 px-3 rounded-2xl transition-colors"
+          className="account-action cursor-pointer"
         >
           <span className="w-10 h-10 rounded-xl bg-sky-500/10 text-sky-600 dark:text-sky-400 flex items-center justify-center">
             <BellRing size={20} />

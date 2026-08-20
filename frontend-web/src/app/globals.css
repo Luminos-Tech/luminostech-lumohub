@@ -382,7 +382,8 @@ button:focus-visible, a:focus-visible, input:focus-visible, textarea:focus-visib
 .account-save { min-height: 46px; display: inline-flex; align-items: center; justify-content: center; gap: 8px; border: 0; border-radius: 7px; color: white; background: var(--lumo-ink); font-size: 11px; font-weight: 800; cursor: pointer; }
 .account-save.secondary { background: var(--lumo-green); }
 .account-save:disabled { opacity: .55; cursor: wait; }
-.account-action { width: 100%; min-height: 65px; display: grid; grid-template-columns: 38px minmax(0,1fr) auto; align-items: center; gap: 10px; padding: 8px 0; border: 0; color: var(--lumo-ink); background: transparent; text-align: left; cursor: pointer; }
+.account-action { width: calc(100% + 20px); margin: 0 -10px; min-height: 65px; display: grid; grid-template-columns: 38px minmax(0,1fr) auto; align-items: center; gap: 10px; padding: 8px 10px; border: 0; border-radius: 14px; color: var(--lumo-ink); background: transparent; text-align: left; cursor: pointer; transition: background 0.15s ease; }
+.account-action:not(.static):hover { background: #f8fafc; }
 .account-action.static { cursor: default; }
 .account-action > span:nth-child(2) { min-width: 0; display: flex; flex-direction: column; gap: 3px; }
 .account-action strong { font-size: 11px; font-weight: 800; }
@@ -683,6 +684,7 @@ button:focus-visible, a:focus-visible, input:focus-visible, textarea:focus-visib
 [data-theme="dark"] .preference-toggle button.active { color: #08232a; background: #dff7ff; box-shadow: 0 4px 12px rgba(0,0,0,.24); }
 [data-theme="dark"] .status-on { color: #082f35; background: #d9f5f3; }
 [data-theme="dark"] .user-avatar { color: #08232a; background: #dff7ff; }
+[data-theme="dark"] .account-action:not(.static):hover, .dark .account-action:not(.static):hover { background: rgba(24,56,64,.5); }
 [data-theme="dark"] .account-action > svg,
 [data-theme="dark"] .account-shortcut > svg { color: #9ab2b6; }
 [data-theme="dark"] .icon-button { color: #d8eef0; background: #123039; border-color: #31555c; }
