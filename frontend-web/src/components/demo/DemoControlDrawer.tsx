@@ -17,6 +17,7 @@ import {
   RefreshCw,
   Settings2,
   ShieldAlert,
+  ShieldCheck,
   Sparkles,
   Wifi,
   X,
