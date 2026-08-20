@@ -344,16 +344,14 @@ export default function AccountPage() {
           onClick={() => setShowEditProfileModal(true)}
           className="account-action cursor-pointer hover:bg-slate-50 dark:hover:bg-[#183840]/50 px-3 rounded-2xl transition-colors"
         >
-          <div className="flex items-center gap-3">
-            <span className="w-10 h-10 rounded-xl bg-teal-500/10 text-teal-600 dark:text-teal-400 flex items-center justify-center">
-              <UserRound size={20} />
-            </span>
-            <div className="text-left">
-              <strong className="text-slate-900 dark:text-[#edf8f8]">{preferenceText.personal}</strong>
-              <small className="text-slate-500 dark:text-[#98adb2] block">
-                {user?.phone ? `${user.phone} • ` : ""}{preferenceText.personalHint}
-              </small>
-            </div>
+          <span className="w-10 h-10 rounded-xl bg-teal-500/10 text-teal-600 dark:text-teal-400 flex items-center justify-center">
+            <UserRound size={20} />
+          </span>
+          <div className="text-left">
+            <strong className="text-slate-900 dark:text-[#edf8f8]">{preferenceText.personal}</strong>
+            <small className="text-slate-500 dark:text-[#98adb2] block">
+              {user?.phone ? `${user.phone} • ` : ""}{preferenceText.personalHint}
+            </small>
           </div>
           <div className="flex items-center gap-1 text-xs text-teal-600 dark:text-teal-400 font-semibold px-2 py-1 rounded-lg bg-teal-500/10">
             <Edit3 size={13} />
@@ -368,14 +366,12 @@ export default function AccountPage() {
           onClick={() => setShowChangePasswordModal(true)}
           className="account-action cursor-pointer hover:bg-slate-50 dark:hover:bg-[#183840]/50 px-3 rounded-2xl transition-colors"
         >
-          <div className="flex items-center gap-3">
-            <span className="w-10 h-10 rounded-xl bg-amber-500/10 text-amber-600 dark:text-amber-400 flex items-center justify-center">
-              <KeyRound size={20} />
-            </span>
-            <div className="text-left">
-              <strong className="text-slate-900 dark:text-[#edf8f8]">{preferenceText.password}</strong>
-              <small className="text-slate-500 dark:text-[#98adb2] block">{preferenceText.passwordHint}</small>
-            </div>
+          <span className="w-10 h-10 rounded-xl bg-amber-500/10 text-amber-600 dark:text-amber-400 flex items-center justify-center">
+            <KeyRound size={20} />
+          </span>
+          <div className="text-left">
+            <strong className="text-slate-900 dark:text-[#edf8f8]">{preferenceText.password}</strong>
+            <small className="text-slate-500 dark:text-[#98adb2] block">{preferenceText.passwordHint}</small>
           </div>
           <div className="flex items-center gap-1 text-xs text-amber-600 dark:text-amber-400 font-semibold px-2 py-1 rounded-lg bg-amber-500/10">
             <Lock size={13} />
@@ -391,14 +387,12 @@ export default function AccountPage() {
           disabled={pushLoading || pushStatus === "unsupported"}
           className="account-action cursor-pointer hover:bg-slate-50 dark:hover:bg-[#183840]/50 px-3 rounded-2xl transition-colors"
         >
-          <div className="flex items-center gap-3">
-            <span className="w-10 h-10 rounded-xl bg-sky-500/10 text-sky-600 dark:text-sky-400 flex items-center justify-center">
-              <BellRing size={20} />
-            </span>
-            <div className="text-left">
-              <strong className="text-slate-900 dark:text-[#edf8f8]">{preferenceText.comfort}</strong>
-              <small className="text-slate-500 dark:text-[#98adb2] block">{preferenceText.comfortHint}</small>
-            </div>
+          <span className="w-10 h-10 rounded-xl bg-sky-500/10 text-sky-600 dark:text-sky-400 flex items-center justify-center">
+            <BellRing size={20} />
+          </span>
+          <div className="text-left">
+            <strong className="text-slate-900 dark:text-[#edf8f8]">{preferenceText.comfort}</strong>
+            <small className="text-slate-500 dark:text-[#98adb2] block">{preferenceText.comfortHint}</small>
           </div>
           <span className={`status-pill ${pushStatus === "granted" ? "status-on" : ""}`}>
             {pushLoading
