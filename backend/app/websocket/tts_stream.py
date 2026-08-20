@@ -215,26 +215,24 @@ async def _stream_tts(text: str, websocket: WebSocket, device_id: str):
     """Collect TTS audio from Gemini in a thread, then send as WAV."""
     loop = asyncio.get_running_loop()
 
-    def _collect_pcm(selected_voice: str = "Kore"):
+    def _collect_pcm():
         """Run blocking Gemini TTS stream in a thread pool — won't block the event loop."""
         client = _get_gemini()
-        voice = selected_voice if selected_voice in ["Kore", "Aoede", "Puck", "Fenrir", "Charon", "Zephyr"] else "Kore"
         response = client.models.generate_content_stream(
-            model="gemini-3.1-flash-tts-preview",
+            model="gemini-2.5-flash-preview-tts",
             contents=text,
             config=gtypes.GenerateContentConfig(
                 response_modalities=["AUDIO"],
                 speech_config=gtypes.SpeechConfig(
                     voice_config=gtypes.VoiceConfig(
                         prebuilt_voice_config=gtypes.PrebuiltVoiceConfig(
-                            voice_name=voice,
+                            voice_name="Kore",
                         )
                     )
                 ),
             ),
         )
         pcm = b""
-
         count = 0
         for chunk in response:
             candidates = getattr(chunk, "candidates", None)

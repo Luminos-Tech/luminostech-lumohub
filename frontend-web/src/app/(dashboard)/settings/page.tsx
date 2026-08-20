@@ -545,29 +545,29 @@ export default function AccountPage() {
           <div><h2>{preferenceText.title}</h2><p>{preferenceText.subtitle}</p></div>
         </div>
 
-        <div className="preference-row">
+        <div className="preference-row flex-wrap">
           <div><Languages size={18} /><strong>{preferenceText.language}</strong></div>
-          <div className="preference-toggle" role="group" aria-label={preferenceText.language}>
-            <button type="button" className={language === "vi" ? "active" : ""} onClick={() => setLanguage("vi")}>Tiếng Việt</button>
-            <button type="button" className={language === "en" ? "active" : ""} onClick={() => setLanguage("en")}>English</button>
+          <div className="preference-toggle w-full sm:w-auto flex" role="group" aria-label={preferenceText.language}>
+            <button type="button" className={`flex-1 sm:flex-none ${language === "vi" ? "active" : ""}`} onClick={() => setLanguage("vi")}>Tiếng Việt</button>
+            <button type="button" className={`flex-1 sm:flex-none ${language === "en" ? "active" : ""}`} onClick={() => setLanguage("en")}>English</button>
           </div>
         </div>
 
-        <div className="preference-row">
+        <div className="preference-row flex-wrap">
           <div>{theme === "light" ? <Sun size={18} /> : <Moon size={18} />}<strong>{preferenceText.theme}</strong></div>
-          <div className="preference-toggle" role="group" aria-label={preferenceText.theme}>
-            <button type="button" className={theme === "light" ? "active" : ""} onClick={() => setTheme("light")}><Sun size={14} />{preferenceText.light}</button>
-            <button type="button" className={theme === "dark" ? "active" : ""} onClick={() => setTheme("dark")}><Moon size={14} />{preferenceText.dark}</button>
+          <div className="preference-toggle w-full sm:w-auto flex" role="group" aria-label={preferenceText.theme}>
+            <button type="button" className={`flex-1 sm:flex-none ${theme === "light" ? "active" : ""}`} onClick={() => setTheme("light")}><Sun size={14} />{preferenceText.light}</button>
+            <button type="button" className={`flex-1 sm:flex-none ${theme === "dark" ? "active" : ""}`} onClick={() => setTheme("dark")}><Moon size={14} />{preferenceText.dark}</button>
           </div>
         </div>
 
         {/* Tinh gọn Giọng nói LUMO AI */}
-        <div className="preference-row">
+        <div className="preference-row flex-wrap">
           <div>
             <Mic size={18} />
             <strong>{language === "vi" ? "Giọng LUMO AI" : "LUMO AI Voice"}</strong>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 w-full sm:w-auto mt-1 sm:mt-0">
             <select
               value={currentVoiceId}
               onChange={(e) => {
@@ -579,7 +579,7 @@ export default function AccountPage() {
                 }
                 playVoicePreview(newVoice, aiVoiceRate);
               }}
-              className="px-3 py-1.5 text-xs font-semibold rounded-xl border border-slate-200 dark:border-[rgba(200,229,232,0.18)] bg-white dark:bg-[#183840] text-slate-800 dark:text-[#edf8f8] cursor-pointer focus:outline-none focus:ring-2 focus:ring-teal-500 shadow-sm"
+              className="flex-1 px-3 py-1.5 text-xs font-semibold rounded-xl border border-slate-200 dark:border-[rgba(200,229,232,0.18)] bg-white dark:bg-[#183840] text-slate-800 dark:text-[#edf8f8] cursor-pointer focus:outline-none focus:ring-2 focus:ring-teal-500 shadow-sm"
             >
               {language === "vi"
                 ? VOICE_OPTIONS_VI.map((v) => (
@@ -602,41 +602,41 @@ export default function AccountPage() {
         </div>
 
         {/* Tinh gọn Tốc độ nói */}
-        <div className="preference-row">
+        <div className="preference-row flex-wrap">
           <div>
             <Sparkles size={18} />
             <strong>{language === "vi" ? "Tốc độ nói" : "Speech speed"}</strong>
           </div>
-          <div className="preference-toggle" role="group" aria-label="Speech speed">
+          <div className="preference-toggle w-full sm:w-auto flex mt-1 sm:mt-0" role="group" aria-label="Speech speed">
             <button
               type="button"
-              className={aiVoiceRate === 0.85 ? "active" : ""}
+              className={`flex-1 sm:flex-none ${aiVoiceRate === 0.85 ? "active" : ""}`}
               onClick={() => {
                 setAiVoiceRate(0.85);
                 playVoicePreview(currentVoiceId, 0.85);
               }}
             >
-              0.85x ({language === "vi" ? "Chậm" : "Slow"})
+              0.85x
             </button>
             <button
               type="button"
-              className={aiVoiceRate === 0.95 ? "active" : ""}
+              className={`flex-1 sm:flex-none ${aiVoiceRate === 0.95 ? "active" : ""}`}
               onClick={() => {
                 setAiVoiceRate(0.95);
                 playVoicePreview(currentVoiceId, 0.95);
               }}
             >
-              0.95x ({language === "vi" ? "Vừa" : "Normal"})
+              0.95x
             </button>
             <button
               type="button"
-              className={aiVoiceRate === 1.1 ? "active" : ""}
+              className={`flex-1 sm:flex-none ${aiVoiceRate === 1.1 ? "active" : ""}`}
               onClick={() => {
                 setAiVoiceRate(1.1);
                 playVoicePreview(currentVoiceId, 1.1);
               }}
             >
-              1.1x ({language === "vi" ? "Nhanh" : "Fast"})
+              1.1x
             </button>
           </div>
         </div>
