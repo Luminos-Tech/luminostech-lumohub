@@ -48,6 +48,7 @@ export default function DemoControlDrawer() {
     resetToDefault,
     checkedInToday,
     fallDetected,
+    setFallDetected,
   } = useDemoStore();
 
   const [activeTab, setActiveTab] = useState<"scenarios" | "hardware" | "info">("scenarios");
@@ -322,6 +323,48 @@ export default function DemoControlDrawer() {
                   <span>0 bước</span>
                   <span>45 phút (Đạt mục tiêu)</span>
                   <span>10,000+ bước</span>
+                </div>
+              </div>
+
+              {/* Fall Sensor Toggle */}
+              <div className="p-3 bg-slate-800/80 rounded-2xl border border-slate-700/80 space-y-2">
+                <span className="font-semibold text-slate-300 flex items-center gap-1.5">
+                  <ShieldCheck size={16} className="text-emerald-400" /> Trạng thái cảm biến:
+                </span>
+                <div className="grid grid-cols-3 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setFallDetected(false)}
+                    className={`py-1.5 px-2 rounded-xl text-center font-bold border transition-all ${
+                      fallDetected === false
+                        ? "bg-emerald-600 text-white border-emerald-400"
+                        : "bg-slate-900 text-slate-400 border-slate-700"
+                    }`}
+                  >
+                    Bình thường
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setFallDetected(true)}
+                    className={`py-1.5 px-2 rounded-xl text-center font-bold border transition-all ${
+                      fallDetected === true
+                        ? "bg-red-600 text-white border-red-400"
+                        : "bg-slate-900 text-slate-400 border-slate-700"
+                    }`}
+                  >
+                    Báo động
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setFallDetected(undefined)}
+                    className={`py-1.5 px-2 rounded-xl text-center font-bold border transition-all ${
+                      fallDetected === undefined
+                        ? "bg-slate-600 text-white border-slate-400"
+                        : "bg-slate-900 text-slate-400 border-slate-700"
+                    }`}
+                  >
+                    Mất tín hiệu
+                  </button>
                 </div>
               </div>
 

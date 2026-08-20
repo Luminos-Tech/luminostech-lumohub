@@ -18,7 +18,7 @@ export interface DemoState {
   batteryLevel: number;
   activityMinutes: number;
   stepsToday: number;
-  fallDetected: boolean;
+  fallDetected: boolean | undefined;
   lastFallTime: string | null;
   checkedInToday: boolean;
   lastCheckInTime: string | null;
@@ -56,8 +56,8 @@ export interface DemoState {
   setStepsToday: (val: number) => void;
   setNetworkStatus: (status: "4g" | "wifi" | "offline") => void;
   setHubOnline: (online: boolean) => void;
-
   setBandConnected: (connected: boolean) => void;
+  setFallDetected: (val: boolean | undefined) => void;
 
   resetToDefault: () => void;
 }
@@ -320,6 +320,9 @@ export const useDemoStore = create<DemoState>()(
           mockDevice: { ...s.mockDevice, activity_minutes_today: val },
         })),
       setStepsToday: (val) => set({ stepsToday: val }),
+
+      setFallDetected: (val) => set({ fallDetected: val }),
+      
       setNetworkStatus: (status) => set({ networkStatus: status }),
       setHubOnline: (online) => set({ hubOnline: online }),
       setBandConnected: (connected) => set({ bandConnected: connected }),
