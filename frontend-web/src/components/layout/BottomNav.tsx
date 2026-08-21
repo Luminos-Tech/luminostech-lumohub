@@ -7,6 +7,7 @@ import { cn } from "@/lib/utils";
 import { useAuthStore } from "@/store/authStore";
 import { OPEN_AUTH_EVENT } from "@/lib/uiEvents";
 import { usePreferenceStore } from "@/store/preferenceStore";
+import { useDemoStore } from "@/store/demoStore";
 import { LumoHubIcon } from "@/components/icons/LumoDeviceIcons";
 
 export const navItems = [
@@ -27,6 +28,7 @@ export function LumoHomeIcon({ size = 32 }: { size?: number; strokeWidth?: numbe
 export default function BottomNav() {
   const pathname = usePathname();
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
+  const isDemoMode = useDemoStore((state) => state.isDemoMode);
   const language = usePreferenceStore((state) => state.language);
   return (
     <nav className="mobile-bottom-nav" aria-label={language === "en" ? "Main navigation" : "Điều hướng chính"}>
@@ -34,7 +36,7 @@ export default function BottomNav() {
         const active = pathname === item.href || (item.href !== "/dashboard" && pathname.startsWith(`${item.href}/`));
         return (
           <Link key={item.href} href={item.href} aria-label={item[language]} title={item[language]} className={cn("bottom-nav-item", active && "active")} onClick={(event) => {
-            if (!isAuthenticated && item.href !== "/dashboard") {
+            if (!isAuthenticated && !isDemoMode && item.href !== "/dashboard") {
               event.preventDefault();
               window.dispatchEvent(new CustomEvent(OPEN_AUTH_EVENT));
             }
