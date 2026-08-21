@@ -16,6 +16,7 @@ import {
   Radio,
   RefreshCw,
   Settings2,
+  ShieldAlert,
   ShieldCheck,
   Sparkles,
   Wifi,
