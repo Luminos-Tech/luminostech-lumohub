@@ -5,7 +5,7 @@ import { AlertTriangle, BellRing, Check, MapPin, PhoneCall, ShieldAlert, X } fro
 import { useDemoStore } from "@/store/demoStore";
 
 export default function DemoFallAlertModal() {
-  const { activeScenarioModal, lastFallTime, dismissFallAlert, mockProfiles, demoTargetProfileId } = useDemoStore();
+  const { activeScenarioModal, lastFallTime, dismissFallAlert, mockProfiles, demoTargetProfileId, mockProfileMeta } = useDemoStore();
   const targetProfile = mockProfiles?.find(p => p.id === demoTargetProfileId) || mockProfiles?.find(p => p.type === 'band') || { name: "Mẹ", device_id: "LH-8821" };
   const targetName = targetProfile?.name || "Mẹ";
   const targetDeviceId = targetProfile?.device_id || "LH-8821";
@@ -116,10 +116,10 @@ export default function DemoFallAlertModal() {
             <MapPin size={18} className="text-red-400 shrink-0 mt-0.5" />
             <div className="text-xs min-w-0 flex-1">
               <p className="font-semibold text-slate-200">
-                Vị trí người thân: {targetProfile.fullName ? `${targetProfile.fullName} (${targetName})` : targetName}
+                Vị trí người thân: {targetName}
               </p>
               <p className="text-slate-400 leading-snug mt-0.5">
-                {targetProfile.address || "Số 18, Ngõ 42 Liễu Giai, Ba Đình, Hà Nội"}
+                {mockProfileMeta?.address || "Số 18, Ngõ 42 Liễu Giai, Ba Đình, Hà Nội"}
               </p>
             </div>
           </div>
@@ -129,7 +129,7 @@ export default function DemoFallAlertModal() {
             <div className="min-w-0 flex-1">
               <span className="text-slate-400 block text-[11px]">Người theo dõi khẩn cấp:</span>
               <strong className="text-slate-200 font-semibold block leading-tight mt-0.5">
-                {targetProfile.caregiver || "Anh Trí (Con trai - 0988 123 456)"}
+                {mockProfileMeta?.caregiver || "Anh Trí (Con trai - 0988 123 456)"}
               </strong>
             </div>
             <span className="inline-flex items-center gap-1 self-start sm:self-auto text-[11px] font-semibold text-emerald-300 bg-emerald-950/70 border border-emerald-800/60 px-2.5 py-1 rounded-full shrink-0 shadow-xs">
