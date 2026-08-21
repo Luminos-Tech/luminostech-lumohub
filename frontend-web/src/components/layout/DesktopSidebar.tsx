@@ -16,7 +16,7 @@ import { navItems } from "./BottomNav";
 export default function DesktopSidebar() {
   const pathname = usePathname();
   const { user, isAuthenticated } = useAuthStore();
-  const { isDemoMode, mockUser, toggleDrawer } = useDemoStore();
+  const { isDemoMode, mockUser, enableDemoMode, setDrawerOpen, toggleDrawer } = useDemoStore();
   const unreadCount = useNotificationStore((state) => state.unreadCount);
   const language = usePreferenceStore((state) => state.language);
 
@@ -30,7 +30,8 @@ export default function DesktopSidebar() {
     if (clickCountRef.current >= 3) {
       e.preventDefault();
       clickCountRef.current = 0;
-      toggleDrawer();
+      enableDemoMode();
+      setDrawerOpen(true);
       window.dispatchEvent(new CustomEvent(OPEN_DEMO_DRAWER_EVENT));
       return;
     }

@@ -146,7 +146,7 @@ type PasswordForm = z.infer<typeof passwordSchema>;
 export default function AccountPage() {
   const router = useRouter();
   const { user, setUser, isAuthenticated, logout } = useAuthStore();
-  const { isDemoMode, mockUser } = useDemoStore();
+  const { isDemoMode, mockUser, disableDemoMode } = useDemoStore();
   const [showEditProfileModal, setShowEditProfileModal] = useState(false);
   const [showChangePasswordModal, setShowChangePasswordModal] = useState(false);
 
@@ -260,8 +260,11 @@ export default function AccountPage() {
 
 
   const handleLogout = async () => {
+    if (isDemoMode) {
+      disableDemoMode();
+    }
     await logout();
-    router.replace("/dashboard");
+    router.replace("/login");
   };
 
   const togglePushNotifications = async () => {
@@ -295,6 +298,35 @@ export default function AccountPage() {
         <h1>{preferenceText.profile}</h1>
         <span>{preferenceText.profileHint}</span>
       </header>
+
+      {isDemoMode && (
+        <section className="mb-3.5 p-3.5 sm:p-4 rounded-2xl bg-purple-500/10 border border-purple-500/30 flex items-center justify-between gap-3 text-xs">
+          <div className="flex items-center gap-2.5 min-w-0">
+            <Sparkles size={20} className="text-purple-400 shrink-0" />
+            <div className="min-w-0">
+              <strong className="text-slate-900 dark:text-purple-200 block font-bold truncate">
+                {language === "vi" ? "Đang chạy chế độ Demo" : "Demo Mode is active"}
+              </strong>
+              <span className="text-slate-500 dark:text-slate-400 block text-[11px] truncate">
+                {language === "vi" ? "Nhấn 3 lần Logo để mở Demo Console" : "Tap Logo 3 times to open Console"}
+              </span>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={() => {
+              disableDemoMode();
+              void logout();
+              router.replace("/login");
+              toast.info(language === "vi" ? "Đã tắt Demo. Vui lòng đăng nhập tài khoản thật." : "Demo turned off. Please log in with your real account.");
+            }}
+            className="px-3 py-1.5 rounded-xl bg-red-600 hover:bg-red-500 text-white font-bold text-xs transition-colors shrink-0 shadow-xs flex items-center gap-1.5 active:scale-95"
+          >
+            <LogOut size={13} />
+            <span>{language === "vi" ? "Tắt Demo & Đăng nhập" : "Exit Demo"}</span>
+          </button>
+        </section>
+      )}
 
       <section className="account-identity">
         <div className="account-avatar">{initials}</div>

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import {
   Activity,
   AlertTriangle,
@@ -11,6 +12,7 @@ import {
   ChevronUp,
   Clock,
   Heart,
+  LogOut,
   Mic,
   Pill,
   Radio,
@@ -32,6 +34,7 @@ import { toast } from "sonner";
 import { useDemoStore, FamilyPreset } from "@/store/demoStore";
 import { useNotificationStore } from "@/store/notificationStore";
 import { usePreferenceStore } from "@/store/preferenceStore";
+import { useAuthStore } from "@/store/authStore";
 import { OPEN_NOTIFICATIONS_EVENT } from "@/lib/uiEvents";
 
 export default function DemoControlDrawer() {
@@ -77,6 +80,8 @@ export default function DemoControlDrawer() {
 
   const receiveNotification = useNotificationStore((state) => state.receiveNotification);
   const [customPushText, setCustomPushText] = useState("");
+  const router = useRouter();
+  const logout = useAuthStore((state) => state.logout);
 
   const playPushChime = () => {
     try {
@@ -191,28 +196,6 @@ export default function DemoControlDrawer() {
 
   return (
     <>
-      {/* Floating Discreet Trigger Button (Bottom Right) — Hidden when drawer is open */}
-      {!isDrawerOpen && (
-        <div className="fixed bottom-20 sm:bottom-6 right-4 z-40 flex items-center gap-2">
-          <button
-            type="button"
-            onClick={toggleDrawer}
-            className="group flex items-center gap-2 px-3.5 py-2 rounded-full backdrop-blur-md border shadow-xl transition-all duration-200 bg-slate-900/90 hover:bg-slate-800 text-slate-200 border-slate-700/80 hover:border-purple-500/50 hover:shadow-purple-500/20"
-            title={isEnglish ? "Open LUMO Demo Panel (Ctrl + Shift + D)" : "Mở Bảng điều khiển Demo LUMO (Ctrl + Shift + D)"}
-          >
-            <span className="relative flex h-2.5 w-2.5">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-purple-400 opacity-75" />
-              <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-purple-500" />
-            </span>
-            <span className="text-xs font-bold tracking-wide flex items-center gap-1.5">
-              <Sparkles size={14} className="text-purple-400 group-hover:rotate-12 transition-transform" />
-              Demo Console
-            </span>
-            <ChevronUp size={14} />
-          </button>
-        </div>
-      )}
-
       {/* Drawer Overlay Backdrop */}
       {isDrawerOpen && (
         <div
@@ -1002,13 +985,31 @@ export default function DemoControlDrawer() {
             </div>
           )}
 
-          {/* Footer Status Bar */}
-          <div className="p-3 bg-slate-950 border-t border-slate-800 flex items-center justify-between text-[11px] text-slate-400">
-            <span className="flex items-center gap-1.5">
-              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-              LUMO Hub {networkStatus.toUpperCase()} · {isEnglish ? `Monitoring ${bandProfiles.length} family members` : `Đang theo dõi ${bandProfiles.length} người thân`}
-            </span>
-            <span className="text-purple-400 font-medium">LuminosTech Demo</span>
+          {/* Footer Status Bar & Exit Demo */}
+          <div className="p-3.5 bg-slate-950 border-t border-slate-800 space-y-2.5">
+            <button
+              type="button"
+              onClick={() => {
+                disableDemoMode();
+                void logout();
+                router.push("/login");
+                toast.info(isEnglish ? "Demo mode turned off. Please log in with your real account." : "Đã tắt chế độ Demo. Vui lòng đăng nhập tài khoản thật.");
+              }}
+              className="w-full py-2.5 px-3 rounded-xl bg-red-950/40 hover:bg-red-900/60 border border-red-500/40 text-red-200 hover:text-white font-bold text-xs flex items-center justify-center gap-2 transition-all active:scale-[0.98] shadow-xs"
+            >
+              <LogOut size={15} className="text-red-400" />
+              <span>{isEnglish ? "Exit Demo & Log in with Real Account" : "Tắt chế độ Demo & Đăng nhập tài khoản thật"}</span>
+            </button>
+
+            <div className="flex items-center justify-between text-[11px] text-slate-400 pt-0.5">
+              <span className="flex items-center gap-1.5 truncate">
+                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse shrink-0" />
+                LUMO Hub {networkStatus.toUpperCase()} · {isEnglish ? `${bandProfiles.length} family members` : `${bandProfiles.length} người thân`}
+              </span>
+              <span className="text-purple-400 font-medium shrink-0 text-[10px]">
+                {isEnglish ? "Tap Logo 3x to reopen" : "Nhấn 3 lần Logo để mở lại"}
+              </span>
+            </div>
           </div>
         </aside>
       )}

@@ -13,7 +13,7 @@ import { useDemoStore } from "@/store/demoStore";
 export default function Topbar() {
   const { user, isAuthenticated } = useAuthStore();
   const { unreadCount: storeUnreadCount, notifications, fetchNotifications } = useNotificationStore();
-  const { isDemoMode, mockUser, toggleDrawer, mockNotifications } = useDemoStore();
+  const { isDemoMode, mockUser, enableDemoMode, setDrawerOpen, toggleDrawer, mockNotifications } = useDemoStore();
   const language = usePreferenceStore((state) => state.language);
 
   const unreadCount = isDemoMode && notifications.length === 0
@@ -30,7 +30,8 @@ export default function Topbar() {
     if (clickCountRef.current >= 3) {
       e.preventDefault();
       clickCountRef.current = 0;
-      toggleDrawer();
+      enableDemoMode();
+      setDrawerOpen(true);
       window.dispatchEvent(new CustomEvent(OPEN_DEMO_DRAWER_EVENT));
       return;
     }
