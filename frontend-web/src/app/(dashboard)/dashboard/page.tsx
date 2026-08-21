@@ -11,6 +11,8 @@ import { useEventButtonStore } from "@/store/eventButtonStore";
 import { usePreferenceStore } from "@/store/preferenceStore";
 import { useDemoStore } from "@/store/demoStore";
 import { parseUTC } from "@/lib/utils";
+import Modal from "@/components/common/Modal";
+import Button from "@/components/common/Button";
 
 export default function DashboardPage() {
   const { isAuthenticated } = useAuthStore();
@@ -31,6 +33,8 @@ export default function DashboardPage() {
   const language = usePreferenceStore((state) => state.language);
   const isEnglish = language === "en";
   const [now, setNow] = useState<Date | null>(null);
+  const [isBatteryModalOpen, setIsBatteryModalOpen] = useState(false);
+  const [isSafetyModalOpen, setIsSafetyModalOpen] = useState(false);
 
   useEffect(() => {
     setNow(new Date());
@@ -199,7 +203,7 @@ export default function DashboardPage() {
       </section>
 
       <section className="wellbeing-grid">
-        <Link href="/settings/devices" className="wellbeing-card battery">
+        <button onClick={() => setIsBatteryModalOpen(true)} className="wellbeing-card battery text-left">
           <span className="wellbeing-icon"><LumoBandIcon size={26} /></span>
           <div>
             <small>{copy.battery}</small>
@@ -209,12 +213,12 @@ export default function DashboardPage() {
             </strong>
             <p>{typeof batteryLevel === "number" ? copy.batteryNormal : copy.noBattery}</p>
           </div>
-        </Link>
+        </button>
 
-        <div className={`wellbeing-card safety ${fallDetected ? "alert" : ""}`}>
+        <button onClick={() => setIsSafetyModalOpen(true)} className={`wellbeing-card safety text-left ${fallDetected ? "alert" : ""}`}>
           <span className="wellbeing-icon">{fallDetected ? <ShieldAlert size={24} /> : <ShieldCheck size={24} />}</span>
           <div><small>{fallDetected === undefined ? copy.safetyNoDataLabel : fallDetected ? copy.safetyAlertLabel : copy.safety}</small><strong>{fallDetected === true ? copy.fall : fallDetected === false ? copy.noFall : copy.noSafety}</strong><p>{fallDetected === undefined ? copy.safetyConnecting : fallDetected ? copy.safetyAlert : copy.safetyActive}</p></div>
-        </div>
+        </button>
 
       </section>
 
@@ -223,6 +227,77 @@ export default function DashboardPage() {
         <div><strong>{copy.device}</strong><small>{copy.deviceHint}</small></div>
         <ChevronRight size={19} />
       </Link>
+
+      <Modal open={isBatteryModalOpen} onClose={() => setIsBatteryModalOpen(false)} title={isEnglish ? "Battery Details" : "Chi tiết Pin"}>
+        <div className="flex flex-col items-center gap-4 py-4 text-center">
+          <div className="p-4 bg-gray-50 dark:bg-gray-800 rounded-full">
+            <LumoBandIcon size={48} className="text-gray-700 dark:text-gray-300" />
+          </div>
+          <div>
+            <h3 className="text-2xl font-bold flex items-center justify-center gap-2">
+              {batteryData.icon}
+              <span className={batteryData.color}>{batteryData.text}</span>
+            </h3>
+            <p className="text-gray-500 font-medium mt-1">
+              {typeof batteryLevel === "number" ? copy.batteryNormal : copy.noBattery}
+            </p>
+          </div>
+          
+          <div className="bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 p-4 rounded-xl text-sm w-full mt-2">
+            {isEnglish 
+              ? (typeof batteryLevel === "number" && batteryLevel <= 20 
+                  ? "Battery is low. Please charge the device as soon as possible." 
+                  : "Battery is sufficient for continuous monitoring. Recommend charging when below 20%.")
+              : (typeof batteryLevel === "number" && batteryLevel <= 20 
+                  ? "Pin đang ở mức thấp. Vui lòng sạc thiết bị càng sớm càng tốt để đảm bảo kết nối." 
+                  : "Lượng pin đủ để hoạt động liên tục. Nên sạc thiết bị khi pin dưới 20%.")
+            }
+          </div>
+          
+          <div className="w-full mt-4 flex gap-3">
+            <Button variant="secondary" className="flex-1" onClick={() => setIsBatteryModalOpen(false)}>
+              {isEnglish ? "Close" : "Đóng"}
+            </Button>
+            <Link href="/settings/devices" className="flex-1">
+              <Button className="w-full">{isEnglish ? "Manage Devices" : "Quản lý thiết bị"}</Button>
+            </Link>
+          </div>
+        </div>
+      </Modal>
+
+      <Modal open={isSafetyModalOpen} onClose={() => setIsSafetyModalOpen(false)} title={isEnglish ? "Fall Detection" : "Cảm biến Té ngã"}>
+        <div className="flex flex-col items-center gap-4 py-4 text-center">
+          <div className={`p-4 rounded-full ${fallDetected ? "bg-red-100 text-red-600" : "bg-emerald-50 text-emerald-600"}`}>
+            {fallDetected ? <ShieldAlert size={48} /> : <ShieldCheck size={48} />}
+          </div>
+          
+          <div>
+            <h3 className="text-xl font-bold">
+              {fallDetected === true ? copy.fall : fallDetected === false ? copy.noFall : copy.noSafety}
+            </h3>
+            <p className="text-gray-500 font-medium mt-1">
+              {fallDetected === undefined ? copy.safetyConnecting : fallDetected ? copy.safetyAlert : copy.safetyActive}
+            </p>
+          </div>
+
+          <div className={`p-4 rounded-xl text-sm w-full mt-2 ${fallDetected ? "bg-red-50 dark:bg-red-900/30 text-red-700 dark:text-red-300" : "bg-gray-50 dark:bg-gray-800 text-gray-600 dark:text-gray-400"}`}>
+            {fallDetected 
+              ? (isEnglish 
+                  ? "A fall has been detected! Please contact the user immediately to check their safety. If it's a false alarm, you can ignore this." 
+                  : "Cảm biến vừa ghi nhận một cú ngã! Vui lòng liên hệ ngay với Cha/Mẹ để kiểm tra tình trạng. Nếu đây là báo động nhầm, bạn có thể bỏ qua.")
+              : (isEnglish
+                  ? "Fall detection is active 24/7. An alert will be sent immediately if a sudden fall is detected."
+                  : "Cảm biến té ngã đang hoạt động 24/7. Hệ thống sẽ tự động gửi cảnh báo khẩn cấp nếu phát hiện Cha/Mẹ bị ngã.")
+            }
+          </div>
+
+          <div className="w-full mt-4 flex gap-3">
+            <Button className="flex-1" onClick={() => setIsSafetyModalOpen(false)}>
+              {isEnglish ? "Understood" : "Đã hiểu"}
+            </Button>
+          </div>
+        </div>
+      </Modal>
     </div>
   );
 }
