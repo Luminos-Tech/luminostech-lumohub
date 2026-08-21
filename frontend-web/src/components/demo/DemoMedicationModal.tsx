@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Check, Clock, Heart, Mic, Pill, Play, Volume2, X } from "lucide-react";
+import { Check, CheckCircle2, Clock, Heart, Mic, Pill, Play, Volume2, X } from "lucide-react";
 import { toast } from "sonner";
 import { useDemoStore } from "@/store/demoStore";
 
@@ -35,7 +35,17 @@ export default function DemoMedicationModal() {
 
   const handleConfirmTaken = () => {
     setIsTaken(true);
-    toast.success("Đã ghi nhận: Cụ Mai đã uống thuốc đúng giờ!");
+    toast.custom((t) => (
+      <div className="bg-[#102a31] border border-emerald-500/30 rounded-2xl p-4 flex gap-4 items-center shadow-2xl shadow-emerald-900/20 max-w-sm w-full">
+        <div className="w-10 h-10 rounded-full bg-emerald-500/20 flex items-center justify-center flex-shrink-0">
+          <CheckCircle2 size={20} className="text-emerald-400" />
+        </div>
+        <div>
+          <h4 className="font-bold text-white text-sm">Uống thuốc đúng giờ</h4>
+          <p className="text-gray-300 text-xs mt-0.5">Đã ghi nhận: Mẹ Mai đã uống thuốc đúng lịch sáng.</p>
+        </div>
+      </div>
+    ));
     setTimeout(() => {
       closeScenarioModal();
       setIsTaken(false);
