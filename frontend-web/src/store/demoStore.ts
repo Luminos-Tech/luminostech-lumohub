@@ -60,6 +60,7 @@ export interface DemoState {
   setBandConnected: (connected: boolean) => void;
   setFallDetected: (val: boolean | undefined) => void;
   setMockCheckInDays: (days: number) => void;
+  setMockUser: (user: Partial<User>) => void;
 
   resetToDefault: () => void;
 }
@@ -342,6 +343,8 @@ export const useDemoStore = create<DemoState>()(
         set({ mockCheckInDays: days, mockRecentEvents: newEvents });
       },
 
+      setMockUser: (userUpdates) => set((s) => ({ mockUser: { ...s.mockUser, ...userUpdates } })),
+
       setNetworkStatus: (status) => set({ networkStatus: status }),
       setHubOnline: (online) => set({ hubOnline: online }),
       setBandConnected: (connected) => set({ bandConnected: connected }),
@@ -372,6 +375,7 @@ export const useDemoStore = create<DemoState>()(
         stepsToday: s.stepsToday,
         networkStatus: s.networkStatus,
         mockCheckInDays: s.mockCheckInDays,
+        mockUser: s.mockUser,
       }),
     }
   )

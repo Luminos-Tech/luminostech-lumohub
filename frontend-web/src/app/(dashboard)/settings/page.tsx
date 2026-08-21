@@ -235,14 +235,21 @@ export default function AccountPage() {
 
   const saveProfile = async (data: ProfileForm) => {
     try {
+      if (isDemoMode) {
+        useDemoStore.getState().setMockUser({ full_name: data.full_name, phone: data.phone });
+        setShowEditProfileModal(false);
+        toast.success(language === "vi" ? "Đã cập nhật hồ sơ mẫu trong Demo" : "Demo profile updated");
+        return;
+      }
+
       if (isAuthenticated) {
         const response = await api.patch("/users/me", data);
         setUser(response.data);
       }
       setShowEditProfileModal(false);
-      toast.success("Đã cập nhật thông tin cá nhân");
+      toast.success(language === "vi" ? "Đã cập nhật thông tin cá nhân" : "Profile updated successfully");
     } catch {
-      toast.error("Không thể lưu thay đổi");
+      toast.error(language === "vi" ? "Không thể lưu thay đổi" : "Could not save changes");
     }
   };
 
