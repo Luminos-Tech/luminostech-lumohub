@@ -33,17 +33,9 @@ export default function ProtectedLayout({ children }: { children: React.ReactNod
     if (token) fetchMe().catch(() => undefined);
     else if (isAuthenticated) void logout();
 
-    const timers: ReturnType<typeof setTimeout>[] = [];
-    const startPreload = () => PRELOAD_ROUTES.forEach((route, index) => {
-      timers.push(setTimeout(() => router.prefetch(route), index * 650));
+    PRELOAD_ROUTES.forEach((route) => {
+      router.prefetch(route);
     });
-    const idleWindow = window as Window & { requestIdleCallback?: (callback: () => void, options?: { timeout: number }) => number; cancelIdleCallback?: (id: number) => void };
-    const idleId = idleWindow.requestIdleCallback?.(startPreload, { timeout: 2500 });
-    if (idleId === undefined) timers.push(setTimeout(startPreload, 1800));
-    return () => {
-      timers.forEach(clearTimeout);
-      if (idleId !== undefined) idleWindow.cancelIdleCallback?.(idleId);
-    };
   }, [fetchMe, isAuthenticated, logout, router]);
 
   useEffect(() => {
