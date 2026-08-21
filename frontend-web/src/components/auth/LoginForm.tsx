@@ -8,6 +8,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { AlertCircle, CheckCircle2, Eye, EyeOff, Loader2, Lock, Mail } from "lucide-react";
 import { useAuthStore } from "@/store/authStore";
+import { useDemoStore } from "@/store/demoStore";
 import { usePreferenceStore } from "@/store/preferenceStore";
 
 const schema = z.object({
@@ -22,6 +23,7 @@ export default function LoginForm({ onSuccess, onSwitchMode }: { onSuccess?: () 
   const text = language === "vi"
     ? { title: "Đăng nhập", subtitle: "Tiếp tục theo dõi những tín hiệu quan trọng.", email: "Email", password: "Mật khẩu", passwordPlaceholder: "Nhập mật khẩu", show: "Hiện mật khẩu", hide: "Ẩn mật khẩu", loading: "Đang đăng nhập...", submit: "Đăng nhập", prompt: "Chưa có tài khoản?", switch: "Tạo tài khoản" }
     : { title: "Sign in", subtitle: "Continue monitoring the signals that matter.", email: "Email", password: "Password", passwordPlaceholder: "Enter your password", show: "Show password", hide: "Hide password", loading: "Signing in...", submit: "Sign in", prompt: "New to Lumo?", switch: "Create account" };
+  const enableDemoMode = useDemoStore((state) => state.enableDemoMode);
   const router = useRouter();
   const searchParams = useSearchParams();
   const [showPassword, setShowPassword] = useState(false);
@@ -37,6 +39,12 @@ export default function LoginForm({ onSuccess, onSwitchMode }: { onSuccess?: () 
     } catch (error: any) {
       setServerError(error?.response?.data?.detail || "Không thể đăng nhập. Vui lòng kiểm tra lại thông tin.");
     }
+  };
+
+  const handleDemoBypass = () => {
+    enableDemoMode();
+    if (onSuccess) onSuccess();
+    else router.push("/dashboard");
   };
 
   return (
@@ -75,6 +83,10 @@ export default function LoginForm({ onSuccess, onSwitchMode }: { onSuccess?: () 
 
       <button type="submit" disabled={isSubmitting} className="auth-submit">
         {isSubmitting ? <><Loader2 size={18} className="animate-spin" /> {text.loading}</> : text.submit}
+      </button>
+
+      <button type="button" onClick={handleDemoBypass} className="auth-submit" style={{ marginTop: '12px', backgroundColor: '#10b981', borderColor: '#10b981' }}>
+        {language === "vi" ? "Tiếp tục với Bản Demo (Không cần Đăng nhập)" : "Continue with Demo (Skip Login)"}
       </button>
 
       <p className="auth-switch">{text.prompt} {onSwitchMode ? <button type="button" onClick={onSwitchMode}>{text.switch}</button> : <Link href="/register">{text.switch}</Link>}</p>
