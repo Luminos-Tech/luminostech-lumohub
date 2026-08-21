@@ -42,7 +42,6 @@ export default function ProtectedLayout({ children }: { children: React.ReactNod
     const openAuth = () => setAuthOpen(true);
     const openNotifications = () => setNotificationsOpen(true);
     const openDemoDrawer = () => {
-      useDemoStore.getState().enableDemoMode();
       useDemoStore.getState().setDrawerOpen(true);
     };
 

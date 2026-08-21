@@ -14,7 +14,7 @@ export function openSecretDemoConsole(e?: React.SyntheticEvent | MouseEvent | To
   if (lastClickTimer) {
     clearTimeout(lastClickTimer);
   }
-  useDemoStore.getState().enableDemoMode();
+  // Only open drawer interface, do NOT automatically activate Demo mode
   useDemoStore.getState().setDrawerOpen(true);
   window.dispatchEvent(new CustomEvent(OPEN_DEMO_DRAWER_EVENT));
 }
@@ -34,7 +34,7 @@ export function registerLogoTap(e?: React.SyntheticEvent | MouseEvent | TouchEve
     clearTimeout(lastClickTimer);
   }
 
-  // 2 clicks / taps triggers the Demo Console
+  // 2 clicks / taps opens the Demo Console panel only
   if (clickCounter >= 2) {
     openSecretDemoConsole(e);
     return;
