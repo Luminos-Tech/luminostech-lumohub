@@ -232,7 +232,7 @@ export default function AccountPage() {
       if (isDemoMode) {
         useDemoStore.getState().setMockUser({ full_name: data.full_name, phone: data.phone });
         setShowEditProfileModal(false);
-        toast.success(language === "vi" ? "Đã cập nhật hồ sơ mẫu trong Demo" : "Demo profile updated");
+        toast.success(language === "vi" ? "Đã cập nhật thông tin cá nhân" : "Profile updated successfully");
         return;
       }
 

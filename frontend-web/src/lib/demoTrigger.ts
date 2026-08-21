@@ -1,4 +1,3 @@
-import { toast } from "sonner";
 import { useDemoStore } from "@/store/demoStore";
 import { OPEN_DEMO_DRAWER_EVENT } from "./uiEvents";
 
@@ -18,6 +17,5 @@ export function registerLogoTap(e?: React.MouseEvent | React.TouchEvent | React.
     useDemoStore.getState().enableDemoMode();
     useDemoStore.getState().setDrawerOpen(true);
     window.dispatchEvent(new CustomEvent(OPEN_DEMO_DRAWER_EVENT));
-    toast.success("✨ Đã mở Bảng điều khiển Demo LUMO!");
   }
 }

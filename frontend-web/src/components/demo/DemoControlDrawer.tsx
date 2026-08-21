@@ -186,13 +186,12 @@ export default function DemoControlDrawer() {
       if ((e.ctrlKey && e.shiftKey && e.key.toLowerCase() === "d") || (e.altKey && e.key.toLowerCase() === "d")) {
         e.preventDefault();
         toggleDrawer();
-        toast.info(isDrawerOpen ? (isEnglish ? "Demo Panel Closed" : "Đã đóng Demo Panel") : (isEnglish ? "LUMO Demo Panel Opened" : "Đã mở Bảng điều khiển Demo LUMO"));
       }
     };
 
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [isDrawerOpen, isEnglish, toggleDrawer]);
+  }, [toggleDrawer]);
 
   return (
     <>
@@ -593,7 +592,6 @@ export default function DemoControlDrawer() {
                     onClick={() => {
                       setFamilyPreset("ba_me");
                       setSelectedPersonId("profile_1");
-                      toast.success(isEnglish ? "Switched to: Mother & Father (2 people)" : "Đã chuyển sang cấu hình 2 người: Mẹ & Ba");
                     }}
                     className={`py-2 px-2.5 rounded-xl font-bold border text-left flex items-center gap-2 transition-all ${
                       familyPreset === "ba_me"
@@ -613,7 +611,6 @@ export default function DemoControlDrawer() {
                     onClick={() => {
                       setFamilyPreset("ong_ba");
                       setSelectedPersonId("profile_1");
-                      toast.success(isEnglish ? "Switched to: Grandparents (2 people)" : "Đã chuyển sang cấu hình 2 người: Bà & Ông");
                     }}
                     className={`py-2 px-2.5 rounded-xl font-bold border text-left flex items-center gap-2 transition-all ${
                       familyPreset === "ong_ba"
@@ -633,7 +630,6 @@ export default function DemoControlDrawer() {
                     onClick={() => {
                       setFamilyPreset("single_me");
                       setSelectedPersonId("profile_1");
-                      toast.success(isEnglish ? "Switched to: Mother only (1 person)" : "Đã chuyển sang cấu hình 1 người: Mẹ");
                     }}
                     className={`py-2 px-2.5 rounded-xl font-bold border text-left flex items-center gap-2 transition-all ${
                       familyPreset === "single_me"
@@ -653,7 +649,6 @@ export default function DemoControlDrawer() {
                     onClick={() => {
                       setFamilyPreset("single_ba");
                       setSelectedPersonId("profile_1");
-                      toast.success(isEnglish ? "Switched to: Grandma only (1 person)" : "Đã chuyển sang cấu hình 1 người: Bà");
                     }}
                     className={`py-2 px-2.5 rounded-xl font-bold border text-left flex items-center gap-2 transition-all ${
                       familyPreset === "single_ba"
@@ -976,7 +971,6 @@ export default function DemoControlDrawer() {
                 onClick={() => {
                   resetToDefault();
                   setSelectedPersonId("profile_1");
-                  toast.success(isEnglish ? "Restored initial standard demo state!" : "Đã khôi phục trạng thái demo chuẩn ban đầu!");
                 }}
                 className="w-full py-3 px-3 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 font-semibold flex items-center justify-center gap-2 transition-colors"
               >
@@ -996,7 +990,6 @@ export default function DemoControlDrawer() {
                 setTimeout(() => {
                   window.dispatchEvent(new CustomEvent(OPEN_AUTH_EVENT));
                 }, 120);
-                toast.info(isEnglish ? "Demo mode turned off. Please log in with your real account." : "Đã tắt chế độ Demo. Vui lòng đăng nhập tài khoản thật.");
               }}
               className="w-full py-2.5 px-3 rounded-xl bg-red-950/40 hover:bg-red-900/60 border border-red-500/40 text-red-200 hover:text-white font-bold text-xs flex items-center justify-center gap-2 transition-all active:scale-[0.98] shadow-xs"
             >
