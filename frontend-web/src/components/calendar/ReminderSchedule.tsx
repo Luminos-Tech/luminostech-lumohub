@@ -133,7 +133,7 @@ export default function ReminderSchedule() {
         <span className="reminder-heading-icon"><HeartHandshake size={25} /></span>
       </header>
 
-      <section className="next-reminder-card" aria-label={copy.next}>
+      <section className="next-reminder-bg-white rounded-2xl border border-gray-100 shadow-soft" aria-label={copy.next}>
         <span className="next-reminder-icon"><BellRing size={24} /></span>
         <div>
           <small>{copy.next}</small>

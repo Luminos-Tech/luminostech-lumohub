@@ -16,9 +16,13 @@ export const useNotificationStore = create<NotificationState>((set, get) => ({
   unreadCount: 0,
 
   fetchNotifications: async () => {
-    const res = await api.get<Notification[]>("/notifications");
-    const notifs = res.data;
-    set({ notifications: notifs, unreadCount: notifs.filter((n) => !n.is_read).length });
+    try {
+      const res = await api.get<Notification[]>("/notifications");
+      const notifs = res.data;
+      set({ notifications: notifs, unreadCount: notifs.filter((n) => !n.is_read).length });
+    } catch (error) {
+      console.error("Failed to fetch notifications:", error);
+    }
   },
 
   receiveNotification: (notification) => {
@@ -35,18 +39,26 @@ export const useNotificationStore = create<NotificationState>((set, get) => ({
   },
 
   markRead: async (id) => {
-    await api.patch(`/notifications/${id}/read`);
-    set((s) => {
-      const updated = s.notifications.map((n) => (n.id === id ? { ...n, is_read: true } : n));
-      return { notifications: updated, unreadCount: updated.filter((n) => !n.is_read).length };
-    });
+    try {
+      await api.patch(`/notifications/${id}/read`);
+      set((s) => {
+        const updated = s.notifications.map((n) => (n.id === id ? { ...n, is_read: true } : n));
+        return { notifications: updated, unreadCount: updated.filter((n) => !n.is_read).length };
+      });
+    } catch (error) {
+      console.error("Failed to mark notification as read:", error);
+    }
   },
 
   markAllRead: async () => {
-    await api.patch("/notifications/read-all");
-    set((s) => ({
-      notifications: s.notifications.map((n) => ({ ...n, is_read: true })),
-      unreadCount: 0,
-    }));
+    try {
+      await api.patch("/notifications/read-all");
+      set((s) => ({
+        notifications: s.notifications.map((n) => ({ ...n, is_read: true })),
+        unreadCount: 0,
+      }));
+    } catch (error) {
+      console.error("Failed to mark all notifications as read:", error);
+    }
   },
 }));

@@ -74,36 +74,36 @@ export default function EventFormModal({ event, prefillFrom, defaultStart, defau
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">{t.title} *</label>
-          <input {...register("title")} className="input-field" placeholder={t.eventName} />
+          <input {...register("title")} className="w-full px-3.5 py-2.5 border border-gray-200 rounded-xl text-sm bg-white focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 disabled:bg-gray-50 disabled:cursor-not-allowed transition-all duration-150 placeholder:text-gray-400" placeholder={t.eventName} />
           {errors.title && <p className="text-red-500 text-xs mt-1">{errors.title.message}</p>}
         </div>
 
         <div className="grid grid-cols-2 gap-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">{t.start} *</label>
-            <input {...register("start_time")} type="datetime-local" className="input-field" />
+            <input {...register("start_time")} type="datetime-local" className="w-full px-3.5 py-2.5 border border-gray-200 rounded-xl text-sm bg-white focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 disabled:bg-gray-50 disabled:cursor-not-allowed transition-all duration-150 placeholder:text-gray-400" />
             {errors.start_time && <p className="text-red-500 text-xs mt-1">{errors.start_time.message}</p>}
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">{t.end} *</label>
-            <input {...register("end_time")} type="datetime-local" className="input-field" />
+            <input {...register("end_time")} type="datetime-local" className="w-full px-3.5 py-2.5 border border-gray-200 rounded-xl text-sm bg-white focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 disabled:bg-gray-50 disabled:cursor-not-allowed transition-all duration-150 placeholder:text-gray-400" />
           </div>
         </div>
 
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">{t.location}</label>
-          <input {...register("location")} className="input-field" placeholder={t.locationHint} />
+          <input {...register("location")} className="w-full px-3.5 py-2.5 border border-gray-200 rounded-xl text-sm bg-white focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 disabled:bg-gray-50 disabled:cursor-not-allowed transition-all duration-150 placeholder:text-gray-400" placeholder={t.locationHint} />
         </div>
 
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">{t.description}</label>
-          <textarea {...register("description")} className="input-field resize-none h-20" placeholder={t.descriptionHint} />
+          <textarea {...register("description")} className="w-full px-3.5 py-2.5 border border-gray-200 rounded-xl text-sm bg-white focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 disabled:bg-gray-50 disabled:cursor-not-allowed transition-all duration-150 placeholder:text-gray-400 resize-none h-20" placeholder={t.descriptionHint} />
         </div>
 
         <div className="grid grid-cols-2 gap-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">{t.priority}</label>
-            <select {...register("priority")} className="input-field">
+            <select {...register("priority")} className="w-full px-3.5 py-2.5 border border-gray-200 rounded-xl text-sm bg-white focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 disabled:bg-gray-50 disabled:cursor-not-allowed transition-all duration-150 placeholder:text-gray-400">
               <option value="low">{t.low}</option><option value="normal">{t.normal}</option><option value="high">{t.high}</option>
             </select>
           </div>
@@ -128,11 +128,11 @@ export default function EventFormModal({ event, prefillFrom, defaultStart, defau
                 <input
                   {...register(`reminders.${index}.remind_before_minutes`)}
                   type="number" min={1}
-                  className="input-field w-24"
+                  className="w-full px-3.5 py-2.5 border border-gray-200 rounded-xl text-sm bg-white focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 disabled:bg-gray-50 disabled:cursor-not-allowed transition-all duration-150 placeholder:text-gray-400 w-24"
                   placeholder="15"
                 />
                 <span className="text-sm text-gray-500 whitespace-nowrap">{t.minutesBefore}</span>
-                <select {...register(`reminders.${index}.channel`)} className="input-field flex-1">
+                <select {...register(`reminders.${index}.channel`)} className="w-full px-3.5 py-2.5 border border-gray-200 rounded-xl text-sm bg-white focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 disabled:bg-gray-50 disabled:cursor-not-allowed transition-all duration-150 placeholder:text-gray-400 flex-1">
                   <option value="web">Web</option>
                   <option value="mobile">Mobile</option>
                   <option value="lumo">{t.voice}</option>
@@ -146,8 +146,8 @@ export default function EventFormModal({ event, prefillFrom, defaultStart, defau
         </div>
 
         <div className="flex justify-end gap-3 pt-2">
-          <button type="button" onClick={onClose} className="btn-secondary">{t.cancel}</button>
-          <button type="submit" disabled={isSubmitting} className="btn-primary">
+          <button type="button" onClick={onClose} className="inline-flex items-center gap-2 px-4 py-2 bg-white text-gray-700 border border-gray-200 rounded-xl font-semibold text-sm hover:bg-gray-50 hover:border-gray-300 active:scale-[0.97] transition-all duration-150">{t.cancel}</button>
+          <button type="submit" disabled={isSubmitting} className="inline-flex items-center gap-2 px-4 py-2 bg-primary-600 text-white rounded-xl font-semibold text-sm hover:bg-primary-700 active:scale-[0.97] transition-all duration-150 disabled:opacity-50 disabled:cursor-not-allowed shadow-sm hover:shadow-md">
             {isSubmitting ? t.saving : isEdit ? t.update : t.submit}
           </button>
         </div>

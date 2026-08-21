@@ -68,7 +68,7 @@ export default function DemoFallAlertModal() {
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-red-950/80 backdrop-blur-md animate-in fade-in duration-200">
       <div className="relative w-full max-w-lg overflow-hidden rounded-3xl bg-slate-900 border-2 border-red-500/80 shadow-2xl shadow-red-500/30 text-white p-6 sm:p-8 flex flex-col items-center text-center">
         
-        {/* Pulsing emergency badge */}
+        {/* Pulsing emergency inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold tracking-wide */}
         <div className="relative mb-4">
           <div className="absolute -inset-3 rounded-full bg-red-500/40 animate-ping" />
           <div className="relative flex items-center justify-center w-20 h-20 rounded-full bg-red-600 border-4 border-red-400 shadow-lg text-white">
