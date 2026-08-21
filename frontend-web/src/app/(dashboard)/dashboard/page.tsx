@@ -2,8 +2,8 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { addDays, format, startOfWeek, startOfMonth, endOfMonth, eachDayOfInterval } from "date-fns";
-import { BatteryFull, BatteryMedium, BatteryWarning, CalendarCheck2, Check, CheckCircle2, ChevronRight, Clock3, ShieldAlert, ShieldCheck, Timer } from "lucide-react";
+import { addDays, format, startOfWeek, startOfMonth, endOfMonth, eachDayOfInterval, subMonths, addMonths } from "date-fns";
+import { BatteryFull, BatteryMedium, BatteryWarning, CalendarCheck2, Check, CheckCircle2, ChevronRight, ChevronLeft, Clock3, ShieldAlert, ShieldCheck, Timer } from "lucide-react";
 import { LumoBandIcon } from "@/components/icons/LumoDeviceIcons";
 import { useAuthStore } from "@/store/authStore";
 import { useDeviceStore } from "@/store/deviceStore";
@@ -33,12 +33,15 @@ export default function DashboardPage() {
   const language = usePreferenceStore((state) => state.language);
   const isEnglish = language === "en";
   const [now, setNow] = useState<Date | null>(null);
+  const [currentMonth, setCurrentMonth] = useState<Date | null>(null);
   const [isBatteryModalOpen, setIsBatteryModalOpen] = useState(false);
   const [isSafetyModalOpen, setIsSafetyModalOpen] = useState(false);
   const [isCalendarModalOpen, setIsCalendarModalOpen] = useState(false);
 
   useEffect(() => {
-    setNow(new Date());
+    const d = new Date();
+    setNow(d);
+    setCurrentMonth(d);
   }, []);
 
   useEffect(() => {
@@ -82,8 +85,8 @@ export default function DashboardPage() {
     ? (demoCheckedIn ? (demoLastCheckIn || "07:15") : null)
     : (todayStatus?.last_click_at ? format(parseUTC(todayStatus.last_click_at), "HH:mm") : null);
 
-  const monthStart = now ? startOfMonth(now) : null;
-  const monthEnd = now ? endOfMonth(now) : null;
+  const monthStart = currentMonth ? startOfMonth(currentMonth) : null;
+  const monthEnd = currentMonth ? endOfMonth(currentMonth) : null;
   const monthDays = monthStart && monthEnd ? eachDayOfInterval({ start: monthStart, end: monthEnd }) : [];
   // Calculate padding for the first day (assuming Monday is start of week)
   const monthStartDayOfWeek = monthStart ? (monthStart.getDay() === 0 ? 6 : monthStart.getDay() - 1) : 0;
@@ -310,43 +313,55 @@ export default function DashboardPage() {
       </Modal>
 
       <Modal open={isCalendarModalOpen} onClose={() => setIsCalendarModalOpen(false)} title={copy.monthlyCheckins}>
-        <div className="p-2 pb-4">
-          <div className="grid grid-cols-7 gap-1 text-center mb-6">
+        <div className="p-1 pb-2">
+          <div className="flex items-center justify-between mb-4 bg-gray-50 dark:bg-[#102a31] rounded-lg p-1">
+            <button onClick={() => setCurrentMonth(prev => prev ? subMonths(prev, 1) : null)} className="p-1.5 text-gray-500 hover:bg-gray-200 dark:hover:bg-[#183840] rounded-md transition-colors">
+              <ChevronLeft size={18} />
+            </button>
+            <span className="font-bold text-sm text-gray-700 dark:text-gray-300">
+              {currentMonth ? format(currentMonth, "MM / yyyy") : ""}
+            </span>
+            <button onClick={() => setCurrentMonth(prev => prev ? addMonths(prev, 1) : null)} className="p-1.5 text-gray-500 hover:bg-gray-200 dark:hover:bg-[#183840] rounded-md transition-colors">
+              <ChevronRight size={18} />
+            </button>
+          </div>
+
+          <div className="grid grid-cols-7 gap-1 text-center mb-4">
             {dayLabels.map(label => (
-              <span key={label} className="text-[11px] font-bold text-gray-400 dark:text-gray-500 uppercase">{label}</span>
+              <span key={label} className="text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase">{label}</span>
             ))}
           </div>
           
-          <div className="grid grid-cols-7 gap-y-5 gap-x-2 justify-items-center">
+          <div className="grid grid-cols-7 gap-y-3 gap-x-1 justify-items-center">
             {Array.from({ length: monthStartDayOfWeek }).map((_, i) => (
               <div key={`blank-${i}`} />
             ))}
             
             {monthDays.map((day, i) => {
               const dateKey = format(day, "yyyy-MM-dd");
-              const isTodayKey = Boolean(dateKey === todayKey);
+              const isTodayKey = Boolean(todayKey && dateKey === todayKey);
               const isChecked = eventDays.has(dateKey) || (isTodayKey && checkedIn);
               const isFuture = day.getTime() > (now?.getTime() ?? 0) && !isTodayKey;
               
               return (
-                <div key={i} className="flex flex-col items-center gap-1.5 w-full">
-                  <span className={`text-[11px] font-semibold ${isTodayKey ? "text-[#d7652b]" : "text-gray-500"}`}>
+                <div key={i} className="flex flex-col items-center gap-1 w-full">
+                  <span className={`text-[10px] font-semibold ${isTodayKey ? "text-[#d7652b]" : "text-gray-500"}`}>
                     {format(day, "d")}
                   </span>
-                  <div className={`w-[32px] h-[32px] sm:w-[36px] sm:h-[36px] rounded-full border-[2.5px] flex items-center justify-center transition-all
+                  <div className={`w-[28px] h-[28px] sm:w-[32px] sm:h-[32px] rounded-full border-[2px] flex items-center justify-center transition-all
                     ${isChecked ? "border-[#ff8a4c] bg-[#ff8a4c] text-white" : "border-[#dce6e7] dark:border-gray-700 bg-white dark:bg-[#102a31] text-transparent"}
-                    ${isTodayKey && !isChecked ? "shadow-[0_0_0_3px_#fff,0_0_0_5px_#e4b51d] dark:shadow-[0_0_0_3px_#102a31,0_0_0_5px_#e4b51d]" : ""}
-                    ${isFuture ? "opacity-35" : ""}
+                    ${isTodayKey && !isChecked ? "shadow-[0_0_0_2px_#fff,0_0_0_4px_#e4b51d] dark:shadow-[0_0_0_2px_#102a31,0_0_0_4px_#e4b51d]" : ""}
+                    ${isFuture ? "opacity-30" : ""}
                   `}>
-                    {isChecked && <Check size={16} strokeWidth={3.5} />}
+                    {isChecked && <Check size={14} strokeWidth={3.5} />}
                   </div>
                 </div>
               );
             })}
           </div>
           
-          <div className="mt-10 flex justify-end">
-             <Button className="w-full sm:w-auto" onClick={() => setIsCalendarModalOpen(false)}>
+          <div className="mt-6 flex justify-end">
+             <Button className="w-full sm:w-auto" onClick={() => { setIsCalendarModalOpen(false); setCurrentMonth(now); }}>
                {isEnglish ? "Close" : "Đóng"}
              </Button>
           </div>
