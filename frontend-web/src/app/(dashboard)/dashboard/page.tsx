@@ -241,7 +241,7 @@ export default function DashboardPage() {
         <ChevronRight size={19} />
       </Link>
 
-      <Modal open={isBatteryModalOpen} onClose={() => setIsBatteryModalOpen(false)} title={isEnglish ? "Battery Details" : "Chi tiết Pin"}>
+      <Modal open={isBatteryModalOpen} onClose={() => setIsBatteryModalOpen(false)}>
         <div className="flex flex-col items-center gap-4 py-4 text-center">
           <div className="p-4 bg-gray-50 dark:bg-gray-800 rounded-full">
             <LumoBandIcon size={48} className="text-gray-700 dark:text-gray-300" />
@@ -267,10 +267,7 @@ export default function DashboardPage() {
             }
           </div>
           
-          <div className="w-full mt-4 flex gap-3">
-            <Button variant="secondary" className="flex-1" onClick={() => setIsBatteryModalOpen(false)}>
-              {isEnglish ? "Close" : "Đóng"}
-            </Button>
+          <div className="w-full mt-4 flex">
             <Link href="/settings/devices" className="flex-1">
               <Button className="w-full">{isEnglish ? "Manage Devices" : "Quản lý thiết bị"}</Button>
             </Link>
@@ -278,7 +275,7 @@ export default function DashboardPage() {
         </div>
       </Modal>
 
-      <Modal open={isSafetyModalOpen} onClose={() => setIsSafetyModalOpen(false)} title={isEnglish ? "Fall Detection" : "Cảm biến Té ngã"}>
+      <Modal open={isSafetyModalOpen} onClose={() => setIsSafetyModalOpen(false)}>
         <div className="flex flex-col items-center gap-4 py-4 text-center">
           <div className={`p-4 rounded-full ${fallDetected ? "bg-red-100 text-red-600" : "bg-emerald-50 text-emerald-600"}`}>
             {fallDetected ? <ShieldAlert size={48} /> : <ShieldCheck size={48} />}
@@ -304,11 +301,6 @@ export default function DashboardPage() {
             }
           </div>
 
-          <div className="w-full mt-4 flex gap-3">
-            <Button className="flex-1" onClick={() => setIsSafetyModalOpen(false)}>
-              {isEnglish ? "Understood" : "Đã hiểu"}
-            </Button>
-          </div>
         </div>
       </Modal>
 
