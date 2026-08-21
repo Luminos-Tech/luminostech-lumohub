@@ -22,6 +22,7 @@ import {
   Wifi,
   X,
   Zap,
+  Bell,
 } from "lucide-react";
 import { toast } from "sonner";
 import { useDemoStore } from "@/store/demoStore";
