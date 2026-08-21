@@ -1003,7 +1003,7 @@ export default function DemoControlDrawer() {
                 LUMO Hub {networkStatus.toUpperCase()} · {isEnglish ? `${bandProfiles.length} family members` : `${bandProfiles.length} người thân`}
               </span>
               <span className="text-purple-400 font-medium shrink-0 text-[10px]">
-                {isEnglish ? "Tap Logo 3x to reopen" : "Nhấn 3 lần Logo để mở lại"}
+                {isEnglish ? "Double-tap Logo to reopen" : "Nhấp đúp Logo để mở lại"}
               </span>
             </div>
           </div>

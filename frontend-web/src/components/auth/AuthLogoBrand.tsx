@@ -1,5 +1,5 @@
 import Image from "next/image";
-import { registerLogoTap } from "@/lib/demoTrigger";
+import { registerLogoTap, openSecretDemoConsole } from "@/lib/demoTrigger";
 
 export default function AuthLogoBrand() {
   return (
@@ -7,7 +7,7 @@ export default function AuthLogoBrand() {
       type="button"
       className="auth-brand cursor-pointer select-none active:opacity-80 transition-opacity bg-transparent border-0 p-0 text-left" 
       aria-label="Lumo - Trang chủ" 
-      onPointerDown={(e) => registerLogoTap(e)}
+      onDoubleClick={(e) => openSecretDemoConsole(e)}
       onClick={(e) => registerLogoTap(e)}
     >
       <span className="auth-brand-mark">

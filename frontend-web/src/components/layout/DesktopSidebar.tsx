@@ -6,7 +6,7 @@ import { usePathname } from "next/navigation";
 import { Bell, UserRound } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { OPEN_AUTH_EVENT, OPEN_NOTIFICATIONS_EVENT } from "@/lib/uiEvents";
-import { registerLogoTap } from "@/lib/demoTrigger";
+import { registerLogoTap, openSecretDemoConsole } from "@/lib/demoTrigger";
 import { useAuthStore } from "@/store/authStore";
 import { useNotificationStore } from "@/store/notificationStore";
 import { usePreferenceStore } from "@/store/preferenceStore";
@@ -38,7 +38,7 @@ export default function DesktopSidebar() {
         type="button"
         className="desktop-sidebar-brand cursor-pointer select-none active:opacity-80 transition-opacity bg-transparent border-0 p-0 text-left" 
         aria-label="Lumo Home" 
-        onPointerDown={(e) => registerLogoTap(e)}
+        onDoubleClick={(e) => openSecretDemoConsole(e)}
         onClick={(e) => registerLogoTap(e)}
       >
         <Image src="/logo-luminostech.png" alt="LuminosTech" width={46} height={46} sizes="46px" priority />

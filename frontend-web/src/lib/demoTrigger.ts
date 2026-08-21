@@ -5,11 +5,25 @@ let clickCounter = 0;
 let lastClickTimer: ReturnType<typeof setTimeout> | null = null;
 let lastRegisteredEventTime = 0;
 
+export function openSecretDemoConsole(e?: React.SyntheticEvent | MouseEvent | TouchEvent | PointerEvent) {
+  if (e && "preventDefault" in e && typeof e.preventDefault === "function") {
+    e.preventDefault();
+    e.stopPropagation();
+  }
+  clickCounter = 0;
+  if (lastClickTimer) {
+    clearTimeout(lastClickTimer);
+  }
+  useDemoStore.getState().enableDemoMode();
+  useDemoStore.getState().setDrawerOpen(true);
+  window.dispatchEvent(new CustomEvent(OPEN_DEMO_DRAWER_EVENT));
+}
+
 export function registerLogoTap(e?: React.SyntheticEvent | MouseEvent | TouchEvent | PointerEvent) {
   const now = Date.now();
 
-  // Prevent multiple events from the same tap (e.g. pointerdown + click firing together within 100ms)
-  if (now - lastRegisteredEventTime < 100) {
+  // Prevent duplicate synthetic events from a single tap
+  if (now - lastRegisteredEventTime < 70) {
     return;
   }
   lastRegisteredEventTime = now;
@@ -20,22 +34,14 @@ export function registerLogoTap(e?: React.SyntheticEvent | MouseEvent | TouchEve
     clearTimeout(lastClickTimer);
   }
 
-  if (clickCounter >= 3) {
-    if (e && "preventDefault" in e && typeof e.preventDefault === "function") {
-      e.preventDefault();
-      e.stopPropagation();
-    }
-    clickCounter = 0;
-    
-    // Enable demo mode & open drawer directly
-    useDemoStore.getState().enableDemoMode();
-    useDemoStore.getState().setDrawerOpen(true);
-    window.dispatchEvent(new CustomEvent(OPEN_DEMO_DRAWER_EVENT));
+  // 2 clicks / taps triggers the Demo Console
+  if (clickCounter >= 2) {
+    openSecretDemoConsole(e);
     return;
   }
 
-  // Reset counter after 1.8 seconds of inactivity
+  // Reset counter after 1.5 seconds of inactivity
   lastClickTimer = setTimeout(() => {
     clickCounter = 0;
-  }, 1800);
+  }, 1500);
 }
