@@ -34,16 +34,16 @@ export default function DesktopSidebar() {
 
   return (
     <aside className="desktop-sidebar">
-      <Link 
-        href="/dashboard" 
-        className="desktop-sidebar-brand cursor-pointer select-none active:opacity-80 transition-opacity" 
+      <button
+        type="button"
+        className="desktop-sidebar-brand cursor-pointer select-none active:opacity-80 transition-opacity bg-transparent border-0 p-0 text-left" 
         aria-label="Lumo Home" 
         onPointerDown={(e) => registerLogoTap(e)}
         onClick={(e) => registerLogoTap(e)}
       >
         <Image src="/logo-luminostech.png" alt="LuminosTech" width={46} height={46} sizes="46px" priority />
         <span><strong>LUMO</strong><small>by LuminosTech</small></span>
-      </Link>
+      </button>
 
       <nav className="desktop-sidebar-nav" aria-label={text.navigation}>
         {navItems.map((item) => {

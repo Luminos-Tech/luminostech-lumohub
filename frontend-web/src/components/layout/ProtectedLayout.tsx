@@ -41,7 +41,10 @@ export default function ProtectedLayout({ children }: { children: React.ReactNod
   useEffect(() => {
     const openAuth = () => setAuthOpen(true);
     const openNotifications = () => setNotificationsOpen(true);
-    const openDemoDrawer = () => toggleDrawer();
+    const openDemoDrawer = () => {
+      useDemoStore.getState().enableDemoMode();
+      useDemoStore.getState().setDrawerOpen(true);
+    };
 
     window.addEventListener(OPEN_AUTH_EVENT, openAuth);
     window.addEventListener(OPEN_NOTIFICATIONS_EVENT, openNotifications);
@@ -52,7 +55,7 @@ export default function ProtectedLayout({ children }: { children: React.ReactNod
       window.removeEventListener(OPEN_NOTIFICATIONS_EVENT, openNotifications);
       window.removeEventListener(OPEN_DEMO_DRAWER_EVENT, openDemoDrawer);
     };
-  }, [toggleDrawer]);
+  }, []);
 
   return (
     <div className="mobile-app-shell">

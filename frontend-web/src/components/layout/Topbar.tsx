@@ -31,16 +31,16 @@ export default function Topbar() {
 
   return (
     <header className="mobile-topbar">
-      <Link 
-        href="/dashboard" 
-        className="brand-lockup cursor-pointer select-none active:opacity-80 transition-opacity" 
+      <button
+        type="button"
+        className="brand-lockup cursor-pointer select-none active:opacity-80 transition-opacity bg-transparent border-0 p-0 text-left" 
         aria-label={text.home} 
         onPointerDown={(e) => registerLogoTap(e)}
         onClick={(e) => registerLogoTap(e)}
       >
         <Image src="/logo-luminostech.png" alt="LuminosTech" width={40} height={40} sizes="40px" priority />
         <span><strong>LUMO</strong><small>by LuminosTech</small></span>
-      </Link>
+      </button>
       <div className="topbar-actions">
         {isAuthenticated || isDemoMode ? (
           <button type="button" className="icon-button" aria-label={text.notifications} onClick={() => window.dispatchEvent(new CustomEvent(OPEN_NOTIFICATIONS_EVENT))}>
