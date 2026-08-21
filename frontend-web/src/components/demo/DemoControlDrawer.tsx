@@ -35,7 +35,7 @@ import { useDemoStore, FamilyPreset } from "@/store/demoStore";
 import { useNotificationStore } from "@/store/notificationStore";
 import { usePreferenceStore } from "@/store/preferenceStore";
 import { useAuthStore } from "@/store/authStore";
-import { OPEN_NOTIFICATIONS_EVENT } from "@/lib/uiEvents";
+import { OPEN_AUTH_EVENT, OPEN_NOTIFICATIONS_EVENT } from "@/lib/uiEvents";
 
 export default function DemoControlDrawer() {
   const isEnglish = usePreferenceStore((state) => state.language === "en");
@@ -992,7 +992,10 @@ export default function DemoControlDrawer() {
               onClick={() => {
                 disableDemoMode();
                 void logout();
-                router.push("/login");
+                router.push("/dashboard");
+                setTimeout(() => {
+                  window.dispatchEvent(new CustomEvent(OPEN_AUTH_EVENT));
+                }, 120);
                 toast.info(isEnglish ? "Demo mode turned off. Please log in with your real account." : "Đã tắt chế độ Demo. Vui lòng đăng nhập tài khoản thật.");
               }}
               className="w-full py-2.5 px-3 rounded-xl bg-red-950/40 hover:bg-red-900/60 border border-red-500/40 text-red-200 hover:text-white font-bold text-xs flex items-center justify-center gap-2 transition-all active:scale-[0.98] shadow-xs"

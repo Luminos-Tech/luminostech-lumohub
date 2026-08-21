@@ -38,6 +38,7 @@ import { useAuthStore } from "@/store/authStore";
 import { usePreferenceStore, type LumoVoiceIdVi, type LumoVoiceIdEn } from "@/store/preferenceStore";
 import { useDemoStore } from "@/store/demoStore";
 import { LumoBandIcon } from "@/components/icons/LumoDeviceIcons";
+import { OPEN_AUTH_EVENT } from "@/lib/uiEvents";
 import { APP_VERSION } from "@/lib/version";
 
 
@@ -264,7 +265,10 @@ export default function AccountPage() {
       disableDemoMode();
     }
     await logout();
-    router.replace("/login");
+    router.replace("/dashboard");
+    setTimeout(() => {
+      window.dispatchEvent(new CustomEvent(OPEN_AUTH_EVENT));
+    }, 120);
   };
 
   const togglePushNotifications = async () => {
@@ -317,7 +321,10 @@ export default function AccountPage() {
             onClick={() => {
               disableDemoMode();
               void logout();
-              router.replace("/login");
+              router.replace("/dashboard");
+              setTimeout(() => {
+                window.dispatchEvent(new CustomEvent(OPEN_AUTH_EVENT));
+              }, 120);
               toast.info(language === "vi" ? "Đã tắt Demo. Vui lòng đăng nhập tài khoản thật." : "Demo turned off. Please log in with your real account.");
             }}
             className="px-3 py-1.5 rounded-xl bg-red-600 hover:bg-red-500 text-white font-bold text-xs transition-colors shrink-0 shadow-xs flex items-center gap-1.5 active:scale-95"
