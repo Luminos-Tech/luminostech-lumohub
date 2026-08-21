@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { addDays, format, startOfWeek } from "date-fns";
+import { addDays, format, startOfWeek, startOfMonth, endOfMonth, eachDayOfInterval } from "date-fns";
 import { BatteryFull, BatteryMedium, BatteryWarning, CalendarCheck2, Check, CheckCircle2, ChevronRight, Clock3, ShieldAlert, ShieldCheck, Timer } from "lucide-react";
 import { LumoBandIcon } from "@/components/icons/LumoDeviceIcons";
 import { useAuthStore } from "@/store/authStore";
@@ -35,6 +35,7 @@ export default function DashboardPage() {
   const [now, setNow] = useState<Date | null>(null);
   const [isBatteryModalOpen, setIsBatteryModalOpen] = useState(false);
   const [isSafetyModalOpen, setIsSafetyModalOpen] = useState(false);
+  const [isCalendarModalOpen, setIsCalendarModalOpen] = useState(false);
 
   useEffect(() => {
     setNow(new Date());
@@ -64,10 +65,11 @@ export default function DashboardPage() {
   const eventDays = new Set(effectiveEvents.map((event) => format(parseUTC(event.time_button_click), "yyyy-MM-dd")));
   const weekStart = now ? startOfWeek(now, { weekStartsOn: 1 }) : null;
   const dayLabels = isEnglish ? ["M", "T", "W", "T", "F", "S", "S"] : ["T2", "T3", "T4", "T5", "T6", "T7", "CN"];
+  const todayKey = now ? format(now, "yyyy-MM-dd") : "";
   const weekDays = dayLabels.map((label, index) => {
     const date = weekStart ? addDays(weekStart, index) : null;
     const key = date ? format(date, "yyyy-MM-dd") : "";
-    const isTodayKey = Boolean(date && now && format(date, "yyyy-MM-dd") === format(now, "yyyy-MM-dd"));
+    const isTodayKey = Boolean(key && todayKey && key === todayKey);
     return {
       label,
       checked: isTodayKey ? checkedIn : Boolean(key && eventDays.has(key)),
@@ -80,6 +82,12 @@ export default function DashboardPage() {
     ? (demoCheckedIn ? (demoLastCheckIn || "07:15") : null)
     : (todayStatus?.last_click_at ? format(parseUTC(todayStatus.last_click_at), "HH:mm") : null);
 
+  const monthStart = now ? startOfMonth(now) : null;
+  const monthEnd = now ? endOfMonth(now) : null;
+  const monthDays = monthStart && monthEnd ? eachDayOfInterval({ start: monthStart, end: monthEnd }) : [];
+  // Calculate padding for the first day (assuming Monday is start of week)
+  const monthStartDayOfWeek = monthStart ? (monthStart.getDay() === 0 ? 6 : monthStart.getDay() - 1) : 0;
+
   const copy = isEnglish ? {
     checked: "Checked in today",
     waiting: "Not checked in yet",
@@ -90,6 +98,7 @@ export default function DashboardPage() {
     summary: "Daily overview",
     thisWeek: "This week",
     checkinDays: "Check-in days",
+    monthlyCheckins: "Monthly check-ins",
     dayUnit: "days",
     today: "Today",
     done: "Done",
@@ -115,6 +124,7 @@ export default function DashboardPage() {
     summary: "Theo dõi an tâm Cha Mẹ từ xa",
     thisWeek: "Tuần này",
     checkinDays: "Ngày chạm xác nhận",
+    monthlyCheckins: "Lịch sử tháng này",
     dayUnit: "ngày",
     today: "Hôm nay",
     done: "Đã xác nhận",
@@ -172,7 +182,7 @@ export default function DashboardPage() {
           <div><small>{copy.today}</small><strong>{checkedIn ? copy.checked : copy.waiting}</strong><p>{lastCheckTime ? `${copy.lastCheck} ${lastCheckTime}` : copy.waitingHint}</p></div>
         </div>
 
-        <div className="weekly-checkin">
+        <button onClick={() => setIsCalendarModalOpen(true)} className="weekly-checkin w-full text-left cursor-pointer transition-transform active:scale-[0.98]">
           <div className="weekly-checkin-heading"><span>{copy.thisWeek}</span><strong>{weeklyCheckins}/7 {copy.dayUnit}</strong></div>
           <div className="weekly-checkin-days">
             {weekDays.map((day, index) => (
@@ -181,7 +191,7 @@ export default function DashboardPage() {
               </div>
             ))}
           </div>
-        </div>
+        </button>
 
         <div className="health-summary-metrics">
           <div className="summary-metric checkin">
@@ -295,6 +305,50 @@ export default function DashboardPage() {
             <Button className="flex-1" onClick={() => setIsSafetyModalOpen(false)}>
               {isEnglish ? "Understood" : "Đã hiểu"}
             </Button>
+          </div>
+        </div>
+      </Modal>
+
+      <Modal open={isCalendarModalOpen} onClose={() => setIsCalendarModalOpen(false)} title={copy.monthlyCheckins}>
+        <div className="p-2 pb-4">
+          <div className="grid grid-cols-7 gap-1 text-center mb-6">
+            {dayLabels.map(label => (
+              <span key={label} className="text-[11px] font-bold text-gray-400 dark:text-gray-500 uppercase">{label}</span>
+            ))}
+          </div>
+          
+          <div className="grid grid-cols-7 gap-y-5 gap-x-2 justify-items-center">
+            {Array.from({ length: monthStartDayOfWeek }).map((_, i) => (
+              <div key={`blank-${i}`} />
+            ))}
+            
+            {monthDays.map((day, i) => {
+              const dateKey = format(day, "yyyy-MM-dd");
+              const isTodayKey = Boolean(dateKey === todayKey);
+              const isChecked = eventDays.has(dateKey) || (isTodayKey && checkedIn);
+              const isFuture = day.getTime() > (now?.getTime() ?? 0) && !isTodayKey;
+              
+              return (
+                <div key={i} className="flex flex-col items-center gap-1.5 w-full">
+                  <span className={`text-[11px] font-semibold ${isTodayKey ? "text-[#d7652b]" : "text-gray-500"}`}>
+                    {format(day, "d")}
+                  </span>
+                  <div className={`w-[32px] h-[32px] sm:w-[36px] sm:h-[36px] rounded-full border-[2.5px] flex items-center justify-center transition-all
+                    ${isChecked ? "border-[#ff8a4c] bg-[#ff8a4c] text-white" : "border-[#dce6e7] dark:border-gray-700 bg-white dark:bg-[#102a31] text-transparent"}
+                    ${isTodayKey && !isChecked ? "shadow-[0_0_0_3px_#fff,0_0_0_5px_#e4b51d] dark:shadow-[0_0_0_3px_#102a31,0_0_0_5px_#e4b51d]" : ""}
+                    ${isFuture ? "opacity-35" : ""}
+                  `}>
+                    {isChecked && <Check size={16} strokeWidth={3.5} />}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+          
+          <div className="mt-10 flex justify-end">
+             <Button className="w-full sm:w-auto" onClick={() => setIsCalendarModalOpen(false)}>
+               {isEnglish ? "Close" : "Đóng"}
+             </Button>
           </div>
         </div>
       </Modal>
