@@ -11,6 +11,7 @@ import { useDeviceStore } from "@/store/deviceStore";
 import { useEventButtonStore } from "@/store/eventButtonStore";
 import { usePreferenceStore } from "@/store/preferenceStore";
 import { useDemoStore, formatDisplayPersonName } from "@/store/demoStore";
+import type { MockProfile } from "@/types/demo";
 import { parseUTC } from "@/lib/utils";
 import Modal from "@/components/common/Modal";
 import Button from "@/components/common/Button";
@@ -26,7 +27,9 @@ export default function DashboardPage() {
     mockRecentEvents,
     mockProfiles,
     activeDashboardProfileId,
-    setActiveDashboardProfileId
+    setActiveDashboardProfileId,
+    updateMockProfile,
+    dismissFallAlert,
   } = useDemoStore();
 
   const activeProfile = mockProfiles?.find(p => p.id === activeDashboardProfileId) || mockProfiles?.[1];
@@ -44,6 +47,8 @@ export default function DashboardPage() {
   const [isBatteryModalOpen, setIsBatteryModalOpen] = useState(false);
   const [isSafetyModalOpen, setIsSafetyModalOpen] = useState(false);
   const [isCalendarModalOpen, setIsCalendarModalOpen] = useState(false);
+  const [selectedSafetyProfile, setSelectedSafetyProfile] = useState<MockProfile | null>(null);
+  const [selectedBatteryProfile, setSelectedBatteryProfile] = useState<MockProfile | null>(null);
 
   useEffect(() => {
     const d = new Date();
@@ -358,7 +363,10 @@ export default function DashboardPage() {
               return (
                 <button 
                   key={`battery-${p.id}`} 
-                  onClick={() => setIsBatteryModalOpen(true)} 
+                  onClick={() => {
+                    setSelectedBatteryProfile(p);
+                    setIsBatteryModalOpen(true);
+                  }} 
                   className={`flex flex-col gap-1.5 p-3.5 rounded-[18px] border shadow-xs text-left active:scale-[0.98] transition-all ${
                     isLow
                       ? "border-amber-200/90 dark:border-amber-800/50 bg-gradient-to-br from-[#fff7ed] via-[#ffedd5]/70 to-[#fed7aa]/40 dark:bg-gradient-to-br dark:from-[#431407]/60 dark:to-[#270c04]"
@@ -391,7 +399,10 @@ export default function DashboardPage() {
               return (
                 <button 
                   key={`fall-${p.id}`} 
-                  onClick={() => setIsSafetyModalOpen(true)} 
+                  onClick={() => {
+                    setSelectedSafetyProfile(p);
+                    setIsSafetyModalOpen(true);
+                  }} 
                   className={`flex flex-col gap-1.5 p-3.5 rounded-[18px] border shadow-xs text-left active:scale-[0.98] transition-all ${
                     fall 
                       ? "border-red-300 dark:border-red-600/60 bg-gradient-to-br from-[#fff1f2] via-[#ffe4e6] to-[#fecdd3] dark:bg-gradient-to-br dark:from-[#4c0519]/70 dark:to-[#2b030e] animate-pulse" 
@@ -463,7 +474,10 @@ export default function DashboardPage() {
               <div className="grid grid-cols-2 gap-3">
                 {/* Battery — Fresh Teal */}
                 <button
-                  onClick={() => setIsBatteryModalOpen(true)}
+                  onClick={() => {
+                    setSelectedBatteryProfile(activeProfile || null);
+                    setIsBatteryModalOpen(true);
+                  }}
                   className="flex flex-col p-4 rounded-[20px] border border-teal-200/90 dark:border-teal-800/50 bg-gradient-to-br from-[#f0fdfa] via-[#ccfbf1]/60 to-[#99f6e4]/30 dark:bg-gradient-to-br dark:from-[#134e4a]/60 dark:to-[#042f2e] shadow-xs text-left active:scale-[0.98] transition-all"
                 >
                   <div className="flex items-center gap-2.5 mb-3">
@@ -482,7 +496,10 @@ export default function DashboardPage() {
 
                 {/* Fall detection — Purple / Red */}
                 <button
-                  onClick={() => setIsSafetyModalOpen(true)}
+                  onClick={() => {
+                    setSelectedSafetyProfile(activeProfile || null);
+                    setIsSafetyModalOpen(true);
+                  }}
                   className={`flex flex-col p-4 rounded-[20px] border shadow-xs text-left active:scale-[0.98] transition-all ${
                     fallDetected
                       ? "border-red-300 dark:border-red-600/60 bg-gradient-to-br from-[#fff1f2] via-[#ffe4e6] to-[#fecdd3] dark:bg-gradient-to-br dark:from-[#4c0519]/70 dark:to-[#2b030e] animate-pulse"
@@ -539,66 +556,109 @@ export default function DashboardPage() {
       )}
 
       <Modal open={isBatteryModalOpen} onClose={() => setIsBatteryModalOpen(false)}>
-        <div className="flex flex-col items-center gap-4 py-4 text-center">
-          <div className="p-4 bg-gray-50 dark:bg-gray-800 rounded-full">
-            <LumoBandIcon size={48} className="text-gray-700 dark:text-gray-300" />
-          </div>
-          <div>
-            <h3 className="text-2xl font-bold flex items-center justify-center gap-2">
-              {batteryData.icon}
-              <span className={batteryData.color}>{batteryData.text}</span>
-            </h3>
-            <p className="text-gray-500 font-medium mt-1">
-              {typeof batteryLevel === "number" ? copy.batteryNormal : copy.noBattery}
-            </p>
-          </div>
-          
-          <div className="bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 p-4 rounded-xl text-sm w-full mt-2">
-            {isEnglish 
-              ? (typeof batteryLevel === "number" && batteryLevel <= 20 
-                  ? "Battery is low. Please charge the device as soon as possible." 
-                  : "Battery is sufficient for continuous monitoring. Recommend charging when below 20%.")
-              : (typeof batteryLevel === "number" && batteryLevel <= 20 
-                  ? "Pin đang ở mức thấp. Vui lòng sạc thiết bị càng sớm càng tốt để đảm bảo kết nối." 
-                  : "Lượng pin đủ để hoạt động liên tục. Nên sạc thiết bị khi pin dưới 20%.")
-            }
-          </div>
-          
-          <div className="w-full mt-4 flex">
-            <Link href="/settings/devices" className="flex-1">
-              <Button className="w-full">{isEnglish ? "Manage Devices" : "Quản lý thiết bị"}</Button>
-            </Link>
-          </div>
-        </div>
+        {(() => {
+          const effectiveProfile = isDemoMode ? (selectedBatteryProfile || activeProfile) : null;
+          const currentBat = isDemoMode 
+            ? (effectiveProfile?.batteryLevel ?? 88)
+            : batteryLevel;
+          const bData = getBatteryDisplay(currentBat);
+          const personName = isDemoMode && effectiveProfile
+            ? formatDisplayPersonName(effectiveProfile.name, isEnglish)
+            : (activeDevice?.device_id ? `LUMO Band (${activeDevice.device_id})` : (isEnglish ? "Device" : "Thiết bị"));
+
+          return (
+            <div className="flex flex-col items-center gap-4 py-4 text-center">
+              <div className="p-4 bg-gray-50 dark:bg-gray-800 rounded-full">
+                <LumoBandIcon size={48} className="text-gray-700 dark:text-gray-300" />
+              </div>
+              <div>
+                <h3 className="text-2xl font-bold flex items-center justify-center gap-2">
+                  {bData.icon}
+                  <span className={bData.color}>{bData.text}</span>
+                </h3>
+                <p className="text-gray-500 font-medium mt-1 text-sm">
+                  {isEnglish ? `LUMO Band of ${personName}` : `Pin LUMO Band của ${personName}`}
+                </p>
+              </div>
+              
+              <div className="bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 p-4 rounded-xl text-sm w-full mt-2 text-left">
+                {isEnglish 
+                  ? (typeof currentBat === "number" && currentBat <= 20 
+                      ? `Battery of ${personName} is low (${currentBat}%). Please charge the device as soon as possible.` 
+                      : `Battery level (${currentBat}%) is sufficient for continuous monitoring. Recommend charging when below 20%.`)
+                  : (typeof currentBat === "number" && currentBat <= 20 
+                      ? `Pin của ${personName} đang ở mức thấp (${currentBat}%). Vui lòng sạc thiết bị càng sớm càng tốt để đảm bảo kết nối.` 
+                      : `Lượng pin (${currentBat}%) đủ để hoạt động liên tục. Nên sạc thiết bị khi pin dưới 20%.`)
+                }
+              </div>
+              
+              <div className="w-full mt-2 flex">
+                <Link href="/settings/devices" className="flex-1">
+                  <Button className="w-full">{isEnglish ? "Manage Devices" : "Quản lý thiết bị"}</Button>
+                </Link>
+              </div>
+            </div>
+          );
+        })()}
       </Modal>
 
       <Modal open={isSafetyModalOpen} onClose={() => setIsSafetyModalOpen(false)}>
-        <div className="flex flex-col items-center gap-4 py-4 text-center">
-          <div className={`p-4 rounded-full ${fallDetected ? "bg-red-100 text-red-600" : "bg-emerald-50 text-emerald-600"}`}>
-            {fallDetected ? <ShieldAlert size={48} /> : <ShieldCheck size={48} />}
-          </div>
-          
-          <div>
-            <h3 className="text-xl font-bold">
-              {fallDetected === true ? copy.fall : fallDetected === false ? copy.noFall : copy.noSafety}
-            </h3>
-            <p className="text-gray-500 font-medium mt-1">
-              {fallDetected === undefined ? copy.safetyConnecting : fallDetected ? copy.safetyAlert : copy.safetyActive}
-            </p>
-          </div>
+        {(() => {
+          const effectiveProfile = isDemoMode ? (selectedSafetyProfile || activeProfile) : null;
+          const isFall = isDemoMode 
+            ? Boolean(effectiveProfile?.fallDetected)
+            : Boolean(fallDetected);
+          const personName = isDemoMode && effectiveProfile
+            ? formatDisplayPersonName(effectiveProfile.name, isEnglish)
+            : (activeDevice?.device_id ? `LUMO Band (${activeDevice.device_id})` : (isEnglish ? "Family member" : "Người thân"));
 
-          <div className={`p-4 rounded-xl text-sm w-full mt-2 ${fallDetected ? "bg-red-50 dark:bg-red-900/30 text-red-700 dark:text-red-300" : "bg-gray-50 dark:bg-gray-800 text-gray-600 dark:text-gray-400"}`}>
-            {fallDetected 
-              ? (isEnglish 
-                  ? "A fall has been detected! Please contact the user immediately to check their safety. If it's a false alarm, you can ignore this." 
-                  : "Cảm biến vừa ghi nhận một cú ngã! Vui lòng liên hệ ngay với Cha/Mẹ để kiểm tra tình trạng. Nếu đây là báo động nhầm, bạn có thể bỏ qua.")
-              : (isEnglish
-                  ? "Fall detection is active 24/7. An alert will be sent immediately if a sudden fall is detected."
-                  : "Cảm biến té ngã đang hoạt động 24/7. Hệ thống sẽ tự động gửi cảnh báo khẩn cấp nếu phát hiện Cha/Mẹ bị ngã.")
-            }
-          </div>
+          return (
+            <div className="flex flex-col items-center gap-4 py-4 text-center">
+              <div className={`p-4 rounded-full ${isFall ? "bg-red-100 dark:bg-red-950/60 text-red-600 dark:text-red-400 animate-pulse ring-4 ring-red-500/20" : "bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400"}`}>
+                {isFall ? <ShieldAlert size={48} /> : <ShieldCheck size={48} />}
+              </div>
+              
+              <div>
+                <h3 className={`text-xl sm:text-2xl font-black ${isFall ? "text-red-600 dark:text-red-400" : "text-slate-900 dark:text-white"}`}>
+                  {isFall 
+                    ? (isEnglish ? `Fall detected for ${personName}!` : `Phát hiện ${personName} bị té ngã!`) 
+                    : (isEnglish ? `${personName} is safe` : `${personName} vẫn an toàn`)}
+                </h3>
+                <p className="text-gray-500 font-medium mt-1 text-xs sm:text-sm">
+                  {isFall 
+                    ? (isEnglish ? "Immediate alert recorded by LUMO Band sensor" : "Cảnh báo khẩn cấp vừa ghi nhận từ cảm biến LUMO Band")
+                    : (isEnglish ? "Fall detection sensor active 24/7" : "Cảm biến té ngã đang theo dõi 24/7")}
+                </p>
+              </div>
 
-        </div>
+              <div className={`p-4 rounded-2xl text-xs sm:text-sm w-full mt-1 text-left leading-relaxed ${isFall ? "bg-red-50 dark:bg-red-950/40 text-red-700 dark:text-red-300 border border-red-200 dark:border-red-800/60" : "bg-gray-50 dark:bg-gray-800/80 text-gray-600 dark:text-gray-400 border border-gray-200/60 dark:border-gray-700"}`}>
+                {isFall 
+                  ? (isEnglish 
+                      ? `LUMO Band detected a sudden impact for ${personName} and did not receive a safe touch confirmation. Please contact them immediately to verify safety.` 
+                      : `Cảm biến LUMO Band vừa phát hiện va chạm mạnh của ${personName} và chưa nhận được phản hồi chạm xác nhận. Vui lòng gọi điện hoặc đến kiểm tra ngay.`)
+                  : (isEnglish
+                      ? `Fall detection is active 24/7 on ${personName}'s LUMO Band. An emergency alert will trigger immediately if a sudden fall occurs.`
+                      : `Cảm biến té ngã trên vòng đeo của ${personName} đang bảo vệ 24/7. Hệ thống sẽ tự động gửi cảnh báo khẩn cấp ngay khi phát hiện té ngã.`)
+                }
+              </div>
+
+              {isFall && isDemoMode && effectiveProfile && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    updateMockProfile(effectiveProfile.id, { fallDetected: false });
+                    dismissFallAlert();
+                    setIsSafetyModalOpen(false);
+                  }}
+                  className="w-full py-3 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-sm shadow-md transition-all active:scale-95 flex items-center justify-center gap-2 mt-1"
+                >
+                  <ShieldCheck size={18} />
+                  <span>{isEnglish ? "Confirm Safe & Dismiss Alert" : "Xác nhận đã an toàn (Tắt cảnh báo)"}</span>
+                </button>
+              )}
+            </div>
+          );
+        })()}
       </Modal>
 
       <Modal open={isCalendarModalOpen} onClose={() => { setIsCalendarModalOpen(false); setCurrentMonth(now); }}>
