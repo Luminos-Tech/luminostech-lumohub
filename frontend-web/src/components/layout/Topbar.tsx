@@ -12,9 +12,13 @@ import { useDemoStore } from "@/store/demoStore";
 
 export default function Topbar() {
   const { user, isAuthenticated } = useAuthStore();
-  const { unreadCount, fetchNotifications } = useNotificationStore();
-  const { isDemoMode, mockUser, toggleDrawer } = useDemoStore();
+  const { unreadCount: storeUnreadCount, notifications, fetchNotifications } = useNotificationStore();
+  const { isDemoMode, mockUser, toggleDrawer, mockNotifications } = useDemoStore();
   const language = usePreferenceStore((state) => state.language);
+
+  const unreadCount = isDemoMode && notifications.length === 0
+    ? mockNotifications.filter((n) => !n.is_read).length
+    : storeUnreadCount;
 
   const clickCountRef = useRef(0);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);

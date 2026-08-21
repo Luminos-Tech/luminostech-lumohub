@@ -1,6 +1,7 @@
 import { create } from "zustand";
 import type { Notification } from "@/types";
 import { api } from "@/lib/api";
+import { useDemoStore } from "./demoStore";
 
 interface NotificationState {
   notifications: Notification[];
@@ -21,7 +22,11 @@ export const useNotificationStore = create<NotificationState>((set, get) => ({
       const notifs = res.data;
       set({ notifications: notifs, unreadCount: notifs.filter((n) => !n.is_read).length });
     } catch (error) {
-      console.error("Failed to fetch notifications:", error);
+      const demoState = useDemoStore.getState();
+      if (demoState?.mockNotifications) {
+        const unread = demoState.mockNotifications.filter((n) => !n.is_read).length;
+        set((s) => ({ ...s, unreadCount: unread }));
+      }
     }
   },
 
@@ -39,26 +44,30 @@ export const useNotificationStore = create<NotificationState>((set, get) => ({
   },
 
   markRead: async (id) => {
+    set((s) => {
+      const updated = s.notifications.map((n) => (n.id === id ? { ...n, is_read: true } : n));
+      return { notifications: updated, unreadCount: updated.filter((n) => !n.is_read).length };
+    });
+    useDemoStore.getState().markMockNotificationRead?.(id);
+
     try {
       await api.patch(`/notifications/${id}/read`);
-      set((s) => {
-        const updated = s.notifications.map((n) => (n.id === id ? { ...n, is_read: true } : n));
-        return { notifications: updated, unreadCount: updated.filter((n) => !n.is_read).length };
-      });
-    } catch (error) {
-      console.error("Failed to mark notification as read:", error);
+    } catch {
+      // Offline / demo mode fallback
     }
   },
 
   markAllRead: async () => {
+    set((s) => ({
+      notifications: s.notifications.map((n) => ({ ...n, is_read: true })),
+      unreadCount: 0,
+    }));
+    useDemoStore.getState().markAllMockNotificationsRead?.();
+
     try {
       await api.patch("/notifications/read-all");
-      set((s) => ({
-        notifications: s.notifications.map((n) => ({ ...n, is_read: true })),
-        unreadCount: 0,
-      }));
-    } catch (error) {
-      console.error("Failed to mark all notifications as read:", error);
+    } catch {
+      // Offline / demo mode fallback
     }
   },
 }));

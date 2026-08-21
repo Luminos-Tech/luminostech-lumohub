@@ -6,7 +6,8 @@ import { toast } from "sonner";
 import { useDemoStore } from "@/store/demoStore";
 
 export default function DemoMedicationModal() {
-  const { activeScenarioModal, closeScenarioModal } = useDemoStore();
+  const { activeScenarioModal, closeScenarioModal, mockProfiles, demoTargetProfileId } = useDemoStore();
+  const targetProfile = mockProfiles?.find(p => p.id === demoTargetProfileId) || mockProfiles?.find(p => p.type === "band") || { name: "Mẹ", icon: "👵" };
   const [isPlayingAudio, setIsPlayingAudio] = useState(false);
   const [isTaken, setIsTaken] = useState(false);
 
@@ -19,7 +20,7 @@ export default function DemoMedicationModal() {
 
     if (typeof window !== "undefined" && "speechSynthesis" in window) {
       window.speechSynthesis.cancel();
-      const text = "Mẹ ơi đến 9 giờ rồi, mẹ nhớ uống 1 viên thuốc huyết áp màu trắng và 1 viên thuốc khớp nhé!";
+      const text = `${targetProfile.name} ơi đến 9 giờ rồi, nhớ uống 1 viên thuốc huyết áp màu trắng và 1 viên thuốc khớp nhé!`;
       const utterance = new SpeechSynthesisUtterance(text);
       utterance.lang = "vi-VN";
       utterance.rate = 0.95;
@@ -36,13 +37,13 @@ export default function DemoMedicationModal() {
   const handleConfirmTaken = () => {
     setIsTaken(true);
     toast.custom((t) => (
-      <div className="bg-[#102a31] border border-emerald-500/30 rounded-2xl p-4 flex gap-4 items-center shadow-2xl shadow-emerald-900/20 max-w-sm w-full">
-        <div className="w-10 h-10 rounded-full bg-emerald-500/20 flex items-center justify-center flex-shrink-0">
-          <CheckCircle2 size={20} className="text-emerald-400" />
+      <div className="bg-white/95 dark:bg-[#102a31]/95 backdrop-blur-md border border-emerald-200 dark:border-emerald-500/30 rounded-2xl p-4 flex gap-4 items-center shadow-xl shadow-emerald-950/10 dark:shadow-2xl dark:shadow-emerald-900/20 max-w-sm w-full">
+        <div className="w-10 h-10 rounded-full bg-emerald-50 dark:bg-emerald-500/20 border border-emerald-200 dark:border-emerald-500/30 flex items-center justify-center shrink-0 text-emerald-600 dark:text-emerald-400">
+          <CheckCircle2 size={20} />
         </div>
         <div>
-          <h4 className="font-bold text-white text-sm">Uống thuốc đúng giờ</h4>
-          <p className="text-gray-300 text-xs mt-0.5">Đã ghi nhận: Mẹ Mai đã uống thuốc đúng lịch sáng.</p>
+          <h4 className="font-bold text-slate-900 dark:text-white text-sm">Uống thuốc đúng giờ</h4>
+          <p className="text-slate-600 dark:text-gray-300 text-xs mt-0.5">Đã ghi nhận: {targetProfile.name} đã uống thuốc đúng lịch sáng.</p>
         </div>
       </div>
     ));
@@ -110,13 +111,13 @@ export default function DemoMedicationModal() {
           <div className="flex items-center justify-between mb-2">
             <div className="flex items-center gap-2 text-xs font-semibold text-amber-300">
               <Mic size={15} />
-              <span>Lời nhắn thoại từ Con gái (Chị Linh):</span>
+              <span>Lời nhắn thoại từ người thân:</span>
             </div>
             <span className="text-[11px] text-slate-400">0:12s</span>
           </div>
           
           <p className="text-xs italic text-slate-300 mb-3 bg-slate-900/50 p-2.5 rounded-xl border border-slate-800">
-            &ldquo;Mẹ ơi đến 9 giờ rồi, mẹ nhớ uống 1 viên thuốc huyết áp màu trắng và 1 viên thuốc khớp nhé!&rdquo;
+            &ldquo;{targetProfile.name} ơi đến 9 giờ rồi, nhớ uống 1 viên thuốc huyết áp màu trắng và 1 viên thuốc khớp nhé!&rdquo;
           </p>
 
           <button

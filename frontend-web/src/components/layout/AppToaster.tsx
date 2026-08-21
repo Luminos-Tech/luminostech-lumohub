@@ -7,7 +7,7 @@ export default function AppToaster() {
   const theme = usePreferenceStore((state) => state.theme);
   
   // Convert our theme preference to sonner's expected theme prop
-  const activeTheme = theme === "system" ? "system" : theme === "dark" ? "dark" : "light";
+  const activeTheme = theme === "dark" ? "dark" : "light";
 
   return (
     <Toaster 

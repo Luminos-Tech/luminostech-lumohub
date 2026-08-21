@@ -577,14 +577,9 @@ button:focus-visible, a:focus-visible, input:focus-visible, textarea:focus-visib
 [data-theme="dark"] .fc .fc-scrollgrid td,
 [data-theme="dark"] .fc .fc-scrollgrid th,
 [data-theme="dark"] .fc td,
-[data-theme="dark"] .fc th { border-color: rgba(200,229,232,.14); }
-[data-theme="dark"] .bottom-nav-item.active { color: #08232a; background: #dff7ff; }
-[data-theme="dark"] .bottom-nav-item.active .dock-icon { color: #08232a; background: transparent; }
-
-/* Readable, lighter typography aligned with the Lumo storefront. */
-html { font-size: 17px; }
+/* Readable, balanced typography aligned with the Lumo storefront. */
+html { font-size: 16px; }
 body :where(strong, b) { font-weight: 600; }
-body :where(.font-black, .font-extrabold, .font-bold) { font-weight: 600 !important; }
 
 .brand-lockup strong { font-weight: 700; }
 .brand-lockup small { font-size: 8px; font-weight: 600; }

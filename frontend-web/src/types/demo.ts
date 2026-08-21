@@ -1,0 +1,18 @@
+export type MockProfile = {
+  id: string;
+  name: string;
+  fullName?: string;
+  address?: string;
+  caregiver?: string;
+  phone?: string;
+  age?: string;
+  type: "band" | "hub" | "overview";
+  icon: string;
+  device_id?: string;
+  batteryLevel?: number;
+  activityMinutes?: number;
+  fallDetected?: boolean;
+  checkedInToday?: boolean;
+  lastCheckInTime?: string | null;
+  hubOnline?: boolean;
+};

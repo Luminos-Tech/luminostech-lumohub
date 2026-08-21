@@ -5,7 +5,11 @@ import { AlertTriangle, BellRing, Check, MapPin, PhoneCall, ShieldAlert, X } fro
 import { useDemoStore } from "@/store/demoStore";
 
 export default function DemoFallAlertModal() {
-  const { activeScenarioModal, lastFallTime, dismissFallAlert } = useDemoStore();
+  const { activeScenarioModal, lastFallTime, dismissFallAlert, mockProfiles, demoTargetProfileId } = useDemoStore();
+  const targetProfile = mockProfiles?.find(p => p.id === demoTargetProfileId) || mockProfiles?.find(p => p.type === 'band') || { name: "Mẹ", device_id: "LH-8821" };
+  const targetName = targetProfile?.name || "Mẹ";
+  const targetDeviceId = targetProfile?.device_id || "LH-8821";
+
   const [countdown, setCountdown] = useState(30);
   const [isCalling, setIsCalling] = useState(false);
   const audioContextRef = useRef<AudioContext | null>(null);
@@ -90,25 +94,47 @@ export default function DemoFallAlertModal() {
         </p>
 
         {/* Location & Status Card */}
-        <div className="w-full bg-slate-800/80 border border-slate-700/80 rounded-2xl p-4 mb-6 text-left space-y-2.5">
-          <div className="flex items-center justify-between text-xs text-slate-400">
-            <span>Thiết bị: <strong className="text-slate-200">LUMO Band (LH-8821)</strong></span>
-            <span className="flex items-center gap-1 text-red-400 font-medium">
+        <div className="w-full bg-slate-800/90 border border-slate-700/80 rounded-2xl p-4 mb-6 text-left space-y-3 shadow-md">
+          {/* Device & Signal Header */}
+          <div className="flex items-center justify-between gap-2 pb-2.5 border-b border-slate-700/60">
+            <div className="flex items-center gap-2 min-w-0">
+              <span className="w-7 h-7 rounded-lg bg-red-500/20 text-red-400 flex items-center justify-center shrink-0">
+                <ShieldAlert size={15} />
+              </span>
+              <div className="min-w-0">
+                <span className="text-[10px] uppercase font-bold text-slate-400 block tracking-wider leading-none mb-0.5">Thiết bị gửi SOS</span>
+                <strong className="text-slate-100 font-bold text-xs truncate block">LUMO Band ({targetDeviceId})</strong>
+              </div>
+            </div>
+            <span className="inline-flex items-center gap-1.5 text-red-300 font-semibold bg-red-950/80 px-2.5 py-1 rounded-full border border-red-700/60 text-[11px] whitespace-nowrap shrink-0 shadow-xs">
               <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse" /> Đang phát tín hiệu
             </span>
           </div>
 
-          <div className="flex items-start gap-2.5 pt-1 border-t border-slate-700/50">
+          {/* Location row */}
+          <div className="flex items-start gap-2.5 pt-0.5">
             <MapPin size={18} className="text-red-400 shrink-0 mt-0.5" />
-            <div className="text-xs">
-              <p className="font-semibold text-slate-200">Vị trí: Phòng Khách (Tầng 1)</p>
-              <p className="text-slate-400">Nhà số 18, Ngõ 42 Liễu Giai, Ba Đình, Hà Nội</p>
+            <div className="text-xs min-w-0 flex-1">
+              <p className="font-semibold text-slate-200">
+                Vị trí người thân: {targetProfile.fullName ? `${targetProfile.fullName} (${targetName})` : targetName}
+              </p>
+              <p className="text-slate-400 leading-snug mt-0.5">
+                {targetProfile.address || "Số 18, Ngõ 42 Liễu Giai, Ba Đình, Hà Nội"}
+              </p>
             </div>
           </div>
 
-          <div className="flex items-center justify-between text-xs pt-1 border-t border-slate-700/50 text-slate-300">
-            <span>Người theo dõi: <strong>Anh Nguyễn Minh Trí (Con trai)</strong></span>
-            <span className="text-emerald-400 font-medium">Đã gửi SMS & App Alert</span>
+          {/* Caregiver & SMS Alert row - structured vertically/flex to avoid any text collision */}
+          <div className="pt-2 border-t border-slate-700/50 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs">
+            <div className="min-w-0 flex-1">
+              <span className="text-slate-400 block text-[11px]">Người theo dõi khẩn cấp:</span>
+              <strong className="text-slate-200 font-semibold block leading-tight mt-0.5">
+                {targetProfile.caregiver || "Anh Trí (Con trai - 0988 123 456)"}
+              </strong>
+            </div>
+            <span className="inline-flex items-center gap-1 self-start sm:self-auto text-[11px] font-semibold text-emerald-300 bg-emerald-950/70 border border-emerald-800/60 px-2.5 py-1 rounded-full shrink-0 shadow-xs">
+              ✓ Đã gửi SMS & App Alert
+            </span>
           </div>
         </div>
 
@@ -133,7 +159,7 @@ export default function DemoFallAlertModal() {
             className="w-full py-3.5 px-4 rounded-xl bg-red-600 hover:bg-red-500 active:scale-[0.98] transition-all font-bold text-white flex items-center justify-center gap-2 shadow-lg shadow-red-600/40 text-sm"
           >
             <PhoneCall size={18} />
-            {isCalling ? "Đang kết nối cuộc gọi..." : "Gọi điện ngay cho Mẹ"}
+            {isCalling ? "Đang kết nối cuộc gọi..." : `Gọi điện ngay cho ${targetName}`}
           </button>
 
           <button
@@ -142,12 +168,12 @@ export default function DemoFallAlertModal() {
             className="w-full py-3.5 px-4 rounded-xl bg-slate-800 hover:bg-slate-700 active:scale-[0.98] transition-all font-semibold text-slate-200 border border-slate-600 flex items-center justify-center gap-2 text-sm"
           >
             <Check size={18} className="text-emerald-400" />
-            Đã liên hệ Mẹ (Xác nhận an toàn)
+            Đã liên hệ {targetName} (Xác nhận an toàn)
           </button>
         </div>
 
         <p className="mt-3 text-[11px] text-slate-400 leading-relaxed">
-          💡 <em>Mẹ có thể chạm trực tiếp mặt cảm biến trên LUMO Band để tắt cảnh báo báo nhầm. Nếu Mẹ không chạm, ứng dụng sẽ gọi cấp cứu 115 sau {countdown}s.</em>
+          💡 <em>{targetName} có thể chạm trực tiếp mặt cảm biến trên LUMO Band ({targetDeviceId}) để tắt cảnh báo báo nhầm. Nếu không chạm, ứng dụng sẽ gọi cấp cứu 115 sau {countdown}s.</em>
         </p>
 
 

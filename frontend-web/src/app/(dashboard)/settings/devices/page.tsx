@@ -11,7 +11,7 @@ import Modal from "@/components/common/Modal";
 import { adminApi } from "@/features/admin/api";
 import { useDeviceStore } from "@/store/deviceStore";
 import { usePreferenceStore } from "@/store/preferenceStore";
-import { useDemoStore } from "@/store/demoStore";
+import { useDemoStore, formatDisplayPersonName } from "@/store/demoStore";
 import type { Device } from "@/types";
 
 const BAND_TYPICAL_BATTERY_DAYS = 730;
@@ -127,63 +127,136 @@ function NotifyModal({
 
 function DeviceInfoModal({
   device,
+  profile,
   type,
   onClose,
   isEnglish,
 }: {
-  device: Device;
+  device?: Device;
+  profile?: { id: string; name: string; type: string; icon?: string; device_id?: string; batteryLevel?: number; hubOnline?: boolean };
   type: "hub" | "band";
   onClose: () => void;
   isEnglish: boolean;
 }) {
-  const purchaseDate = parseISO(device.created_at);
-  const warrantyEnd = addYears(purchaseDate, 1);
-  const macSuffix = String(device.device_id).replace("LH-", "").padEnd(4, "0").slice(0, 4);
-  const mac = `00:1A:2B:4C:${macSuffix.substring(0,2)}:${macSuffix.substring(2,4)}`;
+  const deviceId = profile?.device_id || device?.device_id || (type === "hub" ? "LB-100" : "LH-8821");
+  const isOnline = profile ? (type === "hub" ? (profile.hubOnline ?? true) : true) : (device?.is_active ?? true);
   
+  const purchaseDateStr = device?.created_at || (deviceId === "LH-8822" ? "2025-06-10T08:00:00Z" : deviceId === "LB-101" ? "2025-07-01T10:00:00Z" : "2025-05-15T08:00:00Z");
+  const purchaseDate = parseISO(purchaseDateStr);
+  const warrantyEnd = addYears(purchaseDate, 2);
+  const remainingDays = Math.max(0, Math.ceil((warrantyEnd.getTime() - Date.now()) / (1000 * 60 * 60 * 24)));
+  
+  const macSuffix = String(deviceId).replace(/[^0-9A-Z]/gi, "").padEnd(4, "0").slice(0, 4);
+  const mac = `00:1A:2B:4C:${macSuffix.substring(0, 2)}:${macSuffix.substring(2, 4)}`;
+  const firmware = type === "hub" ? "v2.1.0-lumo" : "v1.2.4-ble";
+  const batteryLevel = profile?.batteryLevel ?? device?.battery_level ?? 88;
+
+  const title = type === "hub" ? "LUMO Hub" : "LUMO Band";
+  const cleanName = formatDisplayPersonName(profile?.name || "");
+  const subtitle = profile 
+    ? (type === "band" ? `${isEnglish ? "Assigned to:" : "Gán cho:"} ${profile.icon || "👵"} ${cleanName}` : `${isEnglish ? "Location:" : "Vị trí:"} ${profile.icon || "🛋️"} ${cleanName}`) 
+    : `ID ${deviceId}`;
+
   return (
-    <Modal open={true} onClose={onClose}>
-      <div className="flex flex-col sm:flex-row gap-6 p-2 items-center sm:items-start">
-        {/* Left: Image */}
-        <div className="w-32 h-32 sm:w-40 sm:h-40 flex-shrink-0 bg-gray-50 dark:bg-gray-800/30 rounded-2xl flex items-center justify-center overflow-hidden border border-gray-100 dark:border-gray-800">
-          <Image 
-            src={type === "hub" ? "/products/lumo-hub-studio.webp" : "/products/lumo-band-indigo-diamond.webp"} 
-            alt={type === "hub" ? "Lumo Hub" : "Lumo Band"} 
-            width={200} 
-            height={200} 
-            className={`object-contain ${type === "hub" ? "w-full h-full scale-110" : "w-3/4 h-3/4"}`}
-          />
+    <Modal open={true} onClose={onClose} size="sm">
+      <div className="flex flex-col gap-3.5 -m-2">
+        {/* Compact Header */}
+        <div className="flex items-center gap-3.5 pb-3 border-b border-slate-200 dark:border-slate-800">
+          <div className="w-16 h-16 shrink-0 bg-slate-100 dark:bg-[#0c2627] rounded-2xl flex items-center justify-center overflow-hidden border border-slate-200 dark:border-[#134244] shadow-xs">
+            <Image
+              src={type === "hub" ? "/products/lumo-hub-studio.webp" : "/products/lumo-band-indigo-diamond.webp"}
+              alt={title}
+              width={90}
+              height={90}
+              className={`object-contain ${type === "hub" ? "w-full h-full scale-105" : "w-4/5 h-4/5"}`}
+            />
+          </div>
+
+          <div className="flex-1 min-w-0">
+            <div className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200 dark:bg-emerald-500/20 dark:text-emerald-300 dark:border-emerald-500/30 mb-1">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 dark:bg-emerald-400 animate-pulse" />
+              {isOnline ? (isEnglish ? "Connected 24/7" : "Đang kết nối 24/7") : (isEnglish ? "Offline" : "Mất kết nối")}
+            </div>
+            <h3 className="text-lg font-bold text-slate-900 dark:text-white tracking-tight leading-none">
+              {title}
+            </h3>
+            <p className="text-xs text-teal-600 dark:text-[#00f0d2] font-semibold mt-1 truncate">
+              {subtitle}
+            </p>
+          </div>
         </div>
 
-        {/* Right: Info */}
-        <div className="flex-1 w-full text-center sm:text-left">
-          <h3 className="text-xl font-bold text-gray-900 dark:text-white">
-            {type === "hub" ? "LUMO Hub" : "LUMO Band"}
-          </h3>
-          <p className="text-sm text-gray-500 font-medium mt-0.5 mb-4">
-            {type === "hub" ? `ID ${device.device_id}` : "Indigo Diamond"}
-          </p>
-
-          <div className="text-sm text-gray-600 dark:text-gray-300 space-y-3 w-full text-left bg-gray-50 dark:bg-slate-800/50 p-4 rounded-2xl border border-gray-100 dark:border-slate-700/80">
-            <div className="flex justify-between items-center gap-4">
-            <span className="font-semibold">{isEnglish ? "MAC Address:" : "Tên MAC:"}</span>
-            <span className="font-mono text-gray-500 dark:text-gray-400">{mac}</span>
-          </div>
-          <div className="flex justify-between">
-            <span className="font-semibold">{isEnglish ? "Firmware:" : "Phiên bản FW:"}</span>
-            <span className="font-mono text-gray-500 dark:text-gray-400 text-right">v1.2.4</span>
-          </div>
-          <div className="flex justify-between items-center gap-4">
-            <span className="font-semibold">{isEnglish ? "Purchase Date:" : "Ngày mua:"}</span>
-            <span className="font-mono text-gray-500 dark:text-gray-400 text-right">{format(purchaseDate, "dd/MM/yyyy")}</span>
-          </div>
-          <div className="flex justify-between items-center gap-4">
-            <span className="font-semibold">{isEnglish ? "Warranty Until:" : "Hạn bảo hành:"}</span>
-            <span className={`font-mono font-medium text-right ${warrantyEnd > new Date() ? "text-emerald-500" : "text-red-500"}`}>
-              {format(warrantyEnd, "dd/MM/yyyy")}
+        {/* Compact Info List */}
+        <div className="bg-slate-50 dark:bg-[#0c2627] border border-slate-200 dark:border-[#134244] rounded-2xl p-3.5 space-y-2 text-xs">
+          {/* ID */}
+          <div className="flex items-center justify-between py-1 border-b border-slate-200/80 dark:border-[#134244]/60">
+            <span className="text-slate-600 dark:text-slate-400 font-medium">
+              {isEnglish ? "Device ID:" : "Số ID thiết bị:"}
+            </span>
+            <span className="font-mono font-bold text-teal-700 dark:text-[#00f0d2] bg-teal-50 dark:bg-[#113a3c] px-2 py-0.5 rounded-lg border border-teal-200 dark:border-[#184f52]">
+              {deviceId}
             </span>
           </div>
+
+          {/* Firmware */}
+          <div className="flex items-center justify-between py-1 border-b border-slate-200/80 dark:border-[#134244]/60">
+            <span className="text-slate-600 dark:text-slate-400 font-medium">
+              {isEnglish ? "Firmware:" : "Số Firmware:"}
+            </span>
+            <div className="flex items-center gap-1.5">
+              <span className="font-mono font-semibold text-slate-800 dark:text-slate-200">{firmware}</span>
+              <span className="text-[10px] font-bold text-emerald-700 dark:text-emerald-400 bg-emerald-100 dark:bg-emerald-950/60 px-1.5 py-0.5 rounded-md border border-emerald-300 dark:border-emerald-800/60">
+                {isEnglish ? "Latest ✓" : "Mới nhất ✓"}
+              </span>
+            </div>
           </div>
+
+          {/* Purchase Date */}
+          <div className="flex items-center justify-between py-1 border-b border-slate-200/80 dark:border-[#134244]/60">
+            <span className="text-slate-600 dark:text-slate-400 font-medium">
+              {isEnglish ? "Purchase Date:" : "Ngày mua / Kích hoạt:"}
+            </span>
+            <span className="font-semibold text-slate-800 dark:text-slate-200">
+              {format(purchaseDate, "dd/MM/yyyy")}
+            </span>
+          </div>
+
+          {/* Warranty End */}
+          <div className="flex items-center justify-between py-1 border-b border-slate-200/80 dark:border-[#134244]/60">
+            <span className="text-slate-600 dark:text-slate-400 font-medium">
+              {isEnglish ? "Warranty Until:" : "Hạn bảo hành:"}
+            </span>
+            <div className="text-right">
+              <span className="font-semibold text-emerald-600 dark:text-emerald-400">
+                {format(warrantyEnd, "dd/MM/yyyy")}
+              </span>
+              <span className="text-[11px] text-slate-500 dark:text-slate-400 ml-1">
+                {isEnglish ? `(~${remainingDays}d)` : `(Còn ~${remainingDays} ngày)`}
+              </span>
+            </div>
+          </div>
+
+          {/* MAC Address */}
+          <div className="flex items-center justify-between py-1 border-b border-slate-200/80 dark:border-[#134244]/60">
+            <span className="text-slate-600 dark:text-slate-400 font-medium">
+              {isEnglish ? "MAC Address:" : "Địa chỉ MAC:"}
+            </span>
+            <span className="font-mono text-[11px] text-slate-700 dark:text-slate-300">
+              {mac}
+            </span>
+          </div>
+
+          {/* Battery level for Band */}
+          {type === "band" && (
+            <div className="flex items-center justify-between py-1">
+              <span className="text-slate-600 dark:text-slate-400 font-medium">
+                {isEnglish ? "Battery Level:" : "Mức pin hiện tại:"}
+              </span>
+              <span className="font-bold text-teal-700 dark:text-[#00f0d2]">
+                {batteryLevel}% (~{Math.round((batteryLevel / 100) * 730)} {isEnglish ? "days" : "ngày"})
+              </span>
+            </div>
+          )}
         </div>
       </div>
     </Modal>
@@ -286,11 +359,11 @@ function EmptyDevices({ onAdd, isEnglish }: { onAdd: () => void; isEnglish: bool
 
 export default function DevicesPage() {
   const { devices, loading, fetchDevices, deleteDevice } = useDeviceStore();
-  const { isDemoMode, mockDevice, batteryLevel, hubOnline, activityMinutes } = useDemoStore();
+  const { isDemoMode, mockDevice, batteryLevel, hubOnline, activityMinutes, mockProfiles } = useDemoStore();
   const [showAdd, setShowAdd] = useState(false);
   const [notifyTarget, setNotifyTarget] = useState<Device | null>(null);
   const [qrTarget, setQrTarget] = useState<Device | null>(null);
-  const [infoTarget, setInfoTarget] = useState<{device: Device, type: "hub" | "band"} | null>(null);
+  const [infoTarget, setInfoTarget] = useState<{ device?: Device; profile?: typeof mockProfiles[0]; type: "hub" | "band" } | null>(null);
   const [deletingId, setDeletingId] = useState<number | null>(null);
   const isEnglish = usePreferenceStore((state) => state.language === "en");
 
@@ -341,8 +414,75 @@ export default function DevicesPage() {
 
       {loading ? (
         <div className="devices-loading"><i /><span>{copy.loading}</span></div>
-      ) : effectiveDevices.length === 0 ? (
+      ) : effectiveDevices.length === 0 && !isDemoMode ? (
         <EmptyDevices onAdd={() => setShowAdd(true)} isEnglish={isEnglish} />
+      ) : isDemoMode && mockProfiles ? (
+        <div className="flex flex-col gap-8">
+          <div>
+            <h3 className="text-sm font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wide mb-3 pl-1">
+              {isEnglish ? "LUMO BANDS (WEARABLES)" : "VÒNG ĐEO TAY (LUMO BAND)"}
+            </h3>
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+              {mockProfiles.filter(p => p.type === "band").map(p => {
+                const bData = getBatteryData(p.batteryLevel);
+                return (
+                  <article
+                    key={p.id}
+                    onClick={() => setInfoTarget({ profile: p, type: "band" })}
+                    className="device-product-card band cursor-pointer hover:border-teal-500/50 transition-all active:scale-[0.99]"
+                  >
+                    <div className="device-product-main">
+                      <div className="device-product-media band">
+                        <Image src="/products/lumo-band-indigo-diamond.webp" alt="Lumo Band" width={700} height={700} sizes="132px" />
+                      </div>
+                      <div className="device-product-copy">
+                        <div className={`device-connection online`}><i />{isEnglish ? "Connected" : "Đã kết nối"}</div>
+                        <p className="lumo-kicker">GÁN CHO: {p.icon} {formatDisplayPersonName(p.name).toUpperCase()}</p>
+                        <h2>Lumo Band</h2>
+                        <span className="device-code">ID {p.device_id}</span>
+                        <div className="band-battery-value"><BatteryMedium size={20} /><strong>{bData.level === null ? "--" : bData.level}%</strong></div>
+                        <div className="band-battery-track" aria-label="Pin">
+                          <i style={{ width: `${bData.level ?? 0}%` }} />
+                        </div>
+                      </div>
+                    </div>
+                  </article>
+                );
+              })}
+            </div>
+          </div>
+
+          <div>
+            <h3 className="text-sm font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wide mb-3 pl-1">
+              {isEnglish ? "LUMO HUBS (SMART SPEAKER)" : "THIẾT BỊ TRUNG TÂM (LUMO HUB)"}
+            </h3>
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+              {mockProfiles.filter(p => p.type === "hub").map(p => (
+                <article
+                  key={p.id}
+                  onClick={() => setInfoTarget({ profile: p, type: "hub" })}
+                  className="device-product-card hub cursor-pointer hover:border-teal-500/50 transition-all active:scale-[0.99]"
+                >
+                  <div className="device-product-main">
+                    <div className="device-product-media hub">
+                      <Image src="/products/lumo-hub-studio.webp" alt="Lumo Hub" width={800} height={800} sizes="132px" />
+                    </div>
+                    <div className="device-product-copy">
+                      <div className={`device-connection ${p.hubOnline ? "online" : "offline"}`}><i />{p.hubOnline ? (isEnglish ? "Connected" : "Đã kết nối") : "Mất kết nối"}</div>
+                      <p className="lumo-kicker">VỊ TRÍ: {p.icon} {p.name.toUpperCase()}</p>
+                      <h2>Lumo Hub</h2>
+                      <span className="device-code">ID {p.device_id}</span>
+                      <div className="device-detail-line">
+                        {p.hubOnline ? <Wifi size={17} /> : <WifiOff size={17} />}
+                        <span>{isEnglish ? "Home connection" : "Kết nối mạng ổn định"}</span>
+                      </div>
+                    </div>
+                  </div>
+                </article>
+              ))}
+            </div>
+          </div>
+        </div>
       ) : (
         <div className="device-pair-list">
           {effectiveDevices.map((device) => (
@@ -363,7 +503,7 @@ export default function DevicesPage() {
       <AddDeviceModal open={showAdd} onClose={() => setShowAdd(false)} onAdded={fetchDevices} />
       {qrTarget && <DeviceQRModal device={qrTarget} onClose={() => setQrTarget(null)} isEnglish={isEnglish} />}
       {notifyTarget && <NotifyModal device={notifyTarget} onClose={() => setNotifyTarget(null)} isEnglish={isEnglish} />}
-      {infoTarget && <DeviceInfoModal device={infoTarget.device} type={infoTarget.type} onClose={() => setInfoTarget(null)} isEnglish={isEnglish} />}
+      {infoTarget && <DeviceInfoModal profile={infoTarget.profile} device={infoTarget.device} type={infoTarget.type} onClose={() => setInfoTarget(null)} isEnglish={isEnglish} />}
     </main>
   );
 }

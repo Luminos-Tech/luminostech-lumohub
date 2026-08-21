@@ -155,7 +155,7 @@ def _extract_inline_audio_bytes(data: bytes | str) -> bytes:
     if isinstance(data, str):
         return base64.b64decode(data)
 
-    raw = bytes(data)
+    raw = data
     try:
         ascii_data = raw.decode("ascii")
     except UnicodeDecodeError:

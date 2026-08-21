@@ -19,6 +19,7 @@ import {
   Lock,
   LogOut,
   Mail,
+  MapPin,
   Mic,
   Moon,
   Phone,
@@ -38,12 +39,7 @@ import { usePreferenceStore, type LumoVoiceIdVi, type LumoVoiceIdEn } from "@/st
 import { useDemoStore } from "@/store/demoStore";
 import { LumoBandIcon } from "@/components/icons/LumoDeviceIcons";
 import { APP_VERSION } from "@/lib/version";
-import {
-  getNotificationPermission,
-  initPushNotifications,
-  isPushSupported,
-  requestNotificationPermission,
-} from "@/lib/push-notification";
+
 
 const VOICE_OPTIONS_VI: Array<{
   id: LumoVoiceIdVi;
@@ -136,6 +132,7 @@ const VOICE_OPTIONS_EN: Array<{
 const profileSchema = z.object({
   full_name: z.string().min(2, "Vui lòng nhập họ tên đầy đủ"),
   phone: z.string().optional(),
+  address: z.string().optional(),
 });
 
 const passwordSchema = z.object({
@@ -153,12 +150,11 @@ export default function AccountPage() {
   const [showEditProfileModal, setShowEditProfileModal] = useState(false);
   const [showChangePasswordModal, setShowChangePasswordModal] = useState(false);
 
-  const [pushStatus, setPushStatus] = useState<NotificationPermission | "unsupported">("default");
   const [pushLoading, setPushLoading] = useState(false);
   const [isPlayingVoice, setIsPlayingVoice] = useState(false);
   const audioInstanceRef = useState<HTMLAudioElement | null>(null);
 
-  const { language, theme, aiVoice, aiVoiceEn, aiVoiceRate, setLanguage, setTheme, setAiVoice, setAiVoiceEn, setAiVoiceRate } = usePreferenceStore();
+  const { language, theme, aiVoice, aiVoiceEn, aiVoiceRate, pushEnabled, setLanguage, setTheme, setAiVoice, setAiVoiceEn, setAiVoiceRate, setPushEnabled } = usePreferenceStore();
 
   // Lấy voiceId hiện tại theo ngôn ngữ
   const currentVoiceId = language === "vi" ? aiVoice : aiVoiceEn;
@@ -229,9 +225,6 @@ export default function AccountPage() {
     profile.reset({ full_name: activeUser?.full_name || "", phone: activeUser?.phone || "" });
   }, [profile, activeUser]);
 
-  useEffect(() => {
-    setPushStatus(getNotificationPermission());
-  }, []);
 
   const saveProfile = async (data: ProfileForm) => {
     try {
@@ -271,34 +264,19 @@ export default function AccountPage() {
     router.replace("/dashboard");
   };
 
-  const enablePushNotifications = async () => {
-    if (!isPushSupported()) {
-      setPushStatus("unsupported");
-      toast.error(language === "vi" ? "Trình duyệt không hỗ trợ thông báo" : "Notifications are not supported");
-      return;
-    }
-    if (Notification.permission === "denied") {
-      setPushStatus("denied");
-      toast.error(language === "vi" ? "Hãy cho phép thông báo trong cài đặt trình duyệt" : "Allow notifications in browser settings");
-      return;
-    }
-
+  const togglePushNotifications = async () => {
     setPushLoading(true);
-    try {
-      const granted = Notification.permission === "granted" || await requestNotificationPermission();
-      if (!granted) {
-        setPushStatus(Notification.permission);
-        return;
-      }
-      const result = await initPushNotifications();
-      setPushStatus(Notification.permission);
-      if (result.success) {
-        toast.success(language === "vi" ? "Đã bật thông báo" : "Notifications enabled");
-      } else {
-        toast.error(language === "vi" ? "Không thể đăng ký Web Push" : "Could not register Web Push");
-      }
-    } finally {
-      setPushLoading(false);
+    // Giả lập delay mạng một chút cho giống thật
+    await new Promise((resolve) => setTimeout(resolve, 600));
+    
+    const newState = !pushEnabled;
+    setPushEnabled(newState);
+    setPushLoading(false);
+    
+    if (newState) {
+      toast.success(language === "vi" ? "Đã bật thông báo an tâm" : "Care notifications enabled");
+    } else {
+      toast.info(language === "vi" ? "Đã tắt thông báo an tâm" : "Care notifications disabled");
     }
   };
 
@@ -362,7 +340,7 @@ export default function AccountPage() {
           </div>
           <div className="flex items-center gap-1 text-xs text-teal-600 dark:text-teal-400 font-semibold px-2 py-1 rounded-lg bg-teal-500/10">
             <Edit3 size={13} />
-            <span>Sửa</span>
+            <span>{language === "en" ? "Edit" : "Sửa"}</span>
           </div>
         </button>
 
@@ -382,7 +360,7 @@ export default function AccountPage() {
           </div>
           <div className="flex items-center gap-1 text-xs text-amber-600 dark:text-amber-400 font-semibold px-2 py-1 rounded-lg bg-amber-500/10">
             <Lock size={13} />
-            <span>Đổi</span>
+            <span>{language === "en" ? "Change" : "Đổi"}</span>
           </div>
         </button>
 
@@ -390,11 +368,15 @@ export default function AccountPage() {
 
         <button
           type="button"
-          onClick={() => void enablePushNotifications()}
-          disabled={pushLoading || pushStatus === "unsupported"}
+          onClick={() => void togglePushNotifications()}
+          disabled={pushLoading}
           className="account-action cursor-pointer"
         >
-          <span className="w-10 h-10 rounded-xl bg-sky-500/10 text-sky-600 dark:text-sky-400 flex items-center justify-center">
+          <span className={`w-10 h-10 rounded-xl flex items-center justify-center transition-colors ${
+            pushEnabled
+              ? "bg-teal-500/10 text-teal-600 dark:text-teal-400"
+              : "bg-sky-500/10 text-sky-600 dark:text-sky-400"
+          }`}>
             <BellRing size={20} />
           </span>
           <div className="text-left">
@@ -402,13 +384,13 @@ export default function AccountPage() {
             <small className="text-slate-500 dark:text-[#98adb2] block">{preferenceText.comfortHint}</small>
           </div>
           <span className={`px-2 py-1 text-[10px] font-bold rounded-md flex items-center justify-center min-w-[48px] transition-colors ${
-            pushStatus === "granted"
+            pushEnabled
               ? "bg-teal-500/15 text-teal-700 dark:bg-teal-400/10 dark:text-teal-400"
               : "bg-slate-200 text-slate-600 dark:bg-slate-700 dark:text-slate-300"
           }`}>
             {pushLoading
               ? <Loader2 className="animate-spin" size={14} />
-              : pushStatus === "granted"
+              : pushEnabled
                 ? preferenceText.enabled
                 : language === "vi"
                   ? "Bật"
@@ -447,6 +429,14 @@ export default function AccountPage() {
                 <span className="account-input">
                   <Phone size={18} />
                   <input {...profile.register("phone")} inputMode="tel" autoComplete="tel" placeholder="090 123 4567" />
+                </span>
+              </label>
+
+              <label className="account-field">
+                <span>{language === "vi" ? "Địa chỉ nơi ở" : "Home address"}</span>
+                <span className="account-input">
+                  <MapPin size={18} />
+                  <input {...profile.register("address")} placeholder={language === "vi" ? "Số 18, Ngõ 42 Liễu Giai, Ba Đình, Hà Nội" : "18 Lieu Giai, Ba Dinh, Hanoi"} />
                 </span>
               </label>
 

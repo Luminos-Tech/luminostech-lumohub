@@ -28,7 +28,8 @@ const QUICK_PROMPTS = [
 ];
 
 export default function DemoVoiceCompanionModal() {
-  const { activeScenarioModal, closeScenarioModal, mockVoiceDialogue } = useDemoStore();
+  const { activeScenarioModal, closeScenarioModal, mockVoiceDialogue, mockProfiles, demoTargetProfileId } = useDemoStore();
+  const targetProfile = mockProfiles?.find(p => p.id === demoTargetProfileId) || mockProfiles?.find(p => p.type === "band") || { name: "Mẹ", icon: "👵" };
   const [messages, setMessages] = useState<DemoVoiceMessage[]>(mockVoiceDialogue);
   const [inputText, setInputText] = useState("");
   const [isListening, setIsListening] = useState(false);
@@ -127,7 +128,7 @@ export default function DemoVoiceCompanionModal() {
           <div className="flex items-center gap-3">
             <div className={`w-3 h-3 rounded-full ${isSpeaking ? "bg-purple-400 animate-ping" : isListening ? "bg-amber-400 animate-pulse" : "bg-emerald-400"}`} />
             <span className="text-xs text-slate-300 font-medium">
-              {isSpeaking ? "LUMO đang phản hồi bằng giọng nói..." : isListening ? "Đang lắng nghe cụ Mai nói..." : "LUMO Hub sẵn sàng lắng nghe"}
+              {isSpeaking ? "LUMO đang phản hồi bằng giọng nói..." : isListening ? `Đang lắng nghe ${targetProfile.name} nói...` : "LUMO Hub sẵn sàng lắng nghe"}
             </span>
           </div>
 
