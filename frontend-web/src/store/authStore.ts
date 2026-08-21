@@ -2,6 +2,7 @@ import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import type { User } from "@/types";
 import { api } from "@/lib/api";
+import { useDemoStore } from "@/store/demoStore";
 
 interface AuthState {
   user: User | null;
@@ -19,7 +20,10 @@ export const useAuthStore = create<AuthState>()(
       user: null,
       isAuthenticated: false,
 
-      setUser: (user) => set({ user, isAuthenticated: true }),
+      setUser: (user) => {
+        useDemoStore.getState().disableDemoMode();
+        set({ user, isAuthenticated: true });
+      },
 
       login: async (email, password) => {
         const res = await api.post("/auth/login", { email, password });
@@ -27,6 +31,7 @@ export const useAuthStore = create<AuthState>()(
         localStorage.setItem("access_token", access_token);
         localStorage.setItem("refresh_token", refresh_token);
         const me = await api.get("/auth/me");
+        useDemoStore.getState().disableDemoMode();
         set({ user: me.data, isAuthenticated: true });
       },
 
@@ -41,6 +46,7 @@ export const useAuthStore = create<AuthState>()(
         }
         localStorage.removeItem("access_token");
         localStorage.removeItem("refresh_token");
+        useDemoStore.getState().disableDemoMode();
         set({ user: null, isAuthenticated: false });
       },
 

@@ -353,7 +353,7 @@ export const formatDisplayPersonName = (name: string, isEnglish: boolean = false
 export const useDemoStore = create<DemoState>()(
   persist(
     (set, get) => ({
-      isDemoMode: true,
+      isDemoMode: false,
       isDrawerOpen: false,
       activeScenarioModal: null,
 
@@ -662,7 +662,7 @@ export const useDemoStore = create<DemoState>()(
         }),
     }),
     {
-      name: "lumohub-demo-settings-v4",
+      name: "lumohub-demo-settings-v5",
       onRehydrateStorage: () => (state) => {
         if (state && Array.isArray(state.mockProfiles)) {
           state.mockProfiles = state.mockProfiles.map((p) => ({
