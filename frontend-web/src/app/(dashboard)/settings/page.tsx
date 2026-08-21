@@ -407,7 +407,7 @@ export default function AccountPage() {
               : "bg-slate-200 text-slate-600 dark:bg-slate-700 dark:text-slate-300"
           }`}>
             {pushLoading
-              ? "..."
+              ? <Loader2 className="animate-spin" size={14} />
               : pushStatus === "granted"
                 ? preferenceText.enabled
                 : language === "vi"
