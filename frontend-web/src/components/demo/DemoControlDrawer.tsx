@@ -533,7 +533,7 @@ export default function DemoControlDrawer() {
                     type="button"
                     onClick={() => {
                       const t = isEnglish ? `Low battery warning (${currentTargetProfile?.name})` : `Cảnh báo pin yếu (${currentTargetProfile?.name})`;
-                      const c = isEnglish ? `LUMO Band (${currentTargetProfile?.device_id || "LH-8821"}) has 15% battery left. Please charge.` : `Vòng đeo tay (${currentTargetProfile?.device_id || "LH-8821"}) còn 15% pin. Vui lòng sạc thiết bị.`;
+                      const c = isEnglish ? `LUMO Band (${currentTargetProfile?.device_id || "LH-8821"}) has 15% battery left. Please replace battery.` : `Vòng đeo tay (${currentTargetProfile?.device_id || "LH-8821"}) còn 15% pin. Vui lòng thay pin mới cho vòng đeo.`;
                       triggerPushBanner(t, c, "alert", "battery");
                     }}
                     className="p-2 rounded-xl bg-slate-800/90 hover:bg-slate-800 border border-slate-700 hover:border-orange-500/50 text-left text-xs transition-all flex items-center gap-2 active:scale-95"
@@ -541,7 +541,7 @@ export default function DemoControlDrawer() {
                     <span className="text-orange-400 font-bold text-sm">🪫</span>
                     <div className="min-w-0">
                       <strong className="block text-slate-200 truncate">{isEnglish ? "Low battery" : "Pin vòng yếu"}</strong>
-                      <span className="text-[10px] text-slate-400 truncate block">Còn 15% pin</span>
+                      <span className="text-[10px] text-slate-400 truncate block">{isEnglish ? "Replace battery" : "Cần thay pin"}</span>
                     </div>
                   </button>
 

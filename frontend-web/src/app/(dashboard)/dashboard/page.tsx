@@ -584,11 +584,11 @@ export default function DashboardPage() {
               <div className="bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 p-4 rounded-xl text-sm w-full mt-2 text-left">
                 {isEnglish 
                   ? (typeof currentBat === "number" && currentBat <= 20 
-                      ? `Battery of ${personName} is low (${currentBat}%). Please charge the device as soon as possible.` 
-                      : `Battery level (${currentBat}%) is sufficient for continuous monitoring. Recommend charging when below 20%.`)
+                      ? `Battery of ${personName} is low (${currentBat}%). Please replace with a new coin-cell battery to maintain continuous monitoring.` 
+                      : `Battery level (${currentBat}%) is optimal for long-term use. The system will remind you to replace the battery when it drops below 20%.`)
                   : (typeof currentBat === "number" && currentBat <= 20 
-                      ? `Pin của ${personName} đang ở mức thấp (${currentBat}%). Vui lòng sạc thiết bị càng sớm càng tốt để đảm bảo kết nối.` 
-                      : `Lượng pin (${currentBat}%) đủ để hoạt động liên tục. Nên sạc thiết bị khi pin dưới 20%.`)
+                      ? `Pin của ${personName} đang ở mức thấp (${currentBat}%). Vui lòng thay pin mới cho vòng đeo để đảm bảo kết nối liên tục.` 
+                      : `Lượng pin (${currentBat}%) đủ để hoạt động lâu dài. Hệ thống sẽ tự động nhắc nhở khi pin dưới 20% để thay pin kịp thời.`)
                 }
               </div>
               
