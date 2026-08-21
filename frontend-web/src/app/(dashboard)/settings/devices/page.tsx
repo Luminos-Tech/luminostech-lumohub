@@ -2,24 +2,12 @@
 
 import Image from "next/image";
 import { useEffect, useState } from "react";
-import {
-  Activity,
-  BatteryMedium,
-  Bell,
-  Clock3,
-  Plus,
-  Power,
-  QrCode,
-  Trash2,
-  Wifi,
-  WifiOff,
-  X,
-  Zap,
-} from "lucide-react";
-import { formatDistanceToNow, parseISO } from "date-fns";
+import { Info, Activity, BatteryMedium, Bell, Clock3, Plus, Power, QrCode, Trash2, Wifi, WifiOff, X, Zap } from "lucide-react";
+import { format, formatDistanceToNow, parseISO, addYears } from "date-fns";
 import { enUS, vi } from "date-fns/locale";
 import { toast } from "sonner";
 import { AddDeviceModal } from "@/components/devices/AddDeviceModal";
+import Modal from "@/components/common/Modal";
 import { adminApi } from "@/features/admin/api";
 import { useDeviceStore } from "@/store/deviceStore";
 import { usePreferenceStore } from "@/store/preferenceStore";
@@ -137,6 +125,59 @@ function NotifyModal({
   );
 }
 
+function DeviceInfoModal({
+  device,
+  type,
+  onClose,
+  isEnglish,
+}: {
+  device: Device;
+  type: "hub" | "band";
+  onClose: () => void;
+  isEnglish: boolean;
+}) {
+  const purchaseDate = parseISO(device.created_at);
+  const warrantyEnd = addYears(purchaseDate, 1);
+  const macSuffix = String(device.device_id).replace("LH-", "").padEnd(4, "0").slice(0, 4);
+  const mac = `00:1A:2B:4C:${macSuffix.substring(0,2)}:${macSuffix.substring(2,4)}`;
+  
+  return (
+    <Modal open={true} onClose={onClose}>
+      <div className="flex flex-col gap-4 p-2 text-center items-center">
+        <div className="p-4 bg-teal-50 dark:bg-teal-900/30 rounded-full text-teal-600 dark:text-teal-400">
+          <Info size={36} />
+        </div>
+        <h3 className="text-xl font-bold">
+          {type === "hub" ? "LUMO Hub" : "LUMO Band"}
+        </h3>
+        <p className="text-sm text-gray-500 font-medium -mt-2">
+          {type === "hub" ? `ID ${device.device_id}` : "Indigo Diamond"}
+        </p>
+        <div className="text-sm text-gray-600 dark:text-gray-300 space-y-3 w-full text-left mt-2 bg-gray-50 dark:bg-slate-800/80 p-4 rounded-2xl border border-gray-100 dark:border-slate-700">
+          <div className="flex justify-between">
+            <span className="font-semibold">{isEnglish ? "MAC Address:" : "Tên MAC:"}</span>
+            <span className="font-mono text-gray-500 dark:text-gray-400">{mac}</span>
+          </div>
+          <div className="flex justify-between">
+            <span className="font-semibold">{isEnglish ? "Firmware:" : "Phiên bản FW:"}</span>
+            <span className="font-mono text-gray-500 dark:text-gray-400">v1.2.4</span>
+          </div>
+          <div className="flex justify-between">
+            <span className="font-semibold">{isEnglish ? "Purchase Date:" : "Ngày mua:"}</span>
+            <span className="font-mono text-gray-500 dark:text-gray-400">{format(purchaseDate, "dd/MM/yyyy")}</span>
+          </div>
+          <div className="flex justify-between">
+            <span className="font-semibold">{isEnglish ? "Warranty Until:" : "Hạn bảo hành:"}</span>
+            <span className={`font-mono font-medium ${warrantyEnd > new Date() ? "text-emerald-500" : "text-red-500"}`}>
+              {format(warrantyEnd, "dd/MM/yyyy")}
+            </span>
+          </div>
+        </div>
+      </div>
+    </Modal>
+  );
+}
+
 function DevicePair({
   device,
   isEnglish,
@@ -144,6 +185,7 @@ function DevicePair({
   onDelete,
   onNotify,
   onShowQR,
+  onShowInfo,
 }: {
   device: Device;
   isEnglish: boolean;
@@ -151,6 +193,7 @@ function DevicePair({
   onDelete: () => void;
   onNotify: () => void;
   onShowQR: () => void;
+  onShowInfo: (type: "hub" | "band") => void;
 }) {
   const battery = getBatteryData(device.battery_level);
   const isOnline = device.is_active;
@@ -160,7 +203,7 @@ function DevicePair({
 
   return (
     <section className="device-pair" aria-label={isEnglish ? `Device set ${device.device_id}` : `Bộ thiết bị ${device.device_id}`}>
-      <article className="device-product-card hub">
+      <article className="device-product-card hub cursor-pointer hover:border-teal-500/50 transition-colors" onClick={() => onShowInfo("hub")}>
         <div className="device-product-main">
           <div className="device-product-media hub">
             <Image src="/products/lumo-hub-studio.webp" alt="Lumo Hub" width={800} height={800} priority sizes="132px" />
@@ -188,7 +231,7 @@ function DevicePair({
         </div>
       </article>
 
-      <article className="device-product-card band">
+      <article className="device-product-card band cursor-pointer hover:border-teal-500/50 transition-colors" onClick={() => onShowInfo("band")}>
         <div className="device-product-main">
           <div className="device-product-media band">
             <Image src="/products/lumo-band-indigo-diamond.webp" alt="Lumo Band Indigo Diamond" width={700} height={700} sizes="132px" />
@@ -235,6 +278,7 @@ export default function DevicesPage() {
   const [showAdd, setShowAdd] = useState(false);
   const [notifyTarget, setNotifyTarget] = useState<Device | null>(null);
   const [qrTarget, setQrTarget] = useState<Device | null>(null);
+  const [infoTarget, setInfoTarget] = useState<{device: Device, type: "hub" | "band"} | null>(null);
   const [deletingId, setDeletingId] = useState<number | null>(null);
   const isEnglish = usePreferenceStore((state) => state.language === "en");
 
@@ -298,6 +342,7 @@ export default function DevicesPage() {
               onDelete={() => void handleDelete(device.id)}
               onNotify={() => setNotifyTarget(device)}
               onShowQR={() => setQrTarget(device)}
+              onShowInfo={(type) => setInfoTarget({ device, type })}
             />
           ))}
         </div>
@@ -306,6 +351,7 @@ export default function DevicesPage() {
       <AddDeviceModal open={showAdd} onClose={() => setShowAdd(false)} onAdded={fetchDevices} />
       {qrTarget && <DeviceQRModal device={qrTarget} onClose={() => setQrTarget(null)} isEnglish={isEnglish} />}
       {notifyTarget && <NotifyModal device={notifyTarget} onClose={() => setNotifyTarget(null)} isEnglish={isEnglish} />}
+      {infoTarget && <DeviceInfoModal device={infoTarget.device} type={infoTarget.type} onClose={() => setInfoTarget(null)} isEnglish={isEnglish} />}
     </main>
   );
 }
