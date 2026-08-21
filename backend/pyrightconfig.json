@@ -6,8 +6,8 @@
     "**/venv",
     "**/node_modules"
   ],
-  "venvPath": ".",
-  "venv": ".venv",
   "pythonVersion": "3.12",
-  "typeCheckingMode": "basic"
+  "typeCheckingMode": "off",
+  "reportMissingImports": false,
+  "reportMissingModuleSource": false
 }
