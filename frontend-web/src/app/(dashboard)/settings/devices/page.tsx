@@ -143,34 +143,46 @@ function DeviceInfoModal({
   
   return (
     <Modal open={true} onClose={onClose}>
-      <div className="flex flex-col gap-4 p-2 text-center items-center">
-        <div className="p-4 bg-teal-50 dark:bg-teal-900/30 rounded-full text-teal-600 dark:text-teal-400">
-          <Info size={36} />
+      <div className="flex flex-col sm:flex-row gap-6 p-2 items-center sm:items-start">
+        {/* Left: Image */}
+        <div className="w-32 h-32 sm:w-40 sm:h-40 flex-shrink-0 bg-gray-50 dark:bg-gray-800/30 rounded-2xl flex items-center justify-center overflow-hidden border border-gray-100 dark:border-gray-800">
+          <Image 
+            src={type === "hub" ? "/products/lumo-hub-studio.webp" : "/products/lumo-band-indigo-diamond.webp"} 
+            alt={type === "hub" ? "Lumo Hub" : "Lumo Band"} 
+            width={200} 
+            height={200} 
+            className={`object-contain ${type === "hub" ? "w-full h-full scale-110" : "w-3/4 h-3/4"}`}
+          />
         </div>
-        <h3 className="text-xl font-bold">
-          {type === "hub" ? "LUMO Hub" : "LUMO Band"}
-        </h3>
-        <p className="text-sm text-gray-500 font-medium -mt-2">
-          {type === "hub" ? `ID ${device.device_id}` : "Indigo Diamond"}
-        </p>
-        <div className="text-sm text-gray-600 dark:text-gray-300 space-y-3 w-full text-left mt-2 bg-gray-50 dark:bg-slate-800/80 p-4 rounded-2xl border border-gray-100 dark:border-slate-700">
-          <div className="flex justify-between">
+
+        {/* Right: Info */}
+        <div className="flex-1 w-full text-center sm:text-left">
+          <h3 className="text-xl font-bold text-gray-900 dark:text-white">
+            {type === "hub" ? "LUMO Hub" : "LUMO Band"}
+          </h3>
+          <p className="text-sm text-gray-500 font-medium mt-0.5 mb-4">
+            {type === "hub" ? `ID ${device.device_id}` : "Indigo Diamond"}
+          </p>
+
+          <div className="text-sm text-gray-600 dark:text-gray-300 space-y-3 w-full text-left bg-gray-50 dark:bg-slate-800/50 p-4 rounded-2xl border border-gray-100 dark:border-slate-700/80">
+            <div className="flex justify-between items-center gap-4">
             <span className="font-semibold">{isEnglish ? "MAC Address:" : "Tên MAC:"}</span>
             <span className="font-mono text-gray-500 dark:text-gray-400">{mac}</span>
           </div>
           <div className="flex justify-between">
             <span className="font-semibold">{isEnglish ? "Firmware:" : "Phiên bản FW:"}</span>
-            <span className="font-mono text-gray-500 dark:text-gray-400">v1.2.4</span>
+            <span className="font-mono text-gray-500 dark:text-gray-400 text-right">v1.2.4</span>
           </div>
-          <div className="flex justify-between">
+          <div className="flex justify-between items-center gap-4">
             <span className="font-semibold">{isEnglish ? "Purchase Date:" : "Ngày mua:"}</span>
-            <span className="font-mono text-gray-500 dark:text-gray-400">{format(purchaseDate, "dd/MM/yyyy")}</span>
+            <span className="font-mono text-gray-500 dark:text-gray-400 text-right">{format(purchaseDate, "dd/MM/yyyy")}</span>
           </div>
-          <div className="flex justify-between">
+          <div className="flex justify-between items-center gap-4">
             <span className="font-semibold">{isEnglish ? "Warranty Until:" : "Hạn bảo hành:"}</span>
-            <span className={`font-mono font-medium ${warrantyEnd > new Date() ? "text-emerald-500" : "text-red-500"}`}>
+            <span className={`font-mono font-medium text-right ${warrantyEnd > new Date() ? "text-emerald-500" : "text-red-500"}`}>
               {format(warrantyEnd, "dd/MM/yyyy")}
             </span>
+          </div>
           </div>
         </div>
       </div>
