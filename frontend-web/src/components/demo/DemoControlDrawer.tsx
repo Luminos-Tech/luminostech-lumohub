@@ -324,24 +324,17 @@ export default function DemoControlDrawer() {
               <button
                 type="button"
                 onClick={() => {
-                  if ("Notification" in window && Notification.permission === "granted") {
-                    new Notification("LUMO - An tâm mỗi ngày", {
-                      body: "Chào buổi sáng! Hệ thống LUMO đang hoạt động bình thường, bảo vệ an toàn cho gia đình bạn.",
-                      icon: "/icons/icon-192x192.png",
-                    });
-                  } else {
-                    toast.custom((t) => (
-                      <div className="bg-[#1a202c] border border-sky-500/30 rounded-2xl p-4 flex gap-4 items-center shadow-2xl shadow-sky-900/20 max-w-sm w-full">
-                        <div className="w-10 h-10 rounded-full bg-sky-500/20 flex items-center justify-center flex-shrink-0">
-                          <BellRing size={20} className="text-sky-400" />
-                        </div>
-                        <div>
-                          <h4 className="font-bold text-white text-sm">Hệ thống LUMO</h4>
-                          <p className="text-gray-300 text-xs mt-0.5">Chào buổi sáng! Hệ thống đang hoạt động bình thường, bảo vệ gia đình bạn.</p>
-                        </div>
+                  toast.custom((t) => (
+                    <div className="bg-[#1a202c] border border-sky-500/30 rounded-2xl p-4 flex gap-4 items-center shadow-2xl shadow-sky-900/20 max-w-sm w-full">
+                      <div className="w-10 h-10 rounded-full bg-sky-500/20 flex items-center justify-center flex-shrink-0">
+                        <BellRing size={20} className="text-sky-400" />
                       </div>
-                    ));
-                  }
+                      <div>
+                        <h4 className="font-bold text-white text-sm">Hệ thống LUMO</h4>
+                        <p className="text-gray-300 text-xs mt-0.5">Chào buổi sáng! Hệ thống đang hoạt động bình thường, bảo vệ gia đình bạn.</p>
+                      </div>
+                    </div>
+                  ));
                 }}
                 className="w-full text-left p-3.5 rounded-2xl bg-gradient-to-r from-sky-950/40 to-slate-900 border border-sky-500/50 hover:border-sky-400 hover:shadow-lg hover:shadow-sky-500/20 active:scale-[0.99] transition-all flex items-center justify-between group"
               >
