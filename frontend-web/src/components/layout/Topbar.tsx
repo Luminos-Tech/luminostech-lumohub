@@ -1,10 +1,11 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { Bell, UserRound } from "lucide-react";
-import { OPEN_AUTH_EVENT, OPEN_DEMO_DRAWER_EVENT, OPEN_NOTIFICATIONS_EVENT } from "@/lib/uiEvents";
+import { OPEN_AUTH_EVENT, OPEN_NOTIFICATIONS_EVENT } from "@/lib/uiEvents";
+import { registerLogoTap } from "@/lib/demoTrigger";
 import { useAuthStore } from "@/store/authStore";
 import { useNotificationStore } from "@/store/notificationStore";
 import { usePreferenceStore } from "@/store/preferenceStore";
@@ -13,33 +14,12 @@ import { useDemoStore } from "@/store/demoStore";
 export default function Topbar() {
   const { user, isAuthenticated } = useAuthStore();
   const { unreadCount: storeUnreadCount, notifications, fetchNotifications } = useNotificationStore();
-  const { isDemoMode, mockUser, enableDemoMode, setDrawerOpen, toggleDrawer, mockNotifications } = useDemoStore();
+  const { isDemoMode, mockUser, mockNotifications } = useDemoStore();
   const language = usePreferenceStore((state) => state.language);
 
   const unreadCount = isDemoMode && notifications.length === 0
     ? mockNotifications.filter((n) => !n.is_read).length
     : storeUnreadCount;
-
-  const clickCountRef = useRef(0);
-  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  const handleLogoClick = (e: React.MouseEvent) => {
-    clickCountRef.current += 1;
-    if (timerRef.current) clearTimeout(timerRef.current);
-
-    if (clickCountRef.current >= 3) {
-      e.preventDefault();
-      clickCountRef.current = 0;
-      enableDemoMode();
-      setDrawerOpen(true);
-      window.dispatchEvent(new CustomEvent(OPEN_DEMO_DRAWER_EVENT));
-      return;
-    }
-
-    timerRef.current = setTimeout(() => {
-      clickCountRef.current = 0;
-    }, 1200);
-  };
 
   const text = language === "vi"
     ? { home: "Lumo - Trang chủ", notifications: "Thông báo", notificationsGuest: "Đăng nhập để xem thông báo", account: "Tài khoản", auth: "Đăng nhập hoặc đăng ký" }
@@ -51,7 +31,13 @@ export default function Topbar() {
 
   return (
     <header className="mobile-topbar">
-      <Link href="/dashboard" className="brand-lockup" aria-label={text.home} onClick={handleLogoClick}>
+      <Link 
+        href="/dashboard" 
+        className="brand-lockup cursor-pointer select-none active:opacity-80 transition-opacity" 
+        aria-label={text.home} 
+        onPointerDown={(e) => registerLogoTap(e)}
+        onClick={(e) => registerLogoTap(e)}
+      >
         <Image src="/logo-luminostech.png" alt="LuminosTech" width={40} height={40} sizes="40px" priority />
         <span><strong>LUMO</strong><small>by LuminosTech</small></span>
       </Link>

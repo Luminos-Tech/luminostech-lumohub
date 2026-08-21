@@ -1,12 +1,12 @@
 "use client";
 
-import { useRef } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Bell, UserRound } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { OPEN_AUTH_EVENT, OPEN_DEMO_DRAWER_EVENT, OPEN_NOTIFICATIONS_EVENT } from "@/lib/uiEvents";
+import { OPEN_AUTH_EVENT, OPEN_NOTIFICATIONS_EVENT } from "@/lib/uiEvents";
+import { registerLogoTap } from "@/lib/demoTrigger";
 import { useAuthStore } from "@/store/authStore";
 import { useNotificationStore } from "@/store/notificationStore";
 import { usePreferenceStore } from "@/store/preferenceStore";
@@ -16,30 +16,9 @@ import { navItems } from "./BottomNav";
 export default function DesktopSidebar() {
   const pathname = usePathname();
   const { user, isAuthenticated } = useAuthStore();
-  const { isDemoMode, mockUser, enableDemoMode, setDrawerOpen, toggleDrawer } = useDemoStore();
+  const { isDemoMode, mockUser } = useDemoStore();
   const unreadCount = useNotificationStore((state) => state.unreadCount);
   const language = usePreferenceStore((state) => state.language);
-
-  const clickCountRef = useRef(0);
-  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  const handleLogoClick = (e: React.MouseEvent) => {
-    clickCountRef.current += 1;
-    if (timerRef.current) clearTimeout(timerRef.current);
-
-    if (clickCountRef.current >= 3) {
-      e.preventDefault();
-      clickCountRef.current = 0;
-      enableDemoMode();
-      setDrawerOpen(true);
-      window.dispatchEvent(new CustomEvent(OPEN_DEMO_DRAWER_EVENT));
-      return;
-    }
-
-    timerRef.current = setTimeout(() => {
-      clickCountRef.current = 0;
-    }, 1200);
-  };
 
   const text = language === "en"
     ? { navigation: "Main navigation", notifications: "Notifications", account: "Account", signIn: "Sign in or create account", guest: "Guest account" }
@@ -55,7 +34,13 @@ export default function DesktopSidebar() {
 
   return (
     <aside className="desktop-sidebar">
-      <Link href="/dashboard" className="desktop-sidebar-brand" aria-label="Lumo Home" onClick={handleLogoClick}>
+      <Link 
+        href="/dashboard" 
+        className="desktop-sidebar-brand cursor-pointer select-none active:opacity-80 transition-opacity" 
+        aria-label="Lumo Home" 
+        onPointerDown={(e) => registerLogoTap(e)}
+        onClick={(e) => registerLogoTap(e)}
+      >
         <Image src="/logo-luminostech.png" alt="LuminosTech" width={46} height={46} sizes="46px" priority />
         <span><strong>LUMO</strong><small>by LuminosTech</small></span>
       </Link>
