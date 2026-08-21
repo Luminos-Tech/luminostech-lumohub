@@ -186,7 +186,17 @@ export default function DemoControlDrawer() {
                 type="button"
                 onClick={() => {
                   triggerFallDetection();
-                  toast.error("🚨 Đã kích hoạt kịch bản: Phát hiện té ngã khẩn cấp!");
+                  toast.custom((t) => (
+                    <div className="bg-[#2a1010] border border-red-500/30 rounded-2xl p-4 flex gap-4 items-center shadow-2xl shadow-red-900/20 max-w-sm w-full">
+                      <div className="w-10 h-10 rounded-full bg-red-500/20 flex items-center justify-center flex-shrink-0">
+                        <ShieldAlert size={20} className="text-red-400" />
+                      </div>
+                      <div>
+                        <h4 className="font-bold text-white text-sm">Cảnh báo té ngã khẩn cấp</h4>
+                        <p className="text-gray-300 text-xs mt-0.5">Hệ thống phát hiện cú ngã từ LUMO Band. Đã phát âm báo động.</p>
+                      </div>
+                    </div>
+                  ));
                 }}
                 className="w-full text-left p-3.5 rounded-2xl bg-gradient-to-r from-red-950/40 to-slate-900 border border-red-500/50 hover:border-red-400 hover:shadow-lg hover:shadow-red-500/20 active:scale-[0.99] transition-all flex items-center justify-between group"
               >
@@ -209,7 +219,17 @@ export default function DemoControlDrawer() {
                 type="button"
                 onClick={() => {
                   triggerCheckIn();
-                  toast.success("✅ Mẹ Mai vừa chạm xác nhận an tâm trên LUMO Band!");
+                  toast.custom((t) => (
+                    <div className="bg-[#102a31] border border-emerald-500/30 rounded-2xl p-4 flex gap-4 items-center shadow-2xl shadow-emerald-900/20 max-w-sm w-full">
+                      <div className="w-10 h-10 rounded-full bg-emerald-500/20 flex items-center justify-center flex-shrink-0">
+                        <CheckCircle2 size={20} className="text-emerald-400" />
+                      </div>
+                      <div>
+                        <h4 className="font-bold text-white text-sm">Gửi tín hiệu an tâm</h4>
+                        <p className="text-gray-300 text-xs mt-0.5">Mẹ Mai vừa chạm mặt đồng hồ để báo an tâm. Con cái đã nhận được.</p>
+                      </div>
+                    </div>
+                  ));
                 }}
                 className="w-full text-left p-3.5 rounded-2xl bg-gradient-to-r from-emerald-950/40 to-slate-900 border border-emerald-500/50 hover:border-emerald-400 hover:shadow-lg hover:shadow-emerald-500/20 active:scale-[0.99] transition-all flex items-center justify-between group"
               >
@@ -233,7 +253,17 @@ export default function DemoControlDrawer() {
                 type="button"
                 onClick={() => {
                   triggerMedicationReminder();
-                  toast.info("💊 Đã bật lời nhắc uống thuốc sáng!");
+                  toast.custom((t) => (
+                    <div className="bg-[#101b31] border border-blue-500/30 rounded-2xl p-4 flex gap-4 items-center shadow-2xl shadow-blue-900/20 max-w-sm w-full">
+                      <div className="w-10 h-10 rounded-full bg-blue-500/20 flex items-center justify-center flex-shrink-0">
+                        <Bell size={20} className="text-blue-400" />
+                      </div>
+                      <div>
+                        <h4 className="font-bold text-white text-sm">Lời nhắc uống thuốc</h4>
+                        <p className="text-gray-300 text-xs mt-0.5">LUMO Hub vừa phát lời nhắc uống thuốc sáng tới Mẹ Mai.</p>
+                      </div>
+                    </div>
+                  ));
                 }}
                 className="w-full text-left p-3.5 rounded-2xl bg-gradient-to-r from-amber-950/40 to-slate-900 border border-amber-500/50 hover:border-amber-400 hover:shadow-lg hover:shadow-amber-500/20 active:scale-[0.99] transition-all flex items-center justify-between group"
               >
