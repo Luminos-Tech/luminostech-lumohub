@@ -312,7 +312,7 @@ export default function DashboardPage() {
         </div>
       </Modal>
 
-      <Modal open={isCalendarModalOpen} onClose={() => setIsCalendarModalOpen(false)} title={copy.monthlyCheckins}>
+      <Modal open={isCalendarModalOpen} onClose={() => { setIsCalendarModalOpen(false); setCurrentMonth(now); }}>
         <div className="p-1 pb-2">
           <div className="flex items-center justify-between mb-4 bg-gray-50 dark:bg-[#102a31] rounded-lg p-1">
             <button onClick={() => setCurrentMonth(prev => prev ? subMonths(prev, 1) : null)} className="p-1.5 text-gray-500 hover:bg-gray-200 dark:hover:bg-[#183840] rounded-md transition-colors">
@@ -358,12 +358,6 @@ export default function DashboardPage() {
                 </div>
               );
             })}
-          </div>
-          
-          <div className="mt-6 flex justify-end">
-             <Button className="w-full sm:w-auto" onClick={() => { setIsCalendarModalOpen(false); setCurrentMonth(now); }}>
-               {isEnglish ? "Close" : "Đóng"}
-             </Button>
           </div>
         </div>
       </Modal>
