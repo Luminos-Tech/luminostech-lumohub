@@ -29,6 +29,11 @@ export interface DemoState {
   
   // Mock Data Sets
   mockUser: User;
+  mockProfileMeta: {
+    address: string;
+    caregiver: string;
+    devicesText: string;
+  };
   mockDevice: Device;
   mockTodayStatus: TodayButtonStatus;
   mockRecentEvents: EventButton[];
@@ -61,6 +66,7 @@ export interface DemoState {
   setFallDetected: (val: boolean | undefined) => void;
   setMockCheckInDays: (days: number) => void;
   setMockUser: (user: Partial<User>) => void;
+  setMockProfileMeta: (meta: Partial<{ address: string; caregiver: string; devicesText: string }>) => void;
 
   resetToDefault: () => void;
 }
@@ -168,6 +174,11 @@ export const useDemoStore = create<DemoState>()(
       bandConnected: true,
 
       mockUser: DEFAULT_MOCK_USER,
+      mockProfileMeta: {
+        address: "Ba Đình, Hà Nội",
+        caregiver: "Anh Trí (Con trai)",
+        devicesText: "LUMO Hub 4G + LUMO Band (LH-8821)"
+      },
       mockDevice: DEFAULT_MOCK_DEVICE,
       mockTodayStatus: {
         clicked_today: true,
@@ -344,6 +355,7 @@ export const useDemoStore = create<DemoState>()(
       },
 
       setMockUser: (userUpdates) => set((s) => ({ mockUser: { ...s.mockUser, ...userUpdates } })),
+      setMockProfileMeta: (metaUpdates) => set((s) => ({ mockProfileMeta: { ...s.mockProfileMeta, ...metaUpdates } })),
 
       setNetworkStatus: (status) => set({ networkStatus: status }),
       setHubOnline: (online) => set({ hubOnline: online }),
@@ -376,6 +388,7 @@ export const useDemoStore = create<DemoState>()(
         networkStatus: s.networkStatus,
         mockCheckInDays: s.mockCheckInDays,
         mockUser: s.mockUser,
+        mockProfileMeta: s.mockProfileMeta,
       }),
     }
   )

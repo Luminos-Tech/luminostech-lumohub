@@ -42,6 +42,7 @@ export default function DemoControlDrawer() {
     fallDetected,
     networkStatus,
     mockUser,
+    mockProfileMeta,
     enableDemoMode,
     disableDemoMode,
     toggleDemoMode,
@@ -58,12 +59,18 @@ export default function DemoControlDrawer() {
     setFallDetected,
     setNetworkStatus,
     setMockUser,
+    setMockProfileMeta,
     resetToDefault,
   } = useDemoStore();
 
   const [activeTab, setActiveTab] = useState<"scenarios" | "hardware" | "info">("scenarios");
   const [isEditingInfo, setIsEditingInfo] = useState(false);
-  const [tempName, setTempName] = useState(mockUser.full_name);
+  const [tempProfile, setTempProfile] = useState({
+    name: mockUser.full_name,
+    address: mockProfileMeta?.address || "Ba Đình, Hà Nội",
+    caregiver: mockProfileMeta?.caregiver || "Anh Trí (Con trai)",
+    devicesText: mockProfileMeta?.devicesText || "LUMO Hub 4G + LUMO Band (LH-8821)"
+  });
 
   // Global Keyboard shortcut: Ctrl+Shift+D or Alt+D to toggle drawer
   useEffect(() => {
@@ -530,7 +537,12 @@ export default function DemoControlDrawer() {
                     type="button"
                     onClick={() => {
                       if (isEditingInfo) {
-                        setMockUser({ full_name: tempName });
+                        setMockUser({ full_name: tempProfile.name });
+                        setMockProfileMeta({
+                          address: tempProfile.address,
+                          caregiver: tempProfile.caregiver,
+                          devicesText: tempProfile.devicesText
+                        });
                         toast.success("Đã cập nhật hồ sơ mẫu");
                       }
                       setIsEditingInfo(!isEditingInfo);
@@ -542,24 +554,54 @@ export default function DemoControlDrawer() {
                 </div>
                 
                 {isEditingInfo ? (
-                  <div className="space-y-2 mt-2">
+                  <div className="space-y-3 mt-2">
                     <div>
                       <label className="text-[10px] text-slate-500 uppercase font-bold">Người dùng chính</label>
                       <input
                         type="text"
-                        value={tempName}
-                        onChange={(e) => setTempName(e.target.value)}
+                        value={tempProfile.name}
+                        onChange={(e) => setTempProfile(s => ({ ...s, name: e.target.value }))}
                         className="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-xs text-white focus:border-emerald-500 outline-none"
                         placeholder="Nhập tên..."
+                      />
+                    </div>
+                    <div>
+                      <label className="text-[10px] text-slate-500 uppercase font-bold">Địa chỉ</label>
+                      <input
+                        type="text"
+                        value={tempProfile.address}
+                        onChange={(e) => setTempProfile(s => ({ ...s, address: e.target.value }))}
+                        className="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-xs text-white focus:border-emerald-500 outline-none"
+                        placeholder="Nhập địa chỉ..."
+                      />
+                    </div>
+                    <div>
+                      <label className="text-[10px] text-slate-500 uppercase font-bold">Người chăm sóc từ xa</label>
+                      <input
+                        type="text"
+                        value={tempProfile.caregiver}
+                        onChange={(e) => setTempProfile(s => ({ ...s, caregiver: e.target.value }))}
+                        className="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-xs text-white focus:border-emerald-500 outline-none"
+                        placeholder="Nhập tên người chăm sóc..."
+                      />
+                    </div>
+                    <div>
+                      <label className="text-[10px] text-slate-500 uppercase font-bold">Thiết bị</label>
+                      <input
+                        type="text"
+                        value={tempProfile.devicesText}
+                        onChange={(e) => setTempProfile(s => ({ ...s, devicesText: e.target.value }))}
+                        className="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-xs text-white focus:border-emerald-500 outline-none"
+                        placeholder="Nhập thông tin thiết bị..."
                       />
                     </div>
                   </div>
                 ) : (
                   <div className="space-y-1 text-slate-300">
                     <p>• <strong>Người dùng chính:</strong> {mockUser.full_name}</p>
-                    <p>• <strong>Địa chỉ:</strong> Ba Đình, Hà Nội</p>
-                    <p>• <strong>Người chăm sóc từ xa:</strong> Anh Trí (Con trai)</p>
-                    <p>• <strong>Thiết bị:</strong> LUMO Hub 4G + LUMO Band (LH-8821)</p>
+                    <p>• <strong>Địa chỉ:</strong> {mockProfileMeta.address}</p>
+                    <p>• <strong>Người chăm sóc từ xa:</strong> {mockProfileMeta.caregiver}</p>
+                    <p>• <strong>Thiết bị:</strong> {mockProfileMeta.devicesText}</p>
                   </div>
                 )}
               </div>
