@@ -2,8 +2,9 @@
 
 import React, { useEffect, useState } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { addDays, format, startOfWeek, startOfMonth, endOfMonth, eachDayOfInterval, subMonths, addMonths } from "date-fns";
-import { BatteryFull, BatteryMedium, BatteryWarning, CalendarCheck2, Check, CheckCircle2, ChevronRight, ChevronLeft, Clock3, ShieldAlert, ShieldCheck, Timer } from "lucide-react";
+import { BatteryFull, BatteryMedium, BatteryWarning, CalendarCheck2, Check, CheckCircle2, ChevronRight, ChevronLeft, Clock3, Plus, ShieldAlert, ShieldCheck, Timer } from "lucide-react";
 import { LumoBandIcon } from "@/components/icons/LumoDeviceIcons";
 import { useAuthStore } from "@/store/authStore";
 import { useDeviceStore } from "@/store/deviceStore";
@@ -97,8 +98,13 @@ export default function DashboardPage() {
   const monthDays = monthStart && monthEnd ? eachDayOfInterval({ start: monthStart, end: monthEnd }) : [];
   const monthStartDayOfWeek = monthStart ? (monthStart.getDay() === 0 ? 6 : monthStart.getDay() - 1) : 0;
 
-  const isOverview = activeProfile?.type === 'overview';
-  const profileName = isOverview ? (isEnglish ? 'Family' : 'Cha Mẹ') : formatDisplayPersonName(activeProfile?.name || '', isEnglish);
+  const hasRealDevices = devices.length > 0;
+  const showEmptyState = !isDemoMode && !hasRealDevices;
+
+  const isOverview = isDemoMode ? activeProfile?.type === 'overview' : false;
+  const profileName = isDemoMode 
+    ? (isOverview ? (isEnglish ? 'Family' : 'Cha Mẹ') : formatDisplayPersonName(activeProfile?.name || '', isEnglish))
+    : (activeDevice?.device_id ? `LUMO Band (${activeDevice.device_id})` : (isEnglish ? 'Family Member' : 'Người thân'));
 
   const copy = isEnglish ? {
     checked: "Checked in today",
@@ -204,40 +210,97 @@ export default function DashboardPage() {
 
   return (
     <div className="lumo-page dashboard-overview">
-      {/* Profile Selector - Always on 1 single row */}
-      {(() => {
-        const displayProfiles = mockProfiles?.filter(p => p.type !== 'hub') || [];
-        const colsClass = displayProfiles.length === 2 ? "grid-cols-2" : "grid-cols-3";
-        return (
-          <div className={`grid ${colsClass} gap-2 pb-4 pt-1.5 w-full`}>
-            {displayProfiles.map((p) => {
-              const isActive = activeDashboardProfileId === p.id;
-              return (
-                <button
-                  key={p.id}
-                  onClick={() => setActiveDashboardProfileId(p.id)}
-                  className={`flex items-center justify-center gap-1.5 py-2.5 px-2 rounded-[14px] border transition-all duration-200 shadow-xs w-full text-center active:scale-[0.98] ${
-                    isActive 
-                      ? "bg-slate-900 dark:bg-[#102a31] border-slate-900 dark:border-sky-500/60 text-white shadow-md ring-1 ring-sky-500/30" 
-                      : "bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:border-sky-500/40 hover:bg-slate-50 dark:hover:bg-slate-750"
-                  }`}
-                >
-                  <span className="text-base sm:text-lg shrink-0">{p.icon}</span>
-                  <span className="font-bold text-[13px] sm:text-[14px] tracking-wide truncate">
-                    {formatDisplayPersonName(p.name, isEnglish)}
-                  </span>
-                </button>
-              );
-            })}
+      {showEmptyState ? (
+        <section className="p-6 sm:p-8 rounded-3xl bg-white dark:bg-[#0c2627] border border-slate-200/80 dark:border-slate-800 shadow-xl flex flex-col items-center text-center gap-5 my-4 max-w-lg mx-auto">
+          <div className="relative w-56 h-40">
+            <Image
+              src="/products/lumo-family-set.webp"
+              alt="Lumo Hub & Band"
+              fill
+              className="object-contain"
+              priority
+              sizes="240px"
+            />
           </div>
-        );
-      })()}
+          <div className="space-y-2">
+            <span className="inline-block text-[11px] font-bold uppercase tracking-wider px-3 py-1 rounded-full bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/30">
+              {isEnglish ? "No Devices Connected" : "Chưa có thiết bị kết nối"}
+            </span>
+            <h2 className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white">
+              {isEnglish ? "Connect your LUMO Hub & Band" : "Kết nối LUMO Hub & LUMO Band"}
+            </h2>
+            <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 leading-relaxed max-w-md">
+              {isEnglish
+                ? "Connect your family's LUMO Hub and wearable Band to start real-time check-in tracking, 24/7 fall safety detection, and battery alerts."
+                : "Hãy liên kết LUMO Hub và vòng đeo LUMO Band của người thân để bắt đầu theo dõi điểm danh mỗi ngày, cảm biến té ngã và mức pin từ xa."}
+            </p>
+          </div>
+          <Link
+            href="/settings/devices"
+            className="w-full sm:w-auto inline-flex items-center justify-center gap-2 py-3 px-6 rounded-2xl bg-teal-600 hover:bg-teal-700 text-white font-bold text-sm shadow-lg shadow-teal-700/25 transition-all active:scale-95"
+          >
+            <Plus size={18} />
+            <span>{isEnglish ? "Add Device Now" : "Thêm thiết bị ngay"}</span>
+          </Link>
+        </section>
+      ) : (
+        <>
+          {/* Profile Selector - Shown in Demo Mode */}
+          {isDemoMode && (() => {
+            const displayProfiles = mockProfiles?.filter(p => p.type !== 'hub') || [];
+            const colsClass = displayProfiles.length === 2 ? "grid-cols-2" : "grid-cols-3";
+            return (
+              <div className={`grid ${colsClass} gap-2 pb-4 pt-1.5 w-full`}>
+                {displayProfiles.map((p) => {
+                  const isActive = activeDashboardProfileId === p.id;
+                  return (
+                    <button
+                      key={p.id}
+                      onClick={() => setActiveDashboardProfileId(p.id)}
+                      className={`flex items-center justify-center gap-1.5 py-2.5 px-2 rounded-[14px] border transition-all duration-200 shadow-xs w-full text-center active:scale-[0.98] ${
+                        isActive 
+                          ? "bg-slate-900 dark:bg-[#102a31] border-slate-900 dark:border-sky-500/60 text-white shadow-md ring-1 ring-sky-500/30" 
+                          : "bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:border-sky-500/40 hover:bg-slate-50 dark:hover:bg-slate-750"
+                      }`}
+                    >
+                      <span className="text-base sm:text-lg shrink-0">{p.icon}</span>
+                      <span className="font-bold text-[13px] sm:text-[14px] tracking-wide truncate">
+                        {formatDisplayPersonName(p.name, isEnglish)}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+            );
+          })()}
 
-      <section className="health-summary-card" aria-label={copy.summary}>
-        <div className="care-summary-heading">
-          <div><span><ShieldCheck size={20} /></span><strong>{copy.summary}</strong></div>
-          <em className={checkedIn ? "safe" : "pending"}>{checkedIn ? copy.reassuring : copy.pending}</em>
-        </div>
+          {/* Multiple Real Devices Selector */}
+          {!isDemoMode && devices.length > 1 && (
+            <div className="flex items-center gap-2 pb-4 pt-1.5 overflow-x-auto w-full">
+              {devices.map((d) => {
+                const isSelected = activeDevice?.id === d.id;
+                return (
+                  <button
+                    key={d.id}
+                    className={`flex items-center gap-2 py-2 px-3.5 rounded-xl border text-xs font-bold transition-all ${
+                      isSelected
+                        ? "bg-slate-900 dark:bg-[#102a31] text-white border-slate-900 dark:border-sky-500"
+                        : "bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700"
+                    }`}
+                  >
+                    <LumoBandIcon size={16} />
+                    <span>LUMO Band ({d.device_id})</span>
+                  </button>
+                );
+              })}
+            </div>
+          )}
+
+          <section className="health-summary-card" aria-label={copy.summary}>
+            <div className="care-summary-heading">
+              <div><span><ShieldCheck size={20} /></span><strong>{copy.summary}</strong></div>
+              <em className={checkedIn ? "safe" : "pending"}>{checkedIn ? copy.reassuring : copy.pending}</em>
+            </div>
 
         {isOverview && (() => {
           const bandProfiles = mockProfiles?.filter(p => p.type === 'band') || [];
@@ -471,6 +534,8 @@ export default function DashboardPage() {
           <div><strong>{copy.device}</strong><small>{copy.deviceHint}</small></div>
           <ChevronRight size={19} />
         </Link>
+      )}
+        </>
       )}
 
       <Modal open={isBatteryModalOpen} onClose={() => setIsBatteryModalOpen(false)}>
