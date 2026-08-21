@@ -211,6 +211,15 @@ export default function DashboardPage() {
     };
   };
 
+  const getBatteryEstimateText = (level: number | null | undefined, isEn: boolean) => {
+    if (typeof level !== "number" || isNaN(level)) {
+      return isEn ? "No battery data" : "Chưa có dữ liệu pin";
+    }
+    // 100% battery = 1 year (365 days)
+    const estDays = Math.max(1, Math.round((level / 100) * 365));
+    return isEn ? `Est. ~${estDays} days left` : `Dùng khoảng ~${estDays} ngày`;
+  };
+
   const batteryData = getBatteryDisplay(batteryLevel);
 
   return (
@@ -388,7 +397,7 @@ export default function DashboardPage() {
                   </strong>
                   <span className={`text-[11px] font-medium ${
                     isLow ? "text-[#c2410c]/80 dark:text-[#fed7aa]/70" : "text-[#0d9488]/80 dark:text-[#5eead4]/70"
-                  }`}>{copy.batteryNormal}</span>
+                  }`}>{getBatteryEstimateText(p.batteryLevel, isEnglish)}</span>
                 </button>
               );
             })}
@@ -490,7 +499,7 @@ export default function DashboardPage() {
                     {batteryData.icon} <span className={batteryData.color}>{batteryData.text}</span>
                   </strong>
                   <span className="text-[12px] sm:text-[12.5px] text-[#0d9488]/80 dark:text-[#5eead4]/70 mt-auto leading-snug font-medium">
-                    {typeof batteryLevel === "number" ? copy.batteryNormal : copy.noBattery}
+                    {getBatteryEstimateText(batteryLevel, isEnglish)}
                   </span>
                 </button>
 
@@ -577,18 +586,20 @@ export default function DashboardPage() {
                   <span className={bData.color}>{bData.text}</span>
                 </h3>
                 <p className="text-gray-500 font-medium mt-1 text-sm">
-                  {isEnglish ? `LUMO Band of ${personName}` : `Pin LUMO Band của ${personName}`}
+                  {isEnglish 
+                    ? `LUMO Band of ${personName} · ${getBatteryEstimateText(currentBat, true)}` 
+                    : `Pin LUMO Band của ${personName} · ${getBatteryEstimateText(currentBat, false)}`}
                 </p>
               </div>
               
-              <div className="bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 p-4 rounded-xl text-sm w-full mt-2 text-left">
+              <div className="bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 p-4 rounded-xl text-sm w-full mt-2 text-left leading-relaxed">
                 {isEnglish 
                   ? (typeof currentBat === "number" && currentBat <= 20 
-                      ? `Battery of ${personName} is low (${currentBat}%). Please replace with a new coin-cell battery to maintain continuous monitoring.` 
-                      : `Battery level (${currentBat}%) is optimal for long-term use. The system will remind you to replace the battery when it drops below 20%.`)
+                      ? `Battery of ${personName} is low (${currentBat}% - approx. ${Math.max(1, Math.round((currentBat / 100) * 365))} days remaining). Please replace with a new coin-cell battery.` 
+                      : `Battery level (${currentBat}%) provides approx. ${Math.max(1, Math.round((currentBat / 100) * 365))} days of use (100% ≈ 1 year). The system will notify you when battery drops below 20%.`)
                   : (typeof currentBat === "number" && currentBat <= 20 
-                      ? `Pin của ${personName} đang ở mức thấp (${currentBat}%). Vui lòng thay pin mới cho vòng đeo để đảm bảo kết nối liên tục.` 
-                      : `Lượng pin (${currentBat}%) đủ để hoạt động lâu dài. Hệ thống sẽ tự động nhắc nhở khi pin dưới 20% để thay pin kịp thời.`)
+                      ? `Pin của ${personName} đang ở mức thấp (${currentBat}% - còn dùng được khoảng ${Math.max(1, Math.round((currentBat / 100) * 365))} ngày). Vui lòng chuẩn bị sẵn pin tròn mới để thay thế.` 
+                      : `Lượng pin (${currentBat}%) ước tính còn dùng được khoảng ${Math.max(1, Math.round((currentBat / 100) * 365))} ngày (100% pin sử dụng được 1 năm). Hệ thống sẽ tự động nhắc nhở khi pin dưới 20%.`)
                 }
               </div>
               
