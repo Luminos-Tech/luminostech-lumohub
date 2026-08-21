@@ -45,6 +45,7 @@ export default function DemoControlDrawer() {
     enableDemoMode,
     disableDemoMode,
     toggleDemoMode,
+    toggleDrawer,
     setDrawerOpen,
     triggerFallDetection,
     triggerCheckIn,
