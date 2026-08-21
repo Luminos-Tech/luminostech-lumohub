@@ -48,6 +48,8 @@ export default function DemoControlDrawer() {
     setNetworkStatus,
     resetToDefault,
     checkedInToday,
+    mockCheckInDays,
+    setMockCheckInDays,
     fallDetected,
     setFallDetected,
   } = useDemoStore();
@@ -324,6 +326,29 @@ export default function DemoControlDrawer() {
                   <span>0 bước</span>
                   <span>45 phút (Đạt mục tiêu)</span>
                   <span>10,000+ bước</span>
+                </div>
+              </div>
+
+              {/* Check In Days Slider */}
+              <div className="p-3 bg-slate-800/80 rounded-2xl border border-slate-700/80 space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="font-semibold text-slate-300 flex items-center gap-1.5">
+                    <CheckCircle2 size={16} className="text-[#ff8a4c]" /> Số ngày điểm danh gần đây:
+                  </span>
+                  <strong className="text-[#ff8a4c] font-mono text-sm">{mockCheckInDays} ngày</strong>
+                </div>
+                <input
+                  type="range"
+                  min="0"
+                  max="31"
+                  value={mockCheckInDays}
+                  onChange={(e) => setMockCheckInDays(Number(e.target.value))}
+                  className="w-full accent-[#ff8a4c] cursor-pointer"
+                />
+                <div className="flex justify-between text-[10px] text-slate-500 font-mono">
+                  <span>0 ngày</span>
+                  <span>15 ngày</span>
+                  <span>31 ngày</span>
                 </div>
               </div>
 

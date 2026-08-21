@@ -22,6 +22,7 @@ export interface DemoState {
   lastFallTime: string | null;
   checkedInToday: boolean;
   lastCheckInTime: string | null;
+  mockCheckInDays: number;
   networkStatus: "4g" | "wifi" | "offline";
   hubOnline: boolean;
   bandConnected: boolean;
@@ -58,6 +59,7 @@ export interface DemoState {
   setHubOnline: (online: boolean) => void;
   setBandConnected: (connected: boolean) => void;
   setFallDetected: (val: boolean | undefined) => void;
+  setMockCheckInDays: (days: number) => void;
 
   resetToDefault: () => void;
 }
@@ -159,6 +161,7 @@ export const useDemoStore = create<DemoState>()(
       lastFallTime: null,
       checkedInToday: true,
       lastCheckInTime: "07:15",
+      mockCheckInDays: 6,
       networkStatus: "4g",
       hubOnline: true,
       bandConnected: true,
@@ -323,6 +326,22 @@ export const useDemoStore = create<DemoState>()(
 
       setFallDetected: (val) => set({ fallDetected: val }),
       
+      setMockCheckInDays: (days) => {
+        const newEvents: EventButton[] = [];
+        for (let i = 0; i < days; i++) {
+          const date = new Date(Date.now() - i * 86400000);
+          newEvents.push({
+            id: i + 1,
+            device_id: 1,
+            device_code: "LH-8821",
+            user_id: 999,
+            time_button_click: date.toISOString(),
+            created_at: date.toISOString(),
+          });
+        }
+        set({ mockCheckInDays: days, mockRecentEvents: newEvents });
+      },
+
       setNetworkStatus: (status) => set({ networkStatus: status }),
       setHubOnline: (online) => set({ hubOnline: online }),
       setBandConnected: (connected) => set({ bandConnected: connected }),
@@ -336,6 +355,7 @@ export const useDemoStore = create<DemoState>()(
           lastFallTime: null,
           checkedInToday: true,
           lastCheckInTime: "07:15",
+          mockCheckInDays: 6,
           networkStatus: "4g",
           hubOnline: true,
           bandConnected: true,
@@ -351,6 +371,7 @@ export const useDemoStore = create<DemoState>()(
         activityMinutes: s.activityMinutes,
         stepsToday: s.stepsToday,
         networkStatus: s.networkStatus,
+        mockCheckInDays: s.mockCheckInDays,
       }),
     }
   )
