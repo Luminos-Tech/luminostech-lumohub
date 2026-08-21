@@ -27,11 +27,11 @@ export default function Modal({ open, onClose, title, children, size = "md" }: M
       {/* Backdrop */}
       <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={onClose} />
       {/* Panel */}
-      <div className={cn("relative bg-white rounded-2xl shadow-xl w-full", sizeMap[size])}>
+      <div className={cn("relative bg-white dark:bg-slate-900 rounded-2xl shadow-xl w-full dark:border dark:border-slate-800", sizeMap[size])}>
         {title && (
-          <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
-            <h2 className="font-semibold text-gray-900">{title}</h2>
-            <button onClick={onClose} className="p-1 hover:bg-gray-100 rounded-lg text-gray-500">
+          <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 dark:border-slate-800">
+            <h2 className="font-semibold text-gray-900 dark:text-white">{title}</h2>
+            <button onClick={onClose} className="p-1 hover:bg-gray-100 dark:hover:bg-slate-800 rounded-lg text-gray-500 dark:text-gray-400 transition-colors">
               <X size={18} />
             </button>
           </div>

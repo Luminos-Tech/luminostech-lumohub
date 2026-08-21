@@ -418,8 +418,8 @@ export default function AccountPage() {
       </section>
 
       {showEditProfileModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-150">
-          <div className="relative w-full max-w-md overflow-hidden rounded-3xl bg-white dark:bg-[#102a31] border border-slate-200 dark:border-[rgba(200,229,232,0.16)] shadow-2xl p-6 text-slate-800 dark:text-[#edf8f8]">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-150" onMouseDown={() => setShowEditProfileModal(false)}>
+          <div className="relative w-full max-w-md max-h-[90vh] overflow-y-auto rounded-3xl bg-white dark:bg-[#102a31] border border-slate-200 dark:border-[rgba(200,229,232,0.16)] shadow-2xl p-6 text-slate-800 dark:text-[#edf8f8]" onMouseDown={(e) => e.stopPropagation()}>
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center gap-2.5">
                 <div className="w-9 h-9 rounded-full bg-teal-500/10 text-teal-600 dark:text-teal-400 flex items-center justify-center">
@@ -430,13 +430,6 @@ export default function AccountPage() {
                   <p className="text-xs text-slate-500 dark:text-[#98adb2]">{preferenceText.personalHint}</p>
                 </div>
               </div>
-              <button
-                type="button"
-                onClick={() => setShowEditProfileModal(false)}
-                className="text-slate-400 hover:text-slate-600 dark:hover:text-white p-1.5 rounded-full hover:bg-slate-100 dark:hover:bg-[#183840] transition-colors"
-              >
-                <X size={18} />
-              </button>
             </div>
 
             <form onSubmit={profile.handleSubmit(saveProfile)} className="space-y-4">
