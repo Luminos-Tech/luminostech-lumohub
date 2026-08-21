@@ -29,6 +29,8 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { useDemoStore } from "@/store/demoStore";
+import { useNotificationStore } from "@/store/notificationStore";
+import { OPEN_NOTIFICATIONS_EVENT } from "@/lib/uiEvents";
 
 export default function DemoControlDrawer() {
   const {
@@ -62,6 +64,20 @@ export default function DemoControlDrawer() {
     setMockProfileMeta,
     resetToDefault,
   } = useDemoStore();
+
+  const receiveNotification = useNotificationStore((state) => state.receiveNotification);
+
+  const pushMockNotification = (title: string, content: string, channel: string = "system") => {
+    receiveNotification({
+      id: Date.now() + Math.floor(Math.random() * 1000),
+      user_id: mockUser.id || 0,
+      title,
+      content,
+      channel,
+      is_read: false,
+      created_at: new Date().toISOString(),
+    });
+  };
 
   const [activeTab, setActiveTab] = useState<"scenarios" | "hardware" | "info">("scenarios");
   const [isEditingInfo, setIsEditingInfo] = useState(false);
@@ -202,14 +218,23 @@ export default function DemoControlDrawer() {
                 type="button"
                 onClick={() => {
                   triggerFallDetection();
+                  const title = "Cảnh báo té ngã khẩn cấp";
+                  const msg = "Hệ thống phát hiện cú ngã từ LUMO Band. Đã phát âm báo động.";
+                  pushMockNotification(title, msg, "alert");
                   toast.custom((t) => (
-                    <div className="bg-[#2a1010] border border-red-500/30 rounded-2xl p-4 flex gap-4 items-center shadow-2xl shadow-red-900/20 max-w-sm w-full">
+                    <div 
+                      className="bg-[#2a1010] border border-red-500/30 rounded-2xl p-4 flex gap-4 items-center shadow-2xl shadow-red-900/20 max-w-sm w-full cursor-pointer hover:bg-[#381616] transition-colors"
+                      onClick={() => {
+                        toast.dismiss(t);
+                        window.dispatchEvent(new CustomEvent(OPEN_NOTIFICATIONS_EVENT));
+                      }}
+                    >
                       <div className="w-10 h-10 rounded-full bg-red-500/20 flex items-center justify-center flex-shrink-0">
                         <ShieldAlert size={20} className="text-red-400" />
                       </div>
                       <div>
-                        <h4 className="font-bold text-white text-sm">Cảnh báo té ngã khẩn cấp</h4>
-                        <p className="text-gray-300 text-xs mt-0.5">Hệ thống phát hiện cú ngã từ LUMO Band. Đã phát âm báo động.</p>
+                        <h4 className="font-bold text-white text-sm">{title}</h4>
+                        <p className="text-gray-300 text-xs mt-0.5">{msg}</p>
                       </div>
                     </div>
                   ));
@@ -235,14 +260,23 @@ export default function DemoControlDrawer() {
                 type="button"
                 onClick={() => {
                   triggerCheckIn();
+                  const title = "Gửi tín hiệu an tâm";
+                  const msg = "Mẹ Mai vừa chạm mặt đồng hồ để báo an tâm. Con cái đã nhận được.";
+                  pushMockNotification(title, msg, "system");
                   toast.custom((t) => (
-                    <div className="bg-[#102a31] border border-emerald-500/30 rounded-2xl p-4 flex gap-4 items-center shadow-2xl shadow-emerald-900/20 max-w-sm w-full">
+                    <div 
+                      className="bg-[#102a31] border border-emerald-500/30 rounded-2xl p-4 flex gap-4 items-center shadow-2xl shadow-emerald-900/20 max-w-sm w-full cursor-pointer hover:bg-[#133640] transition-colors"
+                      onClick={() => {
+                        toast.dismiss(t);
+                        window.dispatchEvent(new CustomEvent(OPEN_NOTIFICATIONS_EVENT));
+                      }}
+                    >
                       <div className="w-10 h-10 rounded-full bg-emerald-500/20 flex items-center justify-center flex-shrink-0">
                         <CheckCircle2 size={20} className="text-emerald-400" />
                       </div>
                       <div>
-                        <h4 className="font-bold text-white text-sm">Gửi tín hiệu an tâm</h4>
-                        <p className="text-gray-300 text-xs mt-0.5">Mẹ Mai vừa chạm mặt đồng hồ để báo an tâm. Con cái đã nhận được.</p>
+                        <h4 className="font-bold text-white text-sm">{title}</h4>
+                        <p className="text-gray-300 text-xs mt-0.5">{msg}</p>
                       </div>
                     </div>
                   ));
@@ -269,14 +303,23 @@ export default function DemoControlDrawer() {
                 type="button"
                 onClick={() => {
                   triggerMedicationReminder();
+                  const title = "Lời nhắc uống thuốc";
+                  const msg = "LUMO Hub vừa phát lời nhắc uống thuốc sáng tới Mẹ Mai.";
+                  pushMockNotification(title, msg, "system");
                   toast.custom((t) => (
-                    <div className="bg-[#101b31] border border-blue-500/30 rounded-2xl p-4 flex gap-4 items-center shadow-2xl shadow-blue-900/20 max-w-sm w-full">
+                    <div 
+                      className="bg-[#101b31] border border-blue-500/30 rounded-2xl p-4 flex gap-4 items-center shadow-2xl shadow-blue-900/20 max-w-sm w-full cursor-pointer hover:bg-[#152340] transition-colors"
+                      onClick={() => {
+                        toast.dismiss(t);
+                        window.dispatchEvent(new CustomEvent(OPEN_NOTIFICATIONS_EVENT));
+                      }}
+                    >
                       <div className="w-10 h-10 rounded-full bg-blue-500/20 flex items-center justify-center flex-shrink-0">
                         <Bell size={20} className="text-blue-400" />
                       </div>
                       <div>
-                        <h4 className="font-bold text-white text-sm">Lời nhắc uống thuốc</h4>
-                        <p className="text-gray-300 text-xs mt-0.5">LUMO Hub vừa phát lời nhắc uống thuốc sáng tới Mẹ Mai.</p>
+                        <h4 className="font-bold text-white text-sm">{title}</h4>
+                        <p className="text-gray-300 text-xs mt-0.5">{msg}</p>
                       </div>
                     </div>
                   ));
@@ -324,14 +367,23 @@ export default function DemoControlDrawer() {
               <button
                 type="button"
                 onClick={() => {
+                  const title = "Hệ thống LUMO";
+                  const msg = "Chào buổi sáng! Hệ thống đang hoạt động bình thường, bảo vệ gia đình bạn.";
+                  pushMockNotification(title, msg, "system");
                   toast.custom((t) => (
-                    <div className="bg-[#1a202c] border border-sky-500/30 rounded-2xl p-4 flex gap-4 items-center shadow-2xl shadow-sky-900/20 max-w-sm w-full">
+                    <div 
+                      className="bg-[#1a202c] border border-sky-500/30 rounded-2xl p-4 flex gap-4 items-center shadow-2xl shadow-sky-900/20 max-w-sm w-full cursor-pointer hover:bg-[#202838] transition-colors"
+                      onClick={() => {
+                        toast.dismiss(t);
+                        window.dispatchEvent(new CustomEvent(OPEN_NOTIFICATIONS_EVENT));
+                      }}
+                    >
                       <div className="w-10 h-10 rounded-full bg-sky-500/20 flex items-center justify-center flex-shrink-0">
                         <BellRing size={20} className="text-sky-400" />
                       </div>
                       <div>
-                        <h4 className="font-bold text-white text-sm">Hệ thống LUMO</h4>
-                        <p className="text-gray-300 text-xs mt-0.5">Chào buổi sáng! Hệ thống đang hoạt động bình thường, bảo vệ gia đình bạn.</p>
+                        <h4 className="font-bold text-white text-sm">{title}</h4>
+                        <p className="text-gray-300 text-xs mt-0.5">{msg}</p>
                       </div>
                     </div>
                   ));
