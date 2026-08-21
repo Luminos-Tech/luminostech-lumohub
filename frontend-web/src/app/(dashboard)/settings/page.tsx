@@ -401,7 +401,11 @@ export default function AccountPage() {
             <strong className="text-slate-900 dark:text-[#edf8f8]">{preferenceText.comfort}</strong>
             <small className="text-slate-500 dark:text-[#98adb2] block">{preferenceText.comfortHint}</small>
           </div>
-          <span className={`status-pill ${pushStatus === "granted" ? "status-on" : ""}`}>
+          <span className={`px-2 py-1 text-[10px] font-bold rounded-md flex items-center justify-center min-w-[48px] transition-colors ${
+            pushStatus === "granted"
+              ? "bg-teal-500/15 text-teal-700 dark:bg-teal-400/10 dark:text-teal-400"
+              : "bg-slate-200 text-slate-600 dark:bg-slate-700 dark:text-slate-300"
+          }`}>
             {pushLoading
               ? "..."
               : pushStatus === "granted"
