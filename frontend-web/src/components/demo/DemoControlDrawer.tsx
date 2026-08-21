@@ -265,6 +265,42 @@ export default function DemoControlDrawer() {
             </div>
           </div>
 
+          {/* Demo Mode Master Switch */}
+          <div className="px-4 py-2.5 bg-slate-950/70 border-b border-slate-800/80 flex items-center justify-between gap-3">
+            <div className="flex items-center gap-2 min-w-0">
+              <span className={`w-2.5 h-2.5 rounded-full shrink-0 ${isDemoMode ? "bg-emerald-400 animate-pulse shadow-xs shadow-emerald-400" : "bg-slate-500"}`} />
+              <div className="min-w-0">
+                <span className="text-xs font-bold text-white block truncate">
+                  {isEnglish ? "Status:" : "Trạng thái:"}{" "}
+                  <strong className={isDemoMode ? "text-emerald-400 font-extrabold" : "text-slate-400 font-medium"}>
+                    {isDemoMode ? (isEnglish ? "DEMO ACTIVE" : "ĐANG BẬT DEMO") : (isEnglish ? "REAL ACCOUNT" : "TÀI KHOẢN THẬT")}
+                  </strong>
+                </span>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-1.5 shrink-0">
+              {isDemoMode ? (
+                <button
+                  type="button"
+                  onClick={() => disableDemoMode()}
+                  className="py-1 px-2.5 rounded-lg bg-red-950/70 hover:bg-red-900 border border-red-500/50 text-red-200 text-[11px] font-bold transition-all active:scale-95"
+                >
+                  {isEnglish ? "Turn Off Demo" : "Tắt Demo"}
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => enableDemoMode()}
+                  className="py-1 px-3 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-[11px] font-bold transition-all active:scale-95 shadow-xs flex items-center gap-1"
+                >
+                  <Sparkles size={12} />
+                  <span>{isEnglish ? "Turn On Demo" : "Bật Demo"}</span>
+                </button>
+              )}
+            </div>
+          </div>
+
           {/* Navigation Tabs - Non-wrapping 3-column grid */}
           <div className="grid grid-cols-3 gap-1 border-b border-slate-800 bg-slate-950/60 p-1.5">
             <button
@@ -979,23 +1015,31 @@ export default function DemoControlDrawer() {
             </div>
           )}
 
-          {/* Footer Status Bar & Exit Demo */}
+          {/* Footer Status Bar & Master Actions */}
           <div className="p-3.5 bg-slate-950 border-t border-slate-800 space-y-2.5">
-            <button
-              type="button"
-              onClick={() => {
-                disableDemoMode();
-                void logout();
-                router.push("/dashboard");
-                setTimeout(() => {
-                  window.dispatchEvent(new CustomEvent(OPEN_AUTH_EVENT));
-                }, 120);
-              }}
-              className="w-full py-2.5 px-3 rounded-xl bg-red-950/40 hover:bg-red-900/60 border border-red-500/40 text-red-200 hover:text-white font-bold text-xs flex items-center justify-center gap-2 transition-all active:scale-[0.98] shadow-xs"
-            >
-              <LogOut size={15} className="text-red-400" />
-              <span>{isEnglish ? "Exit Demo & Log in with Real Account" : "Tắt chế độ Demo & Đăng nhập tài khoản thật"}</span>
-            </button>
+            {isDemoMode ? (
+              <button
+                type="button"
+                onClick={() => {
+                  disableDemoMode();
+                }}
+                className="w-full py-2.5 px-3 rounded-xl bg-red-950/40 hover:bg-red-900/60 border border-red-500/40 text-red-200 hover:text-white font-bold text-xs flex items-center justify-center gap-2 transition-all active:scale-[0.98] shadow-xs"
+              >
+                <LogOut size={15} className="text-red-400" />
+                <span>{isEnglish ? "Turn Off Demo & Return to Real Account" : "Tắt chế độ Demo (Về tài khoản thật)"}</span>
+              </button>
+            ) : (
+              <button
+                type="button"
+                onClick={() => {
+                  enableDemoMode();
+                }}
+                className="w-full py-2.5 px-3 rounded-xl bg-emerald-600 hover:bg-emerald-500 border border-emerald-500/50 text-white font-bold text-xs flex items-center justify-center gap-2 transition-all active:scale-[0.98] shadow-xs"
+              >
+                <Sparkles size={15} />
+                <span>{isEnglish ? "Turn On Demo Mode (Sample Data)" : "Bật chế độ Demo (Dữ liệu mẫu)"}</span>
+              </button>
+            )}
 
             <div className="flex items-center justify-between text-[11px] text-slate-400 pt-0.5">
               <span className="flex items-center gap-1.5 truncate">
