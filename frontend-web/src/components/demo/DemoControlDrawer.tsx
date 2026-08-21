@@ -16,7 +16,6 @@ import {
   Radio,
   RefreshCw,
   Settings2,
-  ShieldAlert,
   ShieldCheck,
   Sparkles,
   Wifi,
@@ -24,6 +23,8 @@ import {
   Zap,
   Bell,
   BellRing,
+  Edit2,
+  Save,
 } from "lucide-react";
 import { toast } from "sonner";
 import { useDemoStore } from "@/store/demoStore";
@@ -32,31 +33,35 @@ export default function DemoControlDrawer() {
   const {
     isDemoMode,
     isDrawerOpen,
-    setDrawerOpen,
-    toggleDrawer,
+    activeScenarioModal,
+    batteryLevel,
+    activityMinutes,
+    stepsToday,
+    mockCheckInDays,
+    fallDetected,
+    networkStatus,
+    mockUser,
+    enableDemoMode,
+    disableDemoMode,
     toggleDemoMode,
+    setDrawerOpen,
     triggerFallDetection,
     triggerCheckIn,
     triggerMedicationReminder,
     triggerVoiceCompanion,
-    batteryLevel,
     setBatteryLevel,
-    activityMinutes,
     setActivityMinutes,
-
-    stepsToday,
     setStepsToday,
-    networkStatus,
-    setNetworkStatus,
-    resetToDefault,
-    checkedInToday,
-    mockCheckInDays,
     setMockCheckInDays,
-    fallDetected,
     setFallDetected,
+    setNetworkStatus,
+    setMockUser,
+    resetToDefault,
   } = useDemoStore();
 
   const [activeTab, setActiveTab] = useState<"scenarios" | "hardware" | "info">("scenarios");
+  const [isEditingInfo, setIsEditingInfo] = useState(false);
+  const [tempName, setTempName] = useState(mockUser.full_name);
 
   // Global Keyboard shortcut: Ctrl+Shift+D or Alt+D to toggle drawer
   useEffect(() => {
@@ -514,16 +519,47 @@ export default function DemoControlDrawer() {
           {activeTab === "info" && (
             <div className="p-4 space-y-3.5 overflow-y-auto max-h-[460px] text-xs">
               <div className="p-3.5 rounded-2xl bg-slate-800/80 border border-slate-700 space-y-2">
-                <h6 className="font-bold text-slate-200 flex items-center gap-2">
-                  <span className="w-2.5 h-2.5 rounded-full bg-emerald-400" />
-                  Hồ sơ đối tượng sử dụng mẫu:
-                </h6>
-                <div className="space-y-1 text-slate-300">
-                  <p>• <strong>Người dùng chính:</strong> Cụ Nguyễn Thị Mai (78 tuổi)</p>
-                  <p>• <strong>Địa chỉ:</strong> Ba Đình, Hà Nội</p>
-                  <p>• <strong>Người chăm sóc từ xa:</strong> Anh Trí (Con trai)</p>
-                  <p>• <strong>Thiết bị:</strong> LUMO Hub 4G + LUMO Band (LH-8821)</p>
+                <div className="flex items-center justify-between">
+                  <h6 className="font-bold text-slate-200 flex items-center gap-2">
+                    <span className="w-2.5 h-2.5 rounded-full bg-emerald-400" />
+                    Hồ sơ đối tượng sử dụng mẫu:
+                  </h6>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (isEditingInfo) {
+                        setMockUser({ full_name: tempName });
+                        toast.success("Đã cập nhật hồ sơ mẫu");
+                      }
+                      setIsEditingInfo(!isEditingInfo);
+                    }}
+                    className="text-slate-400 hover:text-emerald-400 p-1 bg-slate-900 rounded-md transition-colors"
+                  >
+                    {isEditingInfo ? <Save size={14} /> : <Edit2 size={14} />}
+                  </button>
                 </div>
+                
+                {isEditingInfo ? (
+                  <div className="space-y-2 mt-2">
+                    <div>
+                      <label className="text-[10px] text-slate-500 uppercase font-bold">Người dùng chính</label>
+                      <input
+                        type="text"
+                        value={tempName}
+                        onChange={(e) => setTempName(e.target.value)}
+                        className="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-xs text-white focus:border-emerald-500 outline-none"
+                        placeholder="Nhập tên..."
+                      />
+                    </div>
+                  </div>
+                ) : (
+                  <div className="space-y-1 text-slate-300">
+                    <p>• <strong>Người dùng chính:</strong> {mockUser.full_name}</p>
+                    <p>• <strong>Địa chỉ:</strong> Ba Đình, Hà Nội</p>
+                    <p>• <strong>Người chăm sóc từ xa:</strong> Anh Trí (Con trai)</p>
+                    <p>• <strong>Thiết bị:</strong> LUMO Hub 4G + LUMO Band (LH-8821)</p>
+                  </div>
+                )}
               </div>
 
               <div className="p-3.5 rounded-2xl bg-slate-800/80 border border-slate-700 space-y-2">
