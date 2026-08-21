@@ -575,6 +575,8 @@ export default function DashboardPage() {
             ? formatDisplayPersonName(effectiveProfile.name, isEnglish)
             : (activeDevice?.device_id ? `LUMO Band (${activeDevice.device_id})` : (isEnglish ? "Device" : "Thiết bị"));
 
+          const estDays = typeof currentBat === "number" ? Math.max(1, Math.round((currentBat / 100) * 365)) : null;
+
           return (
             <div className="flex flex-col items-center gap-4 py-4 text-center">
               <div className="p-4 bg-gray-50 dark:bg-gray-800 rounded-full">
@@ -594,12 +596,16 @@ export default function DashboardPage() {
               
               <div className="bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 p-4 rounded-xl text-sm w-full mt-2 text-left leading-relaxed">
                 {isEnglish 
-                  ? (typeof currentBat === "number" && currentBat <= 20 
-                      ? `Battery of ${personName} is low (${currentBat}% - approx. ${Math.max(1, Math.round((currentBat / 100) * 365))} days remaining). Please replace with a new coin-cell battery.` 
-                      : `Battery level (${currentBat}%) provides approx. ${Math.max(1, Math.round((currentBat / 100) * 365))} days of use (100% ≈ 1 year). The system will notify you when battery drops below 20%.`)
-                  : (typeof currentBat === "number" && currentBat <= 20 
-                      ? `Pin của ${personName} đang ở mức thấp (${currentBat}% - còn dùng được khoảng ${Math.max(1, Math.round((currentBat / 100) * 365))} ngày). Vui lòng chuẩn bị sẵn pin tròn mới để thay thế.` 
-                      : `Lượng pin (${currentBat}%) ước tính còn dùng được khoảng ${Math.max(1, Math.round((currentBat / 100) * 365))} ngày (100% pin sử dụng được 1 năm). Hệ thống sẽ tự động nhắc nhở khi pin dưới 20%.`)
+                  ? (typeof currentBat === "number" && estDays !== null
+                      ? (currentBat <= 20 
+                          ? `Battery of ${personName} is low (${currentBat}% - approx. ${estDays} days remaining). Please replace with a new coin-cell battery.` 
+                          : `Battery level (${currentBat}%) provides approx. ${estDays} days of use (100% ≈ 1 year). The system will notify you when battery drops below 20%.`)
+                      : `No battery telemetry data available for ${personName}'s device.`)
+                  : (typeof currentBat === "number" && estDays !== null
+                      ? (currentBat <= 20 
+                          ? `Pin của ${personName} đang ở mức thấp (${currentBat}% - còn dùng được khoảng ${estDays} ngày). Vui lòng chuẩn bị sẵn pin tròn mới để thay thế.` 
+                          : `Lượng pin (${currentBat}%) ước tính còn dùng được khoảng ${estDays} ngày (100% pin sử dụng được 1 năm). Hệ thống sẽ tự động nhắc nhở khi pin dưới 20%.`)
+                      : `Chưa nhận được tín hiệu đo pin từ vòng đeo tay của ${personName}.`)
                 }
               </div>
               
