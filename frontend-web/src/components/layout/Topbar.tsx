@@ -5,7 +5,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { Bell, UserRound } from "lucide-react";
 import { OPEN_AUTH_EVENT, OPEN_NOTIFICATIONS_EVENT } from "@/lib/uiEvents";
-import { registerLogoTap, openSecretDemoConsole } from "@/demo/trigger";
+import { registerLogoTap } from "@/demo/trigger";
 import { useAuthStore } from "@/store/authStore";
 import { useNotificationStore } from "@/store/notificationStore";
 import { usePreferenceStore } from "@/store/preferenceStore";
@@ -35,7 +35,6 @@ export default function Topbar() {
         type="button"
         className="brand-lockup cursor-pointer select-none active:opacity-80 transition-opacity bg-transparent border-0 p-0 text-left" 
         aria-label={text.home} 
-        onDoubleClick={(e) => openSecretDemoConsole(e)}
         onClick={(e) => registerLogoTap(e)}
       >
         <Image src="/logo-luminostech.png" alt="LuminosTech" width={40} height={40} sizes="40px" priority />

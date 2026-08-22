@@ -13,6 +13,7 @@ import {
   Radio,
   Square,
   Trash2,
+  X,
 } from "lucide-react";
 import { toast } from "sonner";
 import { usePreferenceStore } from "@/store/preferenceStore";
@@ -46,6 +47,7 @@ export default function VoiceMessagesPage() {
   const [audioUrls, setAudioUrls] = useState(emptyUrls);
   const [activeKey, setActiveKey] = useState<VoiceRecordingKey | null>(null);
   const [playingKey, setPlayingKey] = useState<VoiceRecordingKey | null>(null);
+  const [popupKey, setPopupKey] = useState<VoiceRecordingKey | null>(null);
   const [elapsedMs, setElapsedMs] = useState(0);
   const recorderRef = useRef<MediaRecorder | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
@@ -302,54 +304,96 @@ export default function VoiceMessagesPage() {
       <section className="voice-slot-list">
         {slots.map((slot, slotIndex) => {
           const recording = recordings[slot.key];
-          const isRecording = activeKey === slot.key;
-          const isPlaying = playingKey === slot.key;
           return (
-            <article key={slot.key} className={`voice-slot-card ${slot.accent} ${isRecording ? "recording" : ""}`}>
-              <div className="voice-slot-head">
-                <span className="voice-slot-icon"><slot.icon size={24} /></span>
+            <article 
+              key={slot.key} 
+              className={`voice-slot-card ${slot.accent}`} 
+              style={{ cursor: "pointer", padding: "12px 16px" }}
+              onClick={() => setPopupKey(slot.key)}
+            >
+              <div className="voice-slot-head" style={{ gridTemplateColumns: "40px minmax(0,1fr) auto", gap: "12px" }}>
+                <span className="voice-slot-icon" style={{ width: 40, height: 40 }}><slot.icon size={20} /></span>
                 <div>
-                  <small>0{slotIndex + 1}</small>
-                  <h2>{slot.name}</h2>
-                  <p>{slot.moment}</p>
+                  <h2 style={{ fontSize: "16px" }}>{slot.name}</h2>
+                  <p style={{ fontSize: "12px", margin: 0 }}>{slot.moment}</p>
                 </div>
-                <span className={`voice-slot-state ${recording ? "ready" : ""}`}>
-                  {isRecording ? formatDuration(elapsedMs) : recording ? `${text.recorded} · ${formatDuration(recording.durationMs)}` : text.empty}
+                <span className={`voice-slot-state ${recording ? "ready" : ""}`} style={{ maxWidth: 'none', padding: '4px 8px', fontSize: 11 }}>
+                  {recording ? text.recorded : text.empty}
                 </span>
-              </div>
-
-              <blockquote>{slot.prompt}</blockquote>
-
-              <div className={`voice-waveform ${isRecording || isPlaying ? "active" : ""}`} aria-hidden="true">
-                {Array.from({ length: 22 }, (_, index) => <span key={index} style={{ height: `${8 + ((index * 7) % 19)}px` }} />)}
-              </div>
-
-              <div className="voice-slot-actions">
-                {recording && !isRecording && (
-                  <button type="button" className="voice-play-button" onClick={() => void togglePlayback(slot.key)}>
-                    {isPlaying ? <Pause size={18} fill="currentColor" /> : <Play size={18} fill="currentColor" />}
-                    {isPlaying ? text.pause : text.play}
-                  </button>
-                )}
-                <button
-                  type="button"
-                  className={`voice-record-button ${isRecording ? "stop" : ""}`}
-                  disabled={Boolean(activeKey && !isRecording)}
-                  onClick={() => isRecording ? stopRecording() : void startRecording(slot.key)}
-                >
-                  {isRecording ? <Square size={17} fill="currentColor" /> : <Mic2 size={18} />}
-                  {isRecording ? text.stop : recording ? text.rerecord : text.record}
-                </button>
-                {recording && !isRecording && (
-                  <button type="button" className="voice-delete-button" onClick={() => void deleteRecording(slot.key)} aria-label={text.remove} title={text.remove}>
-                    <Trash2 size={18} />
-                  </button>
-                )}
               </div>
             </article>
           );
         })}
       </section>
+
+      {popupKey && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/50 backdrop-blur-sm animate-in fade-in duration-200" onClick={() => { if (!activeKey) setPopupKey(null); }}>
+          <div className="relative w-full max-w-sm" onClick={(e) => e.stopPropagation()}>
+            {(() => {
+              const slot = slots.find(s => s.key === popupKey)!;
+              const slotIndex = slots.findIndex(s => s.key === popupKey);
+              const recording = recordings[slot.key];
+              const isRecording = activeKey === slot.key;
+              const isPlaying = playingKey === slot.key;
+
+              return (
+                <article className={`voice-slot-card ${slot.accent} ${isRecording ? "recording" : ""}`} style={{ margin: 0, boxShadow: '0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1)' }}>
+                  <button 
+                    type="button" 
+                    className="absolute top-4 right-4 text-slate-400 hover:text-slate-600 dark:hover:text-white" 
+                    onClick={() => { if (!activeKey) setPopupKey(null); }}
+                  >
+                    <X size={20} />
+                  </button>
+                  <div className="voice-slot-head mb-2 pr-6">
+                    <span className="voice-slot-icon"><slot.icon size={24} /></span>
+                    <div>
+                      <small>0{slotIndex + 1}</small>
+                      <h2>{slot.name}</h2>
+                      <p>{slot.moment}</p>
+                    </div>
+                  </div>
+
+                  <div className="mt-4">
+                    <span className={`voice-slot-state inline-block mb-2 ${recording ? "ready" : ""}`}>
+                      {isRecording ? formatDuration(elapsedMs) : recording ? `${text.recorded} · ${formatDuration(recording.durationMs)}` : text.empty}
+                    </span>
+                  </div>
+
+                  <blockquote>{slot.prompt}</blockquote>
+
+                  <div className={`voice-waveform ${isRecording || isPlaying ? "active" : ""}`} aria-hidden="true">
+                    {Array.from({ length: 22 }, (_, index) => <span key={index} style={{ height: `${8 + ((index * 7) % 19)}px` }} />)}
+                  </div>
+
+                  <div className="voice-slot-actions">
+                    {recording && !isRecording && (
+                      <button type="button" className="voice-play-button" onClick={() => void togglePlayback(slot.key)}>
+                        {isPlaying ? <Pause size={18} fill="currentColor" /> : <Play size={18} fill="currentColor" />}
+                        {isPlaying ? text.pause : text.play}
+                      </button>
+                    )}
+                    <button
+                      type="button"
+                      className={`voice-record-button ${isRecording ? "stop" : ""}`}
+                      disabled={Boolean(activeKey && !isRecording)}
+                      onClick={() => isRecording ? stopRecording() : void startRecording(slot.key)}
+                    >
+                      {isRecording ? <Square size={17} fill="currentColor" /> : <Mic2 size={18} />}
+                      {isRecording ? text.stop : recording ? text.rerecord : text.record}
+                    </button>
+                    {recording && !isRecording && (
+                      <button type="button" className="voice-delete-button" onClick={() => void deleteRecording(slot.key)} aria-label={text.remove} title={text.remove}>
+                        <Trash2 size={18} />
+                      </button>
+                    )}
+                  </div>
+                </article>
+              );
+            })()}
+          </div>
+        </div>
+      )}
     </main>
   );
 }
