@@ -31,13 +31,19 @@ import {
   Save,
 } from "lucide-react";
 import { toast } from "sonner";
-import { useDemoStore, FamilyPreset } from "@/store/demoStore";
+import { useDemoStore, FamilyPreset } from "@/demo/store";
 import { useNotificationStore } from "@/store/notificationStore";
 import { usePreferenceStore } from "@/store/preferenceStore";
 import { useAuthStore } from "@/store/authStore";
 import { OPEN_AUTH_EVENT, OPEN_NOTIFICATIONS_EVENT } from "@/lib/uiEvents";
+import { sendDemoSyncEvent, DEMO_SYNC_CHANNEL_NAME, DemoSyncPayload } from "@/demo/sync";
+import type { MockProfile } from "@/types/demo";
 
-export default function DemoControlDrawer() {
+interface DemoControlDrawerProps {
+  inline?: boolean;
+}
+
+export default function DemoControlDrawer({ inline = false }: DemoControlDrawerProps) {
   const isEnglish = usePreferenceStore((state) => state.language === "en");
 
   const {
@@ -78,10 +84,51 @@ export default function DemoControlDrawer() {
     resetToDefault,
   } = useDemoStore();
 
-  const receiveNotification = useNotificationStore((state) => state.receiveNotification);
   const [customPushText, setCustomPushText] = useState("");
   const router = useRouter();
-  const logout = useAuthStore((state) => state.logout);
+
+  // Robust wrapper functions that immediately update local store AND broadcast to other tabs
+  const handleSetDemoMode = (enabled: boolean) => {
+    if (enabled) {
+      enableDemoMode();
+    } else {
+      disableDemoMode();
+    }
+    sendDemoSyncEvent({ type: "SET_DEMO_MODE", value: enabled });
+  };
+
+  const handleUpdatePerson = (id: string, updates: Partial<MockProfile>) => {
+    updatePersonProfile(id, updates);
+    sendDemoSyncEvent({ type: "UPDATE_PERSON_PROFILE", id, updates });
+  };
+
+  const handleSetFamilyPreset = (preset: FamilyPreset) => {
+    setFamilyPreset(preset);
+    setSelectedPersonId("profile_1");
+    sendDemoSyncEvent({ type: "SET_FAMILY_PRESET", value: preset });
+  };
+
+  const handleSetTargetProfileId = (id: string) => {
+    setDemoTargetProfileId(id);
+    setSelectedPersonId(id);
+    sendDemoSyncEvent({ type: "SET_DEMO_TARGET_PROFILE_ID", value: id });
+  };
+
+  const handleSetNetworkStatus = (status: "4g" | "wifi" | "offline") => {
+    setNetworkStatus(status);
+    sendDemoSyncEvent({ type: "SET_NETWORK", value: status });
+  };
+
+  const handleSetCheckInDays = (days: number) => {
+    setMockCheckInDays(days);
+    sendDemoSyncEvent({ type: "SET_MOCK_CHECKIN_DAYS", value: days });
+  };
+
+  const handleResetDefault = () => {
+    resetToDefault();
+    setSelectedPersonId("profile_1");
+    sendDemoSyncEvent({ type: "RESET_TO_DEFAULT" });
+  };
 
   const playPushChime = () => {
     try {
@@ -117,51 +164,12 @@ export default function DemoControlDrawer() {
 
   const triggerPushBanner = (title: string, content: string, channel: string = "system", iconType: "check" | "med" | "battery" | "wifi" | "bell" = "bell") => {
     playPushChime();
-    pushMockNotification(title, content, channel);
-
-    toast.custom((t) => (
-      <div 
-        className="bg-white/95 dark:bg-[#0f1d2a]/95 backdrop-blur-md border border-slate-200/90 dark:border-sky-500/40 rounded-2xl p-3.5 sm:p-4 flex gap-3.5 items-center shadow-xl shadow-slate-900/10 dark:shadow-2xl dark:shadow-sky-950/40 max-w-sm w-full cursor-pointer hover:bg-slate-50 dark:hover:bg-[#132637] transition-all group"
-        onClick={() => {
-          toast.dismiss(t);
-          window.dispatchEvent(new CustomEvent(OPEN_NOTIFICATIONS_EVENT));
-        }}
-      >
-        <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform ${
-          iconType === "check"
-            ? "bg-emerald-50 text-emerald-600 border border-emerald-200 dark:bg-emerald-500/20 dark:border-emerald-400/30 dark:text-emerald-400"
-            : iconType === "med"
-              ? "bg-amber-50 text-amber-600 border border-amber-200 dark:bg-amber-500/20 dark:border-amber-400/30 dark:text-amber-400"
-              : iconType === "battery"
-                ? "bg-orange-50 text-orange-600 border border-orange-200 dark:bg-orange-500/20 dark:border-orange-400/30 dark:text-orange-400"
-                : iconType === "wifi"
-                  ? "bg-cyan-50 text-cyan-600 border border-cyan-200 dark:bg-cyan-500/20 dark:border-cyan-400/30 dark:text-cyan-400"
-                  : "bg-sky-50 text-sky-600 border border-sky-200 dark:bg-sky-500/20 dark:border-sky-400/30 dark:text-sky-400"
-        }`}>
-          {iconType === "check" ? <CheckCircle2 size={20} /> : iconType === "med" ? <Pill size={20} /> : iconType === "battery" ? <BatteryCharging size={20} /> : iconType === "wifi" ? <Wifi size={20} /> : <BellRing size={20} />}
-        </div>
-        <div className="min-w-0 flex-1">
-          <div className="flex items-center justify-between gap-1 mb-0.5">
-            <span className="text-[10px] uppercase font-bold tracking-wider text-sky-600 dark:text-sky-400">LUMO Push Alert</span>
-            <span className="text-[10px] text-slate-400 dark:text-slate-400 font-mono">vừa xong</span>
-          </div>
-          <h4 className="font-bold text-slate-900 dark:text-white text-xs truncate">{title}</h4>
-          <p className="text-slate-600 dark:text-slate-300 text-[11px] leading-tight line-clamp-2 mt-0.5">{content}</p>
-        </div>
-      </div>
-    ));
+    pushMockNotification(title, content, channel, iconType);
+    toast.success(isEnglish ? "Notification pushed to main app!" : "Đã đẩy thông báo sang màn hình chính thành công!");
   };
 
-  const pushMockNotification = (title: string, content: string, channel: string = "system") => {
-    receiveNotification({
-      id: Date.now() + Math.floor(Math.random() * 1000),
-      user_id: mockUser.id || 0,
-      title,
-      content,
-      channel,
-      is_read: false,
-      created_at: new Date().toISOString(),
-    });
+  const pushMockNotification = (title: string, content: string, channel: string = "system", iconType: "check" | "med" | "battery" | "wifi" | "bell" = "bell") => {
+    sendDemoSyncEvent({ type: "CUSTOM_PUSH", title, body: content, channel, iconType });
   };
 
   const [activeTab, setActiveTab] = useState<"scenarios" | "family" | "hardware">("scenarios");
@@ -180,6 +188,41 @@ export default function DemoControlDrawer() {
     fallDetected: false,
   };
 
+  // Two-way synchronization listener for standalone controller & drawer
+  useEffect(() => {
+    if (typeof window === "undefined" || !window.BroadcastChannel) return;
+    const bc = new BroadcastChannel(DEMO_SYNC_CHANNEL_NAME);
+    bc.onmessage = (event: MessageEvent<DemoSyncPayload>) => {
+      const payload = event.data;
+      const demoStore = useDemoStore.getState();
+      switch (payload.type) {
+        case "SET_DEMO_MODE":
+          if (payload.value) demoStore.enableDemoMode();
+          else demoStore.disableDemoMode();
+          break;
+        case "SET_FAMILY_PRESET":
+          demoStore.setFamilyPreset(payload.value);
+          break;
+        case "SET_DEMO_TARGET_PROFILE_ID":
+          demoStore.setDemoTargetProfileId(payload.value);
+          break;
+        case "UPDATE_PERSON_PROFILE":
+          demoStore.updatePersonProfile(payload.id, payload.updates);
+          break;
+        case "SET_MOCK_CHECKIN_DAYS":
+          demoStore.setMockCheckInDays(payload.value);
+          break;
+        case "SET_NETWORK":
+          demoStore.setNetworkStatus(payload.value);
+          break;
+        case "RESET_TO_DEFAULT":
+          demoStore.resetToDefault();
+          break;
+      }
+    };
+    return () => bc.close();
+  }, []);
+
   // Global Keyboard shortcut: Ctrl+Shift+D or Alt+D to toggle drawer
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -196,7 +239,7 @@ export default function DemoControlDrawer() {
   return (
     <>
       {/* Drawer Overlay Backdrop */}
-      {isDrawerOpen && (
+      {!inline && isDrawerOpen && (
         <div
           className="fixed inset-0 z-40 bg-slate-950/50 backdrop-blur-xs transition-opacity"
           onClick={() => setDrawerOpen(false)}
@@ -204,9 +247,13 @@ export default function DemoControlDrawer() {
       )}
 
       {/* Main Floating Presenter Palette */}
-      {isDrawerOpen && (
+      {(inline || isDrawerOpen) && (
         <aside
-          className="fixed bottom-0 sm:bottom-6 right-0 sm:right-4 z-50 w-full sm:w-[440px] max-h-[90vh] overflow-hidden rounded-t-3xl sm:rounded-3xl bg-slate-900 border border-purple-500/40 shadow-2xl shadow-purple-950/90 backdrop-blur-xl text-white flex flex-col animate-in slide-in-from-bottom-5 duration-200"
+          className={
+            inline
+              ? "w-full max-w-lg mx-auto bg-slate-900 border border-purple-500/40 shadow-2xl shadow-purple-950/90 rounded-3xl overflow-hidden text-white flex flex-col mt-4"
+              : "fixed bottom-0 sm:bottom-6 right-0 sm:right-4 z-50 w-full sm:w-[440px] max-h-[90vh] overflow-hidden rounded-t-3xl sm:rounded-3xl bg-slate-900 border border-purple-500/40 shadow-2xl shadow-purple-950/90 backdrop-blur-xl text-white flex flex-col animate-in slide-in-from-bottom-5 duration-200"
+          }
           role="dialog"
           aria-label="Demo Controller"
         >
@@ -223,20 +270,25 @@ export default function DemoControlDrawer() {
                     Live Demo
                   </span>
                 </h4>
-                <p className="text-[11px] text-slate-400">
-                  {isEnglish ? "Shortcut:" : "Phím tắt:"} <code className="bg-slate-800 px-1 py-0.5 rounded text-purple-300">Ctrl+Shift+D</code>
-                </p>
+                {/* Inline shortcut text */}
+                {!inline && (
+                  <p className="text-[11px] text-slate-400">
+                    {isEnglish ? "Shortcut:" : "Phím tắt:"} <code className="bg-slate-800 px-1 py-0.5 rounded text-purple-300">Ctrl+Shift+D</code>
+                  </p>
+                )}
               </div>
             </div>
 
-            <button
-              type="button"
-              onClick={() => setDrawerOpen(false)}
-              className="p-1.5 rounded-full text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
-              title={isEnglish ? "Close drawer" : "Đóng panel"}
-            >
-              <X size={18} />
-            </button>
+            {!inline && (
+              <button
+                type="button"
+                onClick={() => setDrawerOpen(false)}
+                className="p-1.5 rounded-full text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
+                title={isEnglish ? "Close drawer" : "Đóng panel"}
+              >
+                <X size={18} />
+              </button>
+            )}
           </div>
 
           {/* Target Person Selector for Live Scenarios */}
@@ -247,10 +299,7 @@ export default function DemoControlDrawer() {
             <div className="relative">
               <select
                 value={demoTargetProfileId}
-                onChange={(e) => {
-                  setDemoTargetProfileId(e.target.value);
-                  setSelectedPersonId(e.target.value);
-                }}
+                onChange={(e) => handleSetTargetProfileId(e.target.value)}
                 className="w-full bg-slate-800/90 border border-purple-500/30 rounded-xl py-2 pl-3 pr-8 text-sm text-white appearance-none focus:outline-none focus:border-purple-400 font-semibold cursor-pointer"
               >
                 {bandProfiles.map((p) => (
@@ -283,7 +332,7 @@ export default function DemoControlDrawer() {
               {isDemoMode ? (
                 <button
                   type="button"
-                  onClick={() => disableDemoMode()}
+                  onClick={() => handleSetDemoMode(false)}
                   className="py-1 px-2.5 rounded-lg bg-red-950/70 hover:bg-red-900 border border-red-500/50 text-red-200 text-[11px] font-bold transition-all active:scale-95"
                 >
                   {isEnglish ? "Turn Off Demo" : "Tắt Demo"}
@@ -291,7 +340,7 @@ export default function DemoControlDrawer() {
               ) : (
                 <button
                   type="button"
-                  onClick={() => enableDemoMode()}
+                  onClick={() => handleSetDemoMode(true)}
                   className="py-1 px-3 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-[11px] font-bold transition-all active:scale-95 shadow-xs flex items-center gap-1"
                 >
                   <Sparkles size={12} />
@@ -353,26 +402,11 @@ export default function DemoControlDrawer() {
                 type="button"
                 onClick={() => {
                   triggerFallDetection();
+                  sendDemoSyncEvent({ type: "TRIGGER_FALL" });
                   const title = isEnglish ? `Fall Alert: ${currentTargetProfile?.name || "Elderly"}` : `Cảnh báo té ngã: ${currentTargetProfile?.name || "Người thân"}`;
-                  const msg = isEnglish ? `LUMO Band (${currentTargetProfile?.device_id || "LH-8821"}) detected a hard impact just now!` : `LUMO Band (${currentTargetProfile?.device_id || "LH-8821"}) phát hiện va chạm mạnh lúc vừa xong!`;
+                  const msg = isEnglish ? `LUMO Band (${currentTargetProfile?.device_id || "LH-8821"}) detected a sudden hard impact!` : `LUMO Band (${currentTargetProfile?.device_id || "LH-8821"}) vừa phát hiện va chạm mạnh bất thường!`;
                   pushMockNotification(title, msg, "alert");
-                  toast.custom((t) => (
-                    <div 
-                      className="bg-white/95 dark:bg-[#2a1010]/95 backdrop-blur-md border border-red-200 dark:border-red-500/30 rounded-2xl p-4 flex gap-4 items-center shadow-xl shadow-red-950/10 dark:shadow-2xl dark:shadow-red-900/20 max-w-sm w-full cursor-pointer hover:bg-red-50/50 dark:hover:bg-[#381616] transition-colors"
-                      onClick={() => {
-                        toast.dismiss(t);
-                        window.dispatchEvent(new CustomEvent(OPEN_NOTIFICATIONS_EVENT));
-                      }}
-                    >
-                      <div className="w-10 h-10 rounded-full bg-red-50 dark:bg-red-500/20 border border-red-200 dark:border-red-500/30 flex items-center justify-center shrink-0 text-red-600 dark:text-red-400">
-                        <ShieldAlert size={20} />
-                      </div>
-                      <div>
-                        <h4 className="font-bold text-slate-900 dark:text-white text-sm">{title}</h4>
-                        <p className="text-slate-600 dark:text-gray-300 text-xs mt-0.5">{msg}</p>
-                      </div>
-                    </div>
-                  ));
+                  toast.success(isEnglish ? "Notification pushed to main app!" : "Đã đẩy thông báo sang màn hình chính thành công!");
                 }}
                 className="w-full text-left p-3.5 rounded-2xl bg-gradient-to-r from-red-950/40 to-slate-900 border border-red-500/50 hover:border-red-400 hover:shadow-lg hover:shadow-red-500/20 active:scale-[0.99] transition-all flex items-center justify-between group"
               >
@@ -390,77 +424,13 @@ export default function DemoControlDrawer() {
                 </span>
               </button>
 
-              {/* 2. Touch Reassurance on Band */}
+              {/* 2. Voice Companion Interaction */}
               <button
                 type="button"
                 onClick={() => {
-                  triggerCheckIn();
-                  const title = isEnglish ? "Check-in reassurance received" : "Gửi tín hiệu an tâm";
-                  const msg = isEnglish ? `${currentTargetProfile?.name || "Elderly"} just tapped the LUMO Band.` : `${currentTargetProfile?.name || "Người thân"} vừa chạm mặt LUMO Band để báo an tâm.`;
-                  pushMockNotification(title, msg, "system");
-                  toast.custom((t) => (
-                    <div 
-                      className="bg-white/95 dark:bg-[#102a31]/95 backdrop-blur-md border border-emerald-200 dark:border-emerald-500/30 rounded-2xl p-4 flex gap-4 items-center shadow-xl shadow-emerald-950/10 dark:shadow-2xl dark:shadow-emerald-900/20 max-w-sm w-full cursor-pointer hover:bg-emerald-50/50 dark:hover:bg-[#133640] transition-colors"
-                      onClick={() => {
-                        toast.dismiss(t);
-                        window.dispatchEvent(new CustomEvent(OPEN_NOTIFICATIONS_EVENT));
-                      }}
-                    >
-                      <div className="w-10 h-10 rounded-full bg-emerald-50 dark:bg-emerald-500/20 border border-emerald-200 dark:border-emerald-500/30 flex items-center justify-center shrink-0 text-emerald-600 dark:text-emerald-400">
-                        <CheckCircle2 size={20} />
-                      </div>
-                      <div>
-                        <h4 className="font-bold text-slate-900 dark:text-white text-sm">{title}</h4>
-                        <p className="text-slate-600 dark:text-gray-300 text-xs mt-0.5">{msg}</p>
-                      </div>
-                    </div>
-                  ));
+                  triggerVoiceCompanion();
+                  sendDemoSyncEvent({ type: "TRIGGER_VOICE" });
                 }}
-                className="w-full text-left p-3.5 rounded-2xl bg-gradient-to-r from-emerald-950/40 to-slate-900 border border-emerald-500/40 hover:border-emerald-400 hover:shadow-lg hover:shadow-emerald-500/20 active:scale-[0.99] transition-all flex items-center justify-between group"
-              >
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-xl bg-emerald-600/20 border border-emerald-500/40 text-emerald-400 flex items-center justify-center group-hover:scale-110 transition-transform">
-                    <CheckCircle2 size={22} />
-                  </div>
-                  <div>
-                    <h5 className="font-bold text-sm text-emerald-200">{isEnglish ? "2. Touch Check-in on Band" : "2. Chạm xác nhận an tâm"}</h5>
-                    <p className="text-xs text-slate-400">{isEnglish ? "Records daily check-in + push status" : "Ghi nhận điểm danh + gửi thông báo an tâm"}</p>
-                  </div>
-                </div>
-                <span className="text-xs px-2.5 py-1 rounded-lg bg-emerald-600/20 text-emerald-300 font-bold border border-emerald-500/30">
-                  Touch
-                </span>
-              </button>
-
-              {/* 3. Medication Reminder Modal */}
-              <button
-                type="button"
-                onClick={() => {
-                  triggerMedicationReminder();
-                  const title = isEnglish ? "Medication reminder" : "Nhắc nhở uống thuốc";
-                  const msg = isEnglish ? `LUMO Hub is playing voice reminder for ${currentTargetProfile?.name}.` : `LUMO Hub đang phát giọng nói nhắc ${currentTargetProfile?.name || "Người thân"} uống thuốc.`;
-                  pushMockNotification(title, msg, "lumo");
-                }}
-                className="w-full text-left p-3.5 rounded-2xl bg-gradient-to-r from-amber-950/40 to-slate-900 border border-amber-500/40 hover:border-amber-400 hover:shadow-lg hover:shadow-amber-500/20 active:scale-[0.99] transition-all flex items-center justify-between group"
-              >
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-xl bg-amber-600/20 border border-amber-500/40 text-amber-400 flex items-center justify-center group-hover:scale-110 transition-transform">
-                    <Pill size={22} />
-                  </div>
-                  <div>
-                    <h5 className="font-bold text-sm text-amber-200">{isEnglish ? "3. Medication Reminder" : "3. Nhắc nhở uống thuốc"}</h5>
-                    <p className="text-xs text-slate-400">{isEnglish ? "Plays voice & shows reminder modal" : "Phát âm thanh & hiển thị modal nhắc lịch thuốc"}</p>
-                  </div>
-                </div>
-                <span className="text-xs px-2.5 py-1 rounded-lg bg-amber-600/20 text-amber-300 font-bold border border-amber-500/30">
-                  Play
-                </span>
-              </button>
-
-              {/* 4. Voice Companion Interaction */}
-              <button
-                type="button"
-                onClick={triggerVoiceCompanion}
                 className="w-full text-left p-3.5 rounded-2xl bg-gradient-to-r from-purple-950/40 to-slate-900 border border-purple-500/40 hover:border-purple-400 hover:shadow-lg hover:shadow-purple-500/20 active:scale-[0.99] transition-all flex items-center justify-between group"
               >
                 <div className="flex items-center gap-3">
@@ -468,7 +438,7 @@ export default function DemoControlDrawer() {
                     <Mic size={22} />
                   </div>
                   <div>
-                    <h5 className="font-bold text-sm text-purple-200">{isEnglish ? "4. LUMO AI Voice Companion" : "4. Trợ lý Trò Chuyện LUMO"}</h5>
+                    <h5 className="font-bold text-sm text-purple-200">{isEnglish ? "2. LUMO AI Voice Companion" : "2. Trợ lý Trò Chuyện LUMO"}</h5>
                     <p className="text-xs text-slate-400">{isEnglish ? "Interactive 2-way conversation dialogue" : "Hội thoại mẫu 2 chiều với người lớn tuổi"}</p>
                   </div>
                 </div>
@@ -477,7 +447,7 @@ export default function DemoControlDrawer() {
                 </span>
               </button>
 
-              {/* 5. Simulate Push Notifications */}
+              {/* 3. Simulate Push Notifications */}
               <div className="rounded-2xl border border-sky-500/40 bg-gradient-to-r from-sky-950/40 via-slate-900 to-indigo-950/40 p-3.5 space-y-2.5">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2.5">
@@ -486,7 +456,7 @@ export default function DemoControlDrawer() {
                     </div>
                     <div>
                       <h5 className="font-bold text-sm text-sky-200">
-                        {isEnglish ? "5. Simulate Push Notification" : "5. Giả lập Push Thông Báo"}
+                        {isEnglish ? "3. Simulate Push Notification" : "3. Giả lập Push Thông Báo"}
                       </h5>
                       <p className="text-xs text-slate-400">
                         {isEnglish ? "Simulates phone banner & unread badge" : "Phát chuông + hiện banner đẩy tức thì"}
@@ -625,10 +595,7 @@ export default function DemoControlDrawer() {
                 <div className="grid grid-cols-2 gap-2">
                   <button
                     type="button"
-                    onClick={() => {
-                      setFamilyPreset("ba_me");
-                      setSelectedPersonId("profile_1");
-                    }}
+                    onClick={() => handleSetFamilyPreset("ba_me")}
                     className={`py-2 px-2.5 rounded-xl font-bold border text-left flex items-center gap-2 transition-all ${
                       familyPreset === "ba_me"
                         ? "bg-purple-600/30 text-purple-200 border-purple-500/60 shadow-xs"
@@ -644,10 +611,7 @@ export default function DemoControlDrawer() {
 
                   <button
                     type="button"
-                    onClick={() => {
-                      setFamilyPreset("ong_ba");
-                      setSelectedPersonId("profile_1");
-                    }}
+                    onClick={() => handleSetFamilyPreset("ong_ba")}
                     className={`py-2 px-2.5 rounded-xl font-bold border text-left flex items-center gap-2 transition-all ${
                       familyPreset === "ong_ba"
                         ? "bg-purple-600/30 text-purple-200 border-purple-500/60 shadow-xs"
@@ -663,10 +627,7 @@ export default function DemoControlDrawer() {
 
                   <button
                     type="button"
-                    onClick={() => {
-                      setFamilyPreset("single_me");
-                      setSelectedPersonId("profile_1");
-                    }}
+                    onClick={() => handleSetFamilyPreset("single_me")}
                     className={`py-2 px-2.5 rounded-xl font-bold border text-left flex items-center gap-2 transition-all ${
                       familyPreset === "single_me"
                         ? "bg-purple-600/30 text-purple-200 border-purple-500/60 shadow-xs"
@@ -682,10 +643,7 @@ export default function DemoControlDrawer() {
 
                   <button
                     type="button"
-                    onClick={() => {
-                      setFamilyPreset("single_ba");
-                      setSelectedPersonId("profile_1");
-                    }}
+                    onClick={() => handleSetFamilyPreset("single_ba")}
                     className={`py-2 px-2.5 rounded-xl font-bold border text-left flex items-center gap-2 transition-all ${
                       familyPreset === "single_ba"
                         ? "bg-purple-600/30 text-purple-200 border-purple-500/60 shadow-xs"
@@ -709,7 +667,7 @@ export default function DemoControlDrawer() {
                     type="button"
                     onClick={() => {
                       setSelectedPersonId(p.id);
-                      setDemoTargetProfileId(p.id);
+                      handleSetTargetProfileId(p.id);
                     }}
                     className={`flex-1 py-2 px-3 rounded-xl font-bold text-xs flex items-center justify-center gap-2 border transition-all ${
                       activeEditingPerson.id === p.id
@@ -743,7 +701,7 @@ export default function DemoControlDrawer() {
                     <input
                       type="text"
                       value={activeEditingPerson.name}
-                      onChange={(e) => updatePersonProfile(activeEditingPerson.id, { name: e.target.value })}
+                      onChange={(e) => handleUpdatePerson(activeEditingPerson.id, { name: e.target.value })}
                       className="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-xs text-white focus:border-teal-500 outline-none"
                       placeholder="Mẹ / Ba"
                     />
@@ -756,9 +714,9 @@ export default function DemoControlDrawer() {
                     <input
                       type="text"
                       value={activeEditingPerson.fullName || ""}
-                      onChange={(e) => updatePersonProfile(activeEditingPerson.id, { fullName: e.target.value })}
+                      onChange={(e) => handleUpdatePerson(activeEditingPerson.id, { fullName: e.target.value })}
                       className="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-xs text-white focus:border-teal-500 outline-none"
-                      placeholder="Cụ Nguyễn Thị Mai"
+                      placeholder="Bà Nguyễn Thị Mai"
                     />
                   </div>
                 </div>
@@ -772,7 +730,7 @@ export default function DemoControlDrawer() {
                     <input
                       type="text"
                       value={activeEditingPerson.address || ""}
-                      onChange={(e) => updatePersonProfile(activeEditingPerson.id, { address: e.target.value })}
+                      onChange={(e) => handleUpdatePerson(activeEditingPerson.id, { address: e.target.value })}
                       className="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-xs text-white focus:border-teal-500 outline-none"
                       placeholder="Số 18, Ngõ 42 Liễu Giai, Ba Đình, Hà Nội"
                     />
@@ -786,7 +744,7 @@ export default function DemoControlDrawer() {
                       <input
                         type="text"
                         value={activeEditingPerson.age || ""}
-                        onChange={(e) => updatePersonProfile(activeEditingPerson.id, { age: e.target.value })}
+                        onChange={(e) => handleUpdatePerson(activeEditingPerson.id, { age: e.target.value })}
                         className="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-xs text-white focus:border-teal-500 outline-none"
                         placeholder="76 tuổi (1948)"
                       />
@@ -799,7 +757,7 @@ export default function DemoControlDrawer() {
                       <input
                         type="text"
                         value={activeEditingPerson.device_id || ""}
-                        onChange={(e) => updatePersonProfile(activeEditingPerson.id, { device_id: e.target.value })}
+                        onChange={(e) => handleUpdatePerson(activeEditingPerson.id, { device_id: e.target.value })}
                         className="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-xs font-mono text-cyan-300 focus:border-teal-500 outline-none"
                         placeholder="LH-8821"
                       />
@@ -813,9 +771,9 @@ export default function DemoControlDrawer() {
                     <input
                       type="text"
                       value={activeEditingPerson.caregiver || ""}
-                      onChange={(e) => updatePersonProfile(activeEditingPerson.id, { caregiver: e.target.value })}
+                      onChange={(e) => handleUpdatePerson(activeEditingPerson.id, { caregiver: e.target.value })}
                       className="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-xs text-white focus:border-teal-500 outline-none"
-                      placeholder="Anh Trí (Con trai - 0988 123 456)"
+                      placeholder="Phạm Nguyễn Tuấn Kiệt (Con trai - 0988 123 456)"
                     />
                   </div>
                 </div>
@@ -830,7 +788,7 @@ export default function DemoControlDrawer() {
                       <button
                         key={emoji}
                         type="button"
-                        onClick={() => updatePersonProfile(activeEditingPerson.id, { icon: emoji })}
+                        onClick={() => handleUpdatePerson(activeEditingPerson.id, { icon: emoji })}
                         className={`w-8 h-8 rounded-lg text-sm flex items-center justify-center border transition-all ${
                           activeEditingPerson.icon === emoji
                             ? "bg-teal-600/30 border-teal-400 scale-110"
@@ -856,7 +814,7 @@ export default function DemoControlDrawer() {
                     min="5"
                     max="100"
                     value={activeEditingPerson.batteryLevel ?? 88}
-                    onChange={(e) => updatePersonProfile(activeEditingPerson.id, { batteryLevel: Number(e.target.value) })}
+                    onChange={(e) => handleUpdatePerson(activeEditingPerson.id, { batteryLevel: Number(e.target.value) })}
                     className="w-full accent-emerald-500 cursor-pointer"
                   />
                   <div className="flex gap-1.5 pt-1">
@@ -864,7 +822,7 @@ export default function DemoControlDrawer() {
                       <button
                         key={val}
                         type="button"
-                        onClick={() => updatePersonProfile(activeEditingPerson.id, { batteryLevel: val })}
+                        onClick={() => handleUpdatePerson(activeEditingPerson.id, { batteryLevel: val })}
                         className={`text-[10px] px-2 py-0.5 rounded-md border font-mono ${
                           activeEditingPerson.batteryLevel === val
                             ? "bg-emerald-600/30 text-emerald-300 border-emerald-500"
@@ -890,7 +848,7 @@ export default function DemoControlDrawer() {
                     min="0"
                     max="120"
                     value={activeEditingPerson.activityMinutes ?? 45}
-                    onChange={(e) => updatePersonProfile(activeEditingPerson.id, { activityMinutes: Number(e.target.value) })}
+                    onChange={(e) => handleUpdatePerson(activeEditingPerson.id, { activityMinutes: Number(e.target.value) })}
                     className="w-full accent-blue-500 cursor-pointer"
                   />
                 </div>
@@ -903,7 +861,7 @@ export default function DemoControlDrawer() {
                     </label>
                     <button
                       type="button"
-                      onClick={() => updatePersonProfile(activeEditingPerson.id, { 
+                      onClick={() => handleUpdatePerson(activeEditingPerson.id, { 
                         checkedInToday: !activeEditingPerson.checkedInToday,
                         lastCheckInTime: !activeEditingPerson.checkedInToday ? "07:15" : null
                       })}
@@ -923,7 +881,7 @@ export default function DemoControlDrawer() {
                     </label>
                     <button
                       type="button"
-                      onClick={() => updatePersonProfile(activeEditingPerson.id, { fallDetected: !activeEditingPerson.fallDetected })}
+                      onClick={() => handleUpdatePerson(activeEditingPerson.id, { fallDetected: !activeEditingPerson.fallDetected })}
                       className={`w-full py-1.5 px-2 rounded-xl text-center font-bold border transition-all ${
                         activeEditingPerson.fallDetected
                           ? "bg-red-600/40 text-red-200 border-red-500"
@@ -949,7 +907,7 @@ export default function DemoControlDrawer() {
                 <div className="grid grid-cols-3 gap-2">
                   <button
                     type="button"
-                    onClick={() => setNetworkStatus("4g")}
+                    onClick={() => handleSetNetworkStatus("4g")}
                     className={`py-2 px-2 rounded-xl text-center font-bold border transition-all ${
                       networkStatus === "4g"
                         ? "bg-purple-600 text-white border-purple-400"
@@ -960,7 +918,7 @@ export default function DemoControlDrawer() {
                   </button>
                   <button
                     type="button"
-                    onClick={() => setNetworkStatus("wifi")}
+                    onClick={() => handleSetNetworkStatus("wifi")}
                     className={`py-2 px-2 rounded-xl text-center font-bold border transition-all ${
                       networkStatus === "wifi"
                         ? "bg-blue-600 text-white border-blue-400"
@@ -971,7 +929,7 @@ export default function DemoControlDrawer() {
                   </button>
                   <button
                     type="button"
-                    onClick={() => setNetworkStatus("offline")}
+                    onClick={() => handleSetNetworkStatus("offline")}
                     className={`py-2 px-2 rounded-xl text-center font-bold border transition-all ${
                       networkStatus === "offline"
                         ? "bg-red-600 text-white border-red-400"
@@ -996,7 +954,7 @@ export default function DemoControlDrawer() {
                   min="0"
                   max="31"
                   value={mockCheckInDays}
-                  onChange={(e) => setMockCheckInDays(Number(e.target.value))}
+                  onChange={(e) => handleSetCheckInDays(Number(e.target.value))}
                   className="w-full accent-[#ff8a4c] cursor-pointer"
                 />
               </div>
@@ -1004,10 +962,7 @@ export default function DemoControlDrawer() {
               {/* Reset Default Button */}
               <button
                 type="button"
-                onClick={() => {
-                  resetToDefault();
-                  setSelectedPersonId("profile_1");
-                }}
+                onClick={handleResetDefault}
                 className="w-full py-3 px-3 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 font-semibold flex items-center justify-center gap-2 transition-colors"
               >
                 <RefreshCw size={15} /> {isEnglish ? "Restore standard demo data" : "Khôi phục dữ liệu demo chuẩn"}
@@ -1020,9 +975,7 @@ export default function DemoControlDrawer() {
             {isDemoMode ? (
               <button
                 type="button"
-                onClick={() => {
-                  disableDemoMode();
-                }}
+                onClick={() => handleSetDemoMode(false)}
                 className="w-full py-2.5 px-3 rounded-xl bg-red-950/40 hover:bg-red-900/60 border border-red-500/40 text-red-200 hover:text-white font-bold text-xs flex items-center justify-center gap-2 transition-all active:scale-[0.98] shadow-xs"
               >
                 <LogOut size={15} className="text-red-400" />
@@ -1031,9 +984,7 @@ export default function DemoControlDrawer() {
             ) : (
               <button
                 type="button"
-                onClick={() => {
-                  enableDemoMode();
-                }}
+                onClick={() => handleSetDemoMode(true)}
                 className="w-full py-2.5 px-3 rounded-xl bg-emerald-600 hover:bg-emerald-500 border border-emerald-500/50 text-white font-bold text-xs flex items-center justify-center gap-2 transition-all active:scale-[0.98] shadow-xs"
               >
                 <Sparkles size={15} />

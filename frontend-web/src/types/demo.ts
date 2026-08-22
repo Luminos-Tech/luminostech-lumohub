@@ -5,6 +5,8 @@ export type MockProfile = {
   address?: string;
   caregiver?: string;
   phone?: string;
+  emergencyContactName?: string;
+  emergencyContactPhone?: string;
   age?: string;
   type: "band" | "hub" | "overview";
   icon: string;

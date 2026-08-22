@@ -1,7 +1,7 @@
 "use client";
 import Image from "next/image";
 import { useAuthStore } from "@/store/authStore";
-import { useDemoStore } from "@/store/demoStore";
+import { useDemoStore } from "@/demo/store";
 import { getInitials } from "@/lib/utils";
 
 export default function AvatarUpload() {

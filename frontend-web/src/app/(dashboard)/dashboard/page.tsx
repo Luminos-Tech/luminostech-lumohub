@@ -10,7 +10,7 @@ import { useAuthStore } from "@/store/authStore";
 import { useDeviceStore } from "@/store/deviceStore";
 import { useEventButtonStore } from "@/store/eventButtonStore";
 import { usePreferenceStore } from "@/store/preferenceStore";
-import { useDemoStore, formatDisplayPersonName } from "@/store/demoStore";
+import { useDemoStore, formatDisplayPersonName } from "@/demo/store";
 import type { MockProfile } from "@/types/demo";
 import { parseUTC } from "@/lib/utils";
 import Modal from "@/components/common/Modal";
@@ -368,7 +368,8 @@ export default function DashboardPage() {
             {/* Row 3: Battery — Fresh Teal / Coral Amber theme 🔋 */}
             {bandProfiles.map(p => {
               const bData = getBatteryDisplay(p.batteryLevel);
-              const isLow = typeof p.batteryLevel === "number" && p.batteryLevel <= 20;
+              const isCrit = typeof p.batteryLevel === "number" && p.batteryLevel <= 20;
+              const isWarn = typeof p.batteryLevel === "number" && p.batteryLevel > 20 && p.batteryLevel <= 50;
               return (
                 <button 
                   key={`battery-${p.id}`} 
@@ -377,26 +378,40 @@ export default function DashboardPage() {
                     setIsBatteryModalOpen(true);
                   }} 
                   className={`flex flex-col gap-1.5 p-3.5 rounded-[18px] border shadow-xs text-left active:scale-[0.98] transition-all ${
-                    isLow
-                      ? "border-amber-200/90 dark:border-amber-800/50 bg-gradient-to-br from-[#fff7ed] via-[#ffedd5]/70 to-[#fed7aa]/40 dark:bg-gradient-to-br dark:from-[#431407]/60 dark:to-[#270c04]"
-                      : "border-teal-200/90 dark:border-teal-800/50 bg-gradient-to-br from-[#f0fdfa] via-[#ccfbf1]/60 to-[#99f6e4]/30 dark:bg-gradient-to-br dark:from-[#134e4a]/60 dark:to-[#042f2e]"
+                    isCrit
+                      ? "border-red-200/90 dark:border-red-800/50 bg-gradient-to-br from-[#fff1f2] via-[#ffe4e6]/70 to-[#fecdd3]/40 dark:from-[#4c0519]/60 dark:to-[#2b030e]"
+                      : isWarn
+                        ? "border-amber-200/90 dark:border-amber-800/50 bg-gradient-to-br from-[#fff7ed] via-[#ffedd5]/70 to-[#fed7aa]/40 dark:from-[#431407]/60 dark:to-[#270c04]"
+                        : "border-teal-200/90 dark:border-teal-800/50 bg-gradient-to-br from-[#f0fdfa] via-[#ccfbf1]/60 to-[#99f6e4]/30 dark:from-[#134e4a]/60 dark:to-[#042f2e]"
                   }`}
                 >
                   <div className="flex items-center gap-1.5">
                     <span className={`shrink-0 w-6 h-6 rounded-full flex items-center justify-center ${
-                      isLow ? "bg-amber-500/15 text-amber-600 dark:bg-amber-400/20 dark:text-amber-300" : "bg-teal-500/15 text-teal-600 dark:bg-teal-400/20 dark:text-teal-300"
+                      isCrit
+                        ? "bg-red-500/15 text-red-600 dark:bg-red-400/20 dark:text-red-300"
+                        : isWarn
+                          ? "bg-amber-500/15 text-amber-600 dark:bg-amber-400/20 dark:text-amber-300"
+                          : "bg-teal-500/15 text-teal-600 dark:bg-teal-400/20 dark:text-teal-300"
                     }`}>
                       <LumoBandIcon size={13} />
                     </span>
                     <small className={`text-[12px] font-semibold ${
-                      isLow ? "text-[#c2410c] dark:text-[#fed7aa]" : "text-[#0d9488] dark:text-[#5eead4]"
+                      isCrit
+                        ? "text-[#be123c] dark:text-[#fecdd3]"
+                        : isWarn
+                          ? "text-[#c2410c] dark:text-[#fed7aa]"
+                          : "text-[#0d9488] dark:text-[#5eead4]"
                     }`}>{isEnglish ? "Band battery" : "Pin LUMO Band"}</small>
                   </div>
                   <strong className="text-[22px] font-extrabold flex items-center gap-1.5 tracking-tight">
                     {bData.icon} <span className={bData.color}>{bData.text}</span>
                   </strong>
                   <span className={`text-[11px] font-medium ${
-                    isLow ? "text-[#c2410c]/80 dark:text-[#fed7aa]/70" : "text-[#0d9488]/80 dark:text-[#5eead4]/70"
+                    isCrit
+                      ? "text-[#be123c]/80 dark:text-[#fecdd3]/70"
+                      : isWarn
+                        ? "text-[#c2410c]/80 dark:text-[#fed7aa]/70"
+                        : "text-[#0d9488]/80 dark:text-[#5eead4]/70"
                   }`}>{getBatteryEstimateText(p.batteryLevel, isEnglish)}</span>
                 </button>
               );
@@ -481,28 +496,57 @@ export default function DashboardPage() {
 
               {/* Battery & Fall side-by-side */}
               <div className="grid grid-cols-2 gap-3">
-                {/* Battery — Fresh Teal */}
-                <button
-                  onClick={() => {
-                    setSelectedBatteryProfile(activeProfile || null);
-                    setIsBatteryModalOpen(true);
-                  }}
-                  className="flex flex-col p-4 rounded-[20px] border border-teal-200/90 dark:border-teal-800/50 bg-gradient-to-br from-[#f0fdfa] via-[#ccfbf1]/60 to-[#99f6e4]/30 dark:bg-gradient-to-br dark:from-[#134e4a]/60 dark:to-[#042f2e] shadow-xs text-left active:scale-[0.98] transition-all"
-                >
-                  <div className="flex items-center gap-2.5 mb-3">
-                    <span className="shrink-0 w-8 h-8 rounded-full flex items-center justify-center bg-teal-500/15 text-teal-600 dark:bg-teal-400/20 dark:text-teal-300">
-                      <LumoBandIcon size={16} />
-                    </span>
-                    <span className="text-[13.5px] sm:text-[14px] text-[#0d9488] dark:text-[#5eead4] font-semibold leading-tight">{copy.battery}</span>
-                  </div>
-                  <strong className="text-[24px] sm:text-[26px] font-extrabold flex items-center gap-2 mb-1.5 tracking-tight">
-                    {batteryData.icon} <span className={batteryData.color}>{batteryData.text}</span>
-                  </strong>
-                  <span className="text-[12px] sm:text-[12.5px] text-[#0d9488]/80 dark:text-[#5eead4]/70 mt-auto leading-snug font-medium">
-                    {getBatteryEstimateText(batteryLevel, isEnglish)}
-                  </span>
-                </button>
-
+                {/* Battery */}
+                {(() => {
+                  const isCrit = typeof batteryLevel === "number" && batteryLevel <= 20;
+                  const isWarn = typeof batteryLevel === "number" && batteryLevel > 20 && batteryLevel <= 50;
+                  return (
+                    <button
+                      onClick={() => {
+                        setSelectedBatteryProfile(activeProfile || null);
+                        setIsBatteryModalOpen(true);
+                      }}
+                      className={`flex flex-col p-4 rounded-[20px] border shadow-xs text-left active:scale-[0.98] transition-all ${
+                        isCrit
+                          ? "border-red-200/90 dark:border-red-800/50 bg-gradient-to-br from-[#fff1f2] via-[#ffe4e6]/70 to-[#fecdd3]/40 dark:bg-gradient-to-br dark:from-[#4c0519]/60 dark:to-[#2b030e]"
+                          : isWarn
+                            ? "border-amber-200/90 dark:border-amber-800/50 bg-gradient-to-br from-[#fff7ed] via-[#ffedd5]/70 to-[#fed7aa]/40 dark:bg-gradient-to-br dark:from-[#431407]/60 dark:to-[#270c04]"
+                            : "border-teal-200/90 dark:border-teal-800/50 bg-gradient-to-br from-[#f0fdfa] via-[#ccfbf1]/60 to-[#99f6e4]/30 dark:bg-gradient-to-br dark:from-[#134e4a]/60 dark:to-[#042f2e]"
+                      }`}
+                    >
+                      <div className="flex items-center gap-2.5 mb-3">
+                        <span className={`shrink-0 w-8 h-8 rounded-full flex items-center justify-center ${
+                          isCrit
+                            ? "bg-red-500/15 text-red-600 dark:bg-red-400/20 dark:text-red-300"
+                            : isWarn
+                              ? "bg-amber-500/15 text-amber-600 dark:bg-amber-400/20 dark:text-amber-300"
+                              : "bg-teal-500/15 text-teal-600 dark:bg-teal-400/20 dark:text-teal-300"
+                        }`}>
+                          <LumoBandIcon size={16} />
+                        </span>
+                        <span className={`text-[13.5px] sm:text-[14px] font-semibold leading-tight ${
+                          isCrit
+                            ? "text-[#be123c] dark:text-[#fecdd3]"
+                            : isWarn
+                              ? "text-[#c2410c] dark:text-[#fed7aa]"
+                              : "text-[#0d9488] dark:text-[#5eead4]"
+                        }`}>{copy.battery}</span>
+                      </div>
+                      <strong className="text-[24px] sm:text-[26px] font-extrabold flex items-center gap-2 mb-1.5 tracking-tight">
+                        {batteryData.icon} <span className={batteryData.color}>{batteryData.text}</span>
+                      </strong>
+                      <span className={`text-[12px] sm:text-[12.5px] mt-auto leading-snug font-medium ${
+                        isCrit
+                          ? "text-[#be123c]/80 dark:text-[#fecdd3]/70"
+                          : isWarn
+                            ? "text-[#c2410c]/80 dark:text-[#fed7aa]/70"
+                            : "text-[#0d9488]/80 dark:text-[#5eead4]/70"
+                      }`}>
+                        {getBatteryEstimateText(batteryLevel, isEnglish)}
+                      </span>
+                    </button>
+                  );
+                })()}
                 {/* Fall detection — Purple / Red */}
                 <button
                   onClick={() => {

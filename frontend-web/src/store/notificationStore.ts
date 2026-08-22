@@ -1,7 +1,7 @@
 import { create } from "zustand";
 import type { Notification } from "@/types";
 import { api } from "@/lib/api";
-import { useDemoStore } from "./demoStore";
+import { useDemoStore } from "@/demo/store";
 
 interface NotificationState {
   notifications: Notification[];

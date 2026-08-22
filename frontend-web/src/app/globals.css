@@ -8,7 +8,9 @@
   }
 
   body {
-    @apply text-gray-900 antialiased;
+    color: #111827;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
     margin: 0;
     background: #f2fafa;
     font-family: 'Manrope', Arial, sans-serif;

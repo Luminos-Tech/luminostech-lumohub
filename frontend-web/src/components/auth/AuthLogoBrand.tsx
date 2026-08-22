@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import { registerLogoTap, openSecretDemoConsole } from "@/lib/demoTrigger";
+import { registerLogoTap, openSecretDemoConsole } from "@/demo/trigger";
 
 export default function AuthLogoBrand() {
   return (

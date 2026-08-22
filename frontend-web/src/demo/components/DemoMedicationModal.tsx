@@ -1,13 +1,16 @@
 "use client";
 
 import { useState } from "react";
-import { Check, CheckCircle2, Clock, Heart, Mic, Pill, Play, Volume2, X } from "lucide-react";
+import { Check, CheckCircle2, Clock, Mic, Pill, Play, Volume2, X } from "lucide-react";
 import { toast } from "sonner";
-import { useDemoStore } from "@/store/demoStore";
+import { useDemoStore } from "@/demo/store";
+import { usePreferenceStore } from "@/store/preferenceStore";
 
 export default function DemoMedicationModal() {
+  const isEnglish = usePreferenceStore((state) => state.language === "en");
   const { activeScenarioModal, closeScenarioModal, mockProfiles, demoTargetProfileId } = useDemoStore();
   const targetProfile = mockProfiles?.find(p => p.id === demoTargetProfileId) || mockProfiles?.find(p => p.type === "band") || { name: "Mẹ", icon: "👵" };
+  const targetName = targetProfile?.name || (isEnglish ? "Mother" : "Mẹ");
   const [isPlayingAudio, setIsPlayingAudio] = useState(false);
   const [isTaken, setIsTaken] = useState(false);
 
@@ -20,9 +23,11 @@ export default function DemoMedicationModal() {
 
     if (typeof window !== "undefined" && "speechSynthesis" in window) {
       window.speechSynthesis.cancel();
-      const text = `${targetProfile.name} ơi đến 9 giờ rồi, nhớ uống 1 viên thuốc huyết áp màu trắng và 1 viên thuốc khớp nhé!`;
+      const text = isEnglish
+        ? `Hello ${targetName}, it is 9 AM, please remember to take 1 white blood pressure pill and 1 joint health pill!`
+        : `${targetName} ơi đến 9 giờ rồi, nhớ uống 1 viên thuốc huyết áp màu trắng và 1 viên thuốc khớp nhé!`;
       const utterance = new SpeechSynthesisUtterance(text);
-      utterance.lang = "vi-VN";
+      utterance.lang = isEnglish ? "en-US" : "vi-VN";
       utterance.rate = 0.95;
       utterance.onend = () => setIsPlayingAudio(false);
       utterance.onerror = () => setIsPlayingAudio(false);
@@ -36,14 +41,20 @@ export default function DemoMedicationModal() {
 
   const handleConfirmTaken = () => {
     setIsTaken(true);
-    toast.custom((t) => (
+    toast.custom(() => (
       <div className="bg-white/95 dark:bg-[#102a31]/95 backdrop-blur-md border border-emerald-200 dark:border-emerald-500/30 rounded-2xl p-4 flex gap-4 items-center shadow-xl shadow-emerald-950/10 dark:shadow-2xl dark:shadow-emerald-900/20 max-w-sm w-full">
         <div className="w-10 h-10 rounded-full bg-emerald-50 dark:bg-emerald-500/20 border border-emerald-200 dark:border-emerald-500/30 flex items-center justify-center shrink-0 text-emerald-600 dark:text-emerald-400">
           <CheckCircle2 size={20} />
         </div>
         <div>
-          <h4 className="font-bold text-slate-900 dark:text-white text-sm">Uống thuốc đúng giờ</h4>
-          <p className="text-slate-600 dark:text-gray-300 text-xs mt-0.5">Đã ghi nhận: {targetProfile.name} đã uống thuốc đúng lịch sáng.</p>
+          <h4 className="font-bold text-slate-900 dark:text-white text-sm">
+            {isEnglish ? "Medication Taken On Time" : "Uống thuốc đúng giờ"}
+          </h4>
+          <p className="text-slate-600 dark:text-gray-300 text-xs mt-0.5">
+            {isEnglish
+              ? `Recorded: ${targetName} took morning medications on schedule.`
+              : `Đã ghi nhận: ${targetName} đã uống thuốc đúng lịch sáng.`}
+          </p>
         </div>
       </div>
     ));
@@ -63,14 +74,16 @@ export default function DemoMedicationModal() {
         </div>
 
         <span className="inline-flex items-center gap-1.5 px-3 py-1 mb-2 text-xs font-bold tracking-wider text-amber-300 uppercase rounded-full bg-amber-500/20 border border-amber-500/40">
-          <Clock size={13} /> Lịch nhắc lúc 09:00 Sáng
+          <Clock size={13} /> {isEnglish ? "Reminder at 09:00 AM" : "Lịch nhắc lúc 09:00 Sáng"}
         </span>
 
-        <h2 className="text-2xl font-bold tracking-tight text-white mb-1">
-          Đến giờ uống thuốc sáng
+        <h2 className="text-2xl font-bold tracking-tight text-white mb-1 text-center">
+          {isEnglish ? "Morning Medication Time" : "Đến giờ uống thuốc sáng"}
         </h2>
         <p className="text-xs sm:text-sm text-slate-300 mb-6 text-center">
-          LUMO Hub phát lời nhắc qua loa thông minh và đồng bộ với ứng dụng gia đình.
+          {isEnglish
+            ? "LUMO Hub plays reminders via smart speaker and syncs with the family app."
+            : "LUMO Hub phát lời nhắc qua loa thông minh và đồng bộ với ứng dụng gia đình."}
         </p>
 
         {/* Prescription List */}
@@ -82,11 +95,13 @@ export default function DemoMedicationModal() {
               </div>
               <div className="text-left">
                 <p className="font-semibold text-slate-100 text-sm">Amlodipine 5mg</p>
-                <p className="text-xs text-slate-400">Thuốc huyết áp · 1 viên màu trắng (Sau ăn sáng)</p>
+                <p className="text-xs text-slate-400">
+                  {isEnglish ? "Blood pressure · 1 white pill (After breakfast)" : "Thuốc huyết áp · 1 viên màu trắng (Sau ăn sáng)"}
+                </p>
               </div>
             </div>
             <span className="text-xs font-semibold px-2.5 py-1 rounded-lg bg-blue-500/10 text-blue-300 border border-blue-500/20">
-              1 viên
+              {isEnglish ? "1 pill" : "1 viên"}
             </span>
           </div>
 
@@ -97,11 +112,13 @@ export default function DemoMedicationModal() {
               </div>
               <div className="text-left">
                 <p className="font-semibold text-slate-100 text-sm">Glucosamine 500mg</p>
-                <p className="text-xs text-slate-400">Thuốc bổ xương khớp · 1 viên vàng</p>
+                <p className="text-xs text-slate-400">
+                  {isEnglish ? "Joint health · 1 yellow capsule" : "Thuốc bổ xương khớp · 1 viên vàng"}
+                </p>
               </div>
             </div>
             <span className="text-xs font-semibold px-2.5 py-1 rounded-lg bg-emerald-500/10 text-emerald-300 border border-emerald-500/20">
-              1 viên
+              {isEnglish ? "1 pill" : "1 viên"}
             </span>
           </div>
         </div>
@@ -111,13 +128,15 @@ export default function DemoMedicationModal() {
           <div className="flex items-center justify-between mb-2">
             <div className="flex items-center gap-2 text-xs font-semibold text-amber-300">
               <Mic size={15} />
-              <span>Lời nhắn thoại từ người thân:</span>
+              <span>{isEnglish ? "Voice message from family:" : "Lời nhắn thoại từ người thân:"}</span>
             </div>
             <span className="text-[11px] text-slate-400">0:12s</span>
           </div>
           
           <p className="text-xs italic text-slate-300 mb-3 bg-slate-900/50 p-2.5 rounded-xl border border-slate-800">
-            &ldquo;{targetProfile.name} ơi đến 9 giờ rồi, nhớ uống 1 viên thuốc huyết áp màu trắng và 1 viên thuốc khớp nhé!&rdquo;
+            {isEnglish
+              ? `“Hello ${targetName}, it is 9 AM, please remember to take 1 white blood pressure pill and 1 joint health pill!”`
+              : `“${targetName} ơi đến 9 giờ rồi, nhớ uống 1 viên thuốc huyết áp màu trắng và 1 viên thuốc khớp nhé!”`}
           </p>
 
           <button
@@ -130,7 +149,9 @@ export default function DemoMedicationModal() {
             }`}
           >
             {isPlayingAudio ? <Volume2 size={16} className="animate-spin" /> : <Play size={15} />}
-            {isPlayingAudio ? "Đang phát giọng nói qua LUMO Hub..." : "Nghe lại giọng nói của con gái"}
+            {isPlayingAudio
+              ? (isEnglish ? "Playing voice via LUMO Hub..." : "Đang phát giọng nói qua LUMO Hub...")
+              : (isEnglish ? "Listen to family voice recording" : "Nghe lại giọng nói của người thân")}
           </button>
         </div>
 
@@ -143,7 +164,9 @@ export default function DemoMedicationModal() {
             className="w-full py-3 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-500 active:scale-[0.98] transition-all font-bold text-white flex items-center justify-center gap-2 shadow-lg shadow-emerald-600/30"
           >
             <Check size={18} />
-            {isTaken ? "Đã xác nhận!" : "Cụ đã uống xong"}
+            {isTaken
+              ? (isEnglish ? "Confirmed!" : "Đã xác nhận!")
+              : (isEnglish ? "Confirmed: Taken Medication" : "Đã uống xong")}
           </button>
 
           <button
@@ -152,7 +175,7 @@ export default function DemoMedicationModal() {
             className="w-full py-3 px-4 rounded-xl bg-slate-800 hover:bg-slate-700 active:scale-[0.98] transition-all font-semibold text-slate-300 border border-slate-700 flex items-center justify-center gap-2"
           >
             <Clock size={16} />
-            Nhắc lại sau 15 phút
+            {isEnglish ? "Snooze 15 minutes" : "Nhắc lại sau 15 phút"}
           </button>
         </div>
 
@@ -160,7 +183,7 @@ export default function DemoMedicationModal() {
           type="button"
           onClick={closeScenarioModal}
           className="absolute top-4 right-4 text-slate-400 hover:text-white p-2 rounded-full hover:bg-slate-800 transition-colors"
-          title="Đóng modal"
+          title={isEnglish ? "Close modal" : "Đóng modal"}
         >
           <X size={20} />
         </button>

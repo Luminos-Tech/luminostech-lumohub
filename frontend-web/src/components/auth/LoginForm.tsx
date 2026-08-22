@@ -8,7 +8,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { AlertCircle, CheckCircle2, Eye, EyeOff, Loader2, Lock, Mail } from "lucide-react";
 import { useAuthStore } from "@/store/authStore";
-import { useDemoStore } from "@/store/demoStore";
+import { useDemoStore } from "@/demo/store";
 import { usePreferenceStore } from "@/store/preferenceStore";
 
 const schema = z.object({

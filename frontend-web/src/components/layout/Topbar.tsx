@@ -5,11 +5,11 @@ import Link from "next/link";
 import Image from "next/image";
 import { Bell, UserRound } from "lucide-react";
 import { OPEN_AUTH_EVENT, OPEN_NOTIFICATIONS_EVENT } from "@/lib/uiEvents";
-import { registerLogoTap, openSecretDemoConsole } from "@/lib/demoTrigger";
+import { registerLogoTap, openSecretDemoConsole } from "@/demo/trigger";
 import { useAuthStore } from "@/store/authStore";
 import { useNotificationStore } from "@/store/notificationStore";
 import { usePreferenceStore } from "@/store/preferenceStore";
-import { useDemoStore } from "@/store/demoStore";
+import { useDemoStore } from "@/demo/store";
 
 export default function Topbar() {
   const { user, isAuthenticated } = useAuthStore();

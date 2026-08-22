@@ -6,11 +6,11 @@ import { usePathname } from "next/navigation";
 import { Bell, UserRound } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { OPEN_AUTH_EVENT, OPEN_NOTIFICATIONS_EVENT } from "@/lib/uiEvents";
-import { registerLogoTap, openSecretDemoConsole } from "@/lib/demoTrigger";
+import { registerLogoTap, openSecretDemoConsole } from "@/demo/trigger";
 import { useAuthStore } from "@/store/authStore";
 import { useNotificationStore } from "@/store/notificationStore";
 import { usePreferenceStore } from "@/store/preferenceStore";
-import { useDemoStore } from "@/store/demoStore";
+import { useDemoStore } from "@/demo/store";
 import { navItems } from "./BottomNav";
 
 export default function DesktopSidebar() {

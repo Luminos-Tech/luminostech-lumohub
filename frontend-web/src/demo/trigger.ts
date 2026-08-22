@@ -1,5 +1,5 @@
-import { useDemoStore } from "@/store/demoStore";
-import { OPEN_DEMO_DRAWER_EVENT } from "./uiEvents";
+import { useDemoStore } from "@/demo/store";
+import { OPEN_DEMO_DRAWER_EVENT } from "@/lib/uiEvents";
 
 let clickCounter = 0;
 let lastClickTimer: ReturnType<typeof setTimeout> | null = null;
@@ -14,13 +14,19 @@ export function openSecretDemoConsole(e?: React.SyntheticEvent | MouseEvent | To
   if (lastClickTimer) {
     clearTimeout(lastClickTimer);
   }
-  // Only open drawer interface, do NOT automatically activate Demo mode
-  useDemoStore.getState().setDrawerOpen(true);
-  window.dispatchEvent(new CustomEvent(OPEN_DEMO_DRAWER_EVENT));
+  
+  if (typeof window !== "undefined") {
+    window.open("/demo-controller", "_blank");
+  }
 }
 
 export function registerLogoTap(e?: React.SyntheticEvent | MouseEvent | TouchEvent | PointerEvent) {
   const now = Date.now();
+
+  // If in stealth mode, ignore logo taps entirely
+  if (typeof window !== "undefined" && new URLSearchParams(window.location.search).get("stealth") === "true") {
+    return;
+  }
 
   // Prevent duplicate synthetic events from a single tap
   if (now - lastRegisteredEventTime < 70) {

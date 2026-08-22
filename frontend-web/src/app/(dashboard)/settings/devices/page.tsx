@@ -11,7 +11,7 @@ import Modal from "@/components/common/Modal";
 import { adminApi } from "@/features/admin/api";
 import { useDeviceStore } from "@/store/deviceStore";
 import { usePreferenceStore } from "@/store/preferenceStore";
-import { useDemoStore, formatDisplayPersonName } from "@/store/demoStore";
+import { useDemoStore, formatDisplayPersonName } from "@/demo/store";
 import type { Device } from "@/types";
 
 const BAND_TYPICAL_BATTERY_DAYS = 730;

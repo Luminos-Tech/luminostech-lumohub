@@ -2,12 +2,14 @@
 
 import { useEffect, useState, useRef } from "react";
 import { AlertTriangle, BellRing, Check, MapPin, PhoneCall, ShieldAlert, X } from "lucide-react";
-import { useDemoStore } from "@/store/demoStore";
+import { useDemoStore } from "@/demo/store";
+import { usePreferenceStore } from "@/store/preferenceStore";
 
 export default function DemoFallAlertModal() {
+  const isEnglish = usePreferenceStore((state) => state.language === "en");
   const { activeScenarioModal, lastFallTime, dismissFallAlert, mockProfiles, demoTargetProfileId, mockProfileMeta } = useDemoStore();
   const targetProfile = mockProfiles?.find(p => p.id === demoTargetProfileId) || mockProfiles?.find(p => p.type === 'band') || { name: "Mẹ", device_id: "LH-8821" };
-  const targetName = targetProfile?.name || "Mẹ";
+  const targetName = targetProfile?.name || (isEnglish ? "Elderly" : "Người thân");
   const targetDeviceId = targetProfile?.device_id || "LH-8821";
 
   const [countdown, setCountdown] = useState(30);
@@ -30,13 +32,12 @@ export default function DemoFallAlertModal() {
         const ctx = new AudioCtx();
         audioContextRef.current = ctx;
 
-        // Beep sequence
         const playBeep = () => {
           if (ctx.state === "suspended") ctx.resume();
           const osc = ctx.createOscillator();
           const gain = ctx.createGain();
           osc.type = "sawtooth";
-          osc.frequency.setValueAtTime(880, ctx.currentTime); // A5
+          osc.frequency.setValueAtTime(880, ctx.currentTime);
           osc.frequency.exponentialRampToValueAtTime(440, ctx.currentTime + 0.35);
           gain.gain.setValueAtTime(0.12, ctx.currentTime);
           gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.35);
@@ -72,7 +73,7 @@ export default function DemoFallAlertModal() {
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-red-950/80 backdrop-blur-md animate-in fade-in duration-200">
       <div className="relative w-full max-w-lg overflow-hidden rounded-3xl bg-slate-900 border-2 border-red-500/80 shadow-2xl shadow-red-500/30 text-white p-6 sm:p-8 flex flex-col items-center text-center">
         
-        {/* Pulsing emergency inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold tracking-wide */}
+        {/* Pulsing icon */}
         <div className="relative mb-4">
           <div className="absolute -inset-3 rounded-full bg-red-500/40 animate-ping" />
           <div className="relative flex items-center justify-center w-20 h-20 rounded-full bg-red-600 border-4 border-red-400 shadow-lg text-white">
@@ -81,16 +82,18 @@ export default function DemoFallAlertModal() {
         </div>
 
         <span className="inline-flex items-center gap-1.5 px-3 py-1 mb-2 text-xs font-bold tracking-wider text-red-300 uppercase rounded-full bg-red-500/20 border border-red-500/40">
-          <AlertTriangle size={14} /> Cảnh báo an toàn khẩn cấp (SOS)
+          <AlertTriangle size={14} /> {isEnglish ? "Emergency Safety Alert (SOS)" : "Cảnh báo an toàn khẩn cấp (SOS)"}
         </span>
 
         <h2 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-white mb-2">
-          PHÁT HIỆN TÉ NGÃ!
+          {isEnglish ? "FALL DETECTED!" : "PHÁT HIỆN TÉ NGÃ!"}
         </h2>
         
         <p className="text-sm sm:text-base text-slate-300 mb-5 max-w-sm">
-          Cảm biến LUMO Band ghi nhận va chạm mạnh và bất động lúc{" "}
-          <strong className="text-red-400 font-semibold">{lastFallTime || "vừa xong"}</strong>.
+          {isEnglish
+            ? <>LUMO Band detected a sudden impact and no movement at{" "}<strong className="text-red-400 font-semibold">{lastFallTime || "just now"}</strong>.</>
+            : <>Cảm biến LUMO Band ghi nhận va chạm mạnh và bất động lúc{" "}<strong className="text-red-400 font-semibold">{lastFallTime || "mới đây"}</strong>.</>
+          }
         </p>
 
         {/* Location & Status Card */}
@@ -102,12 +105,14 @@ export default function DemoFallAlertModal() {
                 <ShieldAlert size={15} />
               </span>
               <div className="min-w-0">
-                <span className="text-[10px] uppercase font-bold text-slate-400 block tracking-wider leading-none mb-0.5">Thiết bị gửi SOS</span>
+                <span className="text-[10px] uppercase font-bold text-slate-400 block tracking-wider leading-none mb-0.5">
+                  {isEnglish ? "SOS Device" : "Thiết bị gửi SOS"}
+                </span>
                 <strong className="text-slate-100 font-bold text-xs truncate block">LUMO Band ({targetDeviceId})</strong>
               </div>
             </div>
             <span className="inline-flex items-center gap-1.5 text-red-300 font-semibold bg-red-950/80 px-2.5 py-1 rounded-full border border-red-700/60 text-[11px] whitespace-nowrap shrink-0 shadow-xs">
-              <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse" /> Đang phát tín hiệu
+              <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse" /> {isEnglish ? "Sending signal" : "Đang phát tín hiệu"}
             </span>
           </div>
 
@@ -116,72 +121,92 @@ export default function DemoFallAlertModal() {
             <MapPin size={18} className="text-red-400 shrink-0 mt-0.5" />
             <div className="text-xs min-w-0 flex-1">
               <p className="font-semibold text-slate-200">
-                Vị trí người thân: {targetName}
+                {isEnglish ? `Family member location: ${targetName}` : `Vị trí người thân: ${targetName}`}
               </p>
               <p className="text-slate-400 leading-snug mt-0.5">
-                {mockProfileMeta?.address || "Số 18, Ngõ 42 Liễu Giai, Ba Đình, Hà Nội"}
+                {mockProfileMeta?.address || (isEnglish ? "18 Lieu Giai Alley 42, Ba Dinh, Hanoi" : "Số 18, Ngõ 42 Liễu Giai, Ba Đình, Hà Nội")}
               </p>
             </div>
           </div>
 
-          {/* Caregiver & SMS Alert row - structured vertically/flex to avoid any text collision */}
+          {/* Caregiver & SMS Alert row */}
           <div className="pt-2 border-t border-slate-700/50 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs">
             <div className="min-w-0 flex-1">
-              <span className="text-slate-400 block text-[11px]">Người theo dõi khẩn cấp:</span>
+              <span className="text-slate-400 block text-[11px]">
+                {isEnglish ? "Emergency caregiver:" : "Người theo dõi khẩn cấp:"}
+              </span>
               <strong className="text-slate-200 font-semibold block leading-tight mt-0.5">
-                {mockProfileMeta?.caregiver || "Anh Trí (Con trai - 0988 123 456)"}
+                {mockProfileMeta?.caregiver || "Phạm Nguyễn Tuấn Kiệt (Con trai - 0988 123 456)"}
               </strong>
             </div>
             <span className="inline-flex items-center gap-1 self-start sm:self-auto text-[11px] font-semibold text-emerald-300 bg-emerald-950/70 border border-emerald-800/60 px-2.5 py-1 rounded-full shrink-0 shadow-xs">
-              ✓ Đã gửi SMS & App Alert
+              ✓ {isEnglish ? "SMS & App Alert Sent" : "Đã gửi SMS & App Alert"}
             </span>
           </div>
         </div>
 
         {/* Auto Escalation Timer */}
-        <div className="w-full bg-red-950/40 border border-red-500/30 rounded-xl p-3 mb-6 flex items-center justify-between text-xs sm:text-sm">
+        <div className="w-full bg-red-950/40 border border-red-500/30 rounded-xl p-3 mb-5 flex items-center justify-between text-xs sm:text-sm">
           <div className="flex items-center gap-2 text-red-300 text-left">
             <BellRing size={18} className="animate-spin text-red-400" />
-            <span>Tự động kết nối trung tâm cứu hộ 115 sau:</span>
+            <span>{isEnglish ? "Auto-calling emergency 115 in:" : "Tự động kết nối trung tâm cứu hộ 115 sau:"}</span>
           </div>
           <span className="font-mono text-lg font-bold text-red-400 bg-red-900/60 px-2.5 py-0.5 rounded-lg border border-red-500/40">
             {countdown}s
           </span>
         </div>
 
-        {/* Action Buttons (Child / Caregiver Perspective) */}
-        <div className="w-full grid grid-cols-1 sm:grid-cols-2 gap-3">
-          <button
-            type="button"
-            onClick={() => {
-              setIsCalling(true);
-            }}
-            className="w-full py-3.5 px-4 rounded-xl bg-red-600 hover:bg-red-500 active:scale-[0.98] transition-all font-bold text-white flex items-center justify-center gap-2 shadow-lg shadow-red-600/40 text-sm"
-          >
-            <PhoneCall size={18} />
-            {isCalling ? "Đang kết nối cuộc gọi..." : `Gọi điện ngay cho ${targetName}`}
-          </button>
+        {/* Action Buttons */}
+        <div className="w-full space-y-2.5">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+            <button
+              type="button"
+              onClick={() => { setIsCalling(true); }}
+              className="w-full py-3.5 px-4 rounded-xl bg-red-600 hover:bg-red-500 active:scale-[0.98] transition-all font-bold text-white flex items-center justify-center gap-2 shadow-lg shadow-red-600/40 text-sm"
+            >
+              <PhoneCall size={18} />
+              {isCalling
+                ? (isEnglish ? "Connecting S.O.S..." : "Đang kết nối S.O.S...")
+                : (isEnglish ? "Call S.O.S Contact" : "Gọi số liên hệ S.O.S")}
+            </button>
+
+            <button
+              type="button"
+              onClick={() => {
+                if (typeof window !== "undefined") {
+                  window.location.href = "tel:115";
+                }
+              }}
+              className="w-full py-3.5 px-4 rounded-xl bg-rose-700 hover:bg-rose-600 active:scale-[0.98] transition-all font-bold text-white flex items-center justify-center gap-2 shadow-lg shadow-rose-700/40 text-sm"
+            >
+              <PhoneCall size={18} />
+              {isEnglish ? "Call Emergency 115" : "Gọi cấp cứu 115"}
+            </button>
+          </div>
 
           <button
             type="button"
             onClick={dismissFallAlert}
-            className="w-full py-3.5 px-4 rounded-xl bg-slate-800 hover:bg-slate-700 active:scale-[0.98] transition-all font-semibold text-slate-200 border border-slate-600 flex items-center justify-center gap-2 text-sm"
+            className="w-full py-3 px-4 rounded-xl bg-slate-800 hover:bg-slate-700 active:scale-[0.98] transition-all font-semibold text-slate-200 border border-slate-700 flex items-center justify-center gap-2 text-sm"
           >
             <Check size={18} className="text-emerald-400" />
-            Đã liên hệ {targetName} (Xác nhận an toàn)
+            {isEnglish ? "Family member contacted (Confirm safe)" : "Đã liên hệ người thân (Xác nhận an toàn)"}
           </button>
         </div>
 
         <p className="mt-3 text-[11px] text-slate-400 leading-relaxed">
-          💡 <em>{targetName} có thể chạm trực tiếp mặt cảm biến trên LUMO Band ({targetDeviceId}) để tắt cảnh báo báo nhầm. Nếu không chạm, ứng dụng sẽ gọi cấp cứu 115 sau {countdown}s.</em>
+          💡 <em>
+            {isEnglish
+              ? `The elderly can tap the face of the LUMO Band sensor (${targetDeviceId}) to dismiss a false alarm. If no tap is received, the system will auto-call emergency 115 after ${countdown}s.`
+              : `Người thân có thể chạm trực tiếp mặt cảm biến trên LUMO Band (${targetDeviceId}) để tắt cảnh báo báo nhầm. Nếu không chạm, hệ thống sẽ tự động gọi cấp cứu 115 sau ${countdown}s.`}
+          </em>
         </p>
-
 
         <button
           type="button"
           onClick={dismissFallAlert}
           className="absolute top-4 right-4 text-slate-400 hover:text-white p-2 rounded-full hover:bg-slate-800 transition-colors"
-          title="Đóng modal"
+          title={isEnglish ? "Close" : "Đóng modal"}
         >
           <X size={20} />
         </button>

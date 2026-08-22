@@ -7,7 +7,7 @@ import { cn } from "@/lib/utils";
 import { useAuthStore } from "@/store/authStore";
 import { OPEN_AUTH_EVENT } from "@/lib/uiEvents";
 import { usePreferenceStore } from "@/store/preferenceStore";
-import { useDemoStore } from "@/store/demoStore";
+import { useDemoStore } from "@/demo/store";
 import { LumoHubIcon } from "@/components/icons/LumoDeviceIcons";
 
 export const navItems = [

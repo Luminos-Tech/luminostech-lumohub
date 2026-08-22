@@ -13,6 +13,7 @@ import {
   Check,
   ChevronRight,
   Edit3,
+  Heart,
   KeyRound,
   Languages,
   Loader2,
@@ -36,7 +37,7 @@ import { toast } from "sonner";
 import { api } from "@/lib/api";
 import { useAuthStore } from "@/store/authStore";
 import { usePreferenceStore, type LumoVoiceIdVi, type LumoVoiceIdEn } from "@/store/preferenceStore";
-import { useDemoStore } from "@/store/demoStore";
+import { useDemoStore } from "@/demo/store";
 import { LumoBandIcon } from "@/components/icons/LumoDeviceIcons";
 import { OPEN_AUTH_EVENT } from "@/lib/uiEvents";
 import { APP_VERSION } from "@/lib/version";
@@ -131,25 +132,54 @@ const VOICE_OPTIONS_EN: Array<{
 ];
 
 const profileSchema = z.object({
-  full_name: z.string().min(2, "Vui lòng nhập họ tên đầy đủ"),
-  phone: z.string().optional(),
+  elderly_count: z.union([z.literal(1), z.literal(2)]).default(1),
+  elderly_name: z.string().min(2, "Vui lòng nhập tên Ông/bà"),
+  elderly_phone: z.string().optional(),
+  elderly_name_2: z.string().optional(),
+  elderly_phone_2: z.string().optional(),
   address: z.string().optional(),
+}).refine(data => {
+  if (data.elderly_count === 2 && (!data.elderly_name_2 || data.elderly_name_2.trim().length < 2)) {
+    return false;
+  }
+  return true;
+}, {
+  message: "Vui lòng nhập tên người thứ 2",
+  path: ["elderly_name_2"],
 });
 
-const passwordSchema = z.object({
-  old_password: z.string().min(1, "Vui lòng nhập mật khẩu hiện tại"),
-  new_password: z.string().min(6, "Mật khẩu mới cần ít nhất 6 ký tự"),
+const sosSchema = z.object({
+  neighbor_name: z.string().optional(),
+  neighbor_phone: z.string().optional(),
+});
+
+const accountSchema = z.object({
+  full_name: z.string().min(2, "Vui lòng nhập họ tên đầy đủ"),
+  email: z.string().email("Email không hợp lệ").optional().or(z.literal("")),
+  phone: z.string().optional(),
+  old_password: z.string().optional(),
+  new_password: z.string().optional(),
+}).refine(data => {
+  if (data.new_password && !data.old_password) {
+    return false;
+  }
+  return true;
+}, {
+  message: "Vui lòng nhập mật khẩu hiện tại nếu muốn đổi",
+  path: ["old_password"],
 });
 
 type ProfileForm = z.infer<typeof profileSchema>;
-type PasswordForm = z.infer<typeof passwordSchema>;
+type SosForm = z.infer<typeof sosSchema>;
+type AccountForm = z.infer<typeof accountSchema>;
 
 export default function AccountPage() {
   const router = useRouter();
   const { user, setUser, isAuthenticated, logout } = useAuthStore();
   const { isDemoMode, mockUser, disableDemoMode } = useDemoStore();
   const [showEditProfileModal, setShowEditProfileModal] = useState(false);
-  const [showChangePasswordModal, setShowChangePasswordModal] = useState(false);
+  const [showEditSosModal, setShowEditSosModal] = useState(false);
+  const [showAccountModal, setShowAccountModal] = useState(false);
 
   const [pushLoading, setPushLoading] = useState(false);
   const [isPlayingVoice, setIsPlayingVoice] = useState(false);
@@ -213,26 +243,56 @@ export default function AccountPage() {
   const activeUser = user || (isDemoMode ? mockUser : null);
 
   const preferenceText = language === "vi"
-    ? { title: "Tùy chọn ứng dụng", subtitle: "Cá nhân hóa ngôn ngữ và giao diện.", language: "Ngôn ngữ", theme: "Giao diện", light: "Sáng", dark: "Tối", account: "Tài khoản", profile: "Hồ sơ của bạn", profileHint: "Quản lý thông tin cá nhân và bảo mật tại một nơi.", protected: "Đã bảo vệ", devices: "Thiết bị", devicesHint: "Kết nối vòng đeo tay", checkin: "Lời nhắn", checkinHint: "Ghi âm giọng nói cho Lumo Hub", notifications: "Thông báo", notificationsHint: "Xem cảnh báo mới nhất", personal: "Thông tin cá nhân", personalHint: "Dùng để nhận diện tài khoản Lumo.", name: "Họ và tên", phone: "Số điện thoại", save: "Lưu thay đổi", saving: "Đang lưu...", password: "Đổi mật khẩu", passwordHint: "Nên thay đổi định kỳ để bảo vệ tài khoản", currentPassword: "Mật khẩu hiện tại", newPassword: "Mật khẩu mới", confirmPassword: "Xác nhận mật khẩu mới", comfort: "Thông báo an tâm", comfortHint: "Nhận cảnh báo điểm danh và thiết bị", enabled: "Đang bật", logout: "Đăng xuất" }
-    : { title: "App preferences", subtitle: "Personalize language and appearance.", language: "Language", theme: "Appearance", light: "Light", dark: "Dark", account: "Account", profile: "Your profile", profileHint: "Manage your personal details and security in one place.", protected: "Protected", devices: "Devices", devicesHint: "Connect your wearable band", checkin: "Voice messages", checkinHint: "Record familiar messages for Lumo Hub", notifications: "Notifications", notificationsHint: "View the latest alerts", personal: "Personal information", personalHint: "Used to identify your Lumo account.", name: "Full name", phone: "Phone number", save: "Save changes", saving: "Saving...", password: "Change password", passwordHint: "Update it regularly to protect your account", currentPassword: "Current password", newPassword: "New password", confirmPassword: "Confirm new password", comfort: "Care notifications", comfortHint: "Receive check-in and device alerts", enabled: "Enabled", logout: "Sign out" };
+    ? { title: "Tùy chọn ứng dụng", subtitle: "Cá nhân hóa ngôn ngữ và giao diện.", language: "Ngôn ngữ", theme: "Giao diện", light: "Sáng", dark: "Tối", account: "Tài khoản", profile: "Hồ sơ của bạn", profileHint: "Quản lý thông tin cá nhân và bảo mật tại một nơi.", protected: "Đã bảo vệ", devices: "Thiết bị", devicesHint: "Kết nối vòng đeo tay", checkin: "Lời nhắn", checkinHint: "Ghi âm giọng nói cho Lumo Hub", notifications: "Thông báo", notificationsHint: "Xem cảnh báo mới nhất", personal: "Thông tin Ông/Bà", personalHint: "Hồ sơ cá nhân & địa chỉ", sosTitle: "Liên hệ S.O.S", sosHint: "Hàng xóm / Trợ giúp khẩn cấp", name: "Tên Ông/Bà", phone: "Số điện thoại", save: "Lưu thay đổi", saving: "Đang lưu...", password: "Đổi mật khẩu", passwordHint: "Nên thay đổi định kỳ để bảo vệ tài khoản", currentPassword: "Mật khẩu hiện tại", newPassword: "Mật khẩu mới", confirmPassword: "Xác nhận mật khẩu mới", comfort: "Thông báo an tâm", comfortHint: "Nhận cảnh báo điểm danh và thiết bị", enabled: "Đang bật", logout: "Đăng xuất" }
+    : { title: "App preferences", subtitle: "Personalize language and appearance.", language: "Language", theme: "Appearance", light: "Light", dark: "Dark", account: "Account", profile: "Your profile", profileHint: "Manage your personal details and security in one place.", protected: "Protected", devices: "Devices", devicesHint: "Connect your wearable band", checkin: "Voice messages", checkinHint: "Record familiar messages for Lumo Hub", notifications: "Notifications", notificationsHint: "View the latest alerts", personal: "Elderly Profile", personalHint: "Personal info & address", sosTitle: "S.O.S Contacts", sosHint: "Neighbors & emergency help", name: "Elderly Name", phone: "Phone number", save: "Save changes", saving: "Saving...", password: "Change password", passwordHint: "Update it regularly to protect your account", currentPassword: "Current password", newPassword: "New password", confirmPassword: "Confirm new password", comfort: "Care notifications", comfortHint: "Receive check-in and device alerts", enabled: "Enabled", logout: "Sign out" };
 
   const profile = useForm<ProfileForm>({
     resolver: zodResolver(profileSchema),
-    defaultValues: { full_name: activeUser?.full_name || "", phone: activeUser?.phone || "" },
+    defaultValues: { 
+      elderly_count: activeUser?.elderly_count || 1,
+      elderly_name: activeUser?.elderly_name || "", 
+      elderly_phone: activeUser?.elderly_phone || "", 
+      elderly_name_2: activeUser?.elderly_name_2 || "",
+      elderly_phone_2: activeUser?.elderly_phone_2 || "",
+      address: activeUser?.address || "" 
+    },
   });
-  const password = useForm<PasswordForm>({ resolver: zodResolver(passwordSchema) });
+  const sos = useForm<SosForm>({
+    resolver: zodResolver(sosSchema),
+    defaultValues: { neighbor_name: activeUser?.neighbor_name || "", neighbor_phone: activeUser?.neighbor_phone || "" },
+  });
+  const account = useForm<AccountForm>({ 
+    resolver: zodResolver(accountSchema),
+    defaultValues: { full_name: activeUser?.full_name || "", email: activeUser?.email || "", phone: activeUser?.phone || "" }
+  });
 
   useEffect(() => {
-    profile.reset({ full_name: activeUser?.full_name || "", phone: activeUser?.phone || "" });
-  }, [profile, activeUser]);
+    profile.reset({ 
+      elderly_count: activeUser?.elderly_count || 1,
+      elderly_name: activeUser?.elderly_name || "", 
+      elderly_phone: activeUser?.elderly_phone || "", 
+      elderly_name_2: activeUser?.elderly_name_2 || "",
+      elderly_phone_2: activeUser?.elderly_phone_2 || "",
+      address: activeUser?.address || "" 
+    });
+    sos.reset({ neighbor_name: activeUser?.neighbor_name || "", neighbor_phone: activeUser?.neighbor_phone || "" });
+    account.reset({ full_name: activeUser?.full_name || "", email: activeUser?.email || "", phone: activeUser?.phone || "" });
+  }, [profile, sos, account, activeUser]);
 
 
   const saveProfile = async (data: ProfileForm) => {
     try {
       if (isDemoMode) {
-        useDemoStore.getState().setMockUser({ full_name: data.full_name, phone: data.phone });
+        useDemoStore.getState().setMockUser({ 
+          elderly_count: data.elderly_count,
+          elderly_name: data.elderly_name, 
+          elderly_phone: data.elderly_phone, 
+          elderly_name_2: data.elderly_name_2,
+          elderly_phone_2: data.elderly_phone_2,
+          address: data.address 
+        });
         setShowEditProfileModal(false);
-        toast.success(language === "vi" ? "Đã cập nhật thông tin cá nhân" : "Profile updated successfully");
+        toast.success(language === "vi" ? "Đã cập nhật thông tin hồ sơ" : "Profile updated successfully");
         return;
       }
 
@@ -241,21 +301,61 @@ export default function AccountPage() {
         setUser(response.data);
       }
       setShowEditProfileModal(false);
-      toast.success(language === "vi" ? "Đã cập nhật thông tin cá nhân" : "Profile updated successfully");
+      toast.success(language === "vi" ? "Đã cập nhật thông tin hồ sơ" : "Profile updated successfully");
+    } catch {
+      toast.error(language === "vi" ? "Không thể lưu thay đổi" : "Could not save changes");
+    }
+  };
+
+  const saveSos = async (data: SosForm) => {
+    try {
+      if (isDemoMode) {
+        useDemoStore.getState().setMockUser({ neighbor_name: data.neighbor_name, neighbor_phone: data.neighbor_phone });
+        setShowEditSosModal(false);
+        toast.success(language === "vi" ? "Đã cập nhật liên hệ khẩn cấp" : "S.O.S contacts updated");
+        return;
+      }
+      
+      if (isAuthenticated) {
+        const response = await api.patch("/users/me", data);
+        setUser(response.data);
+      }
+      setShowEditSosModal(false);
+      toast.success(language === "vi" ? "Đã cập nhật liên hệ khẩn cấp" : "S.O.S contacts updated");
     } catch {
       toast.error(language === "vi" ? "Không thể lưu thay đổi" : "Could not save changes");
     }
   };
 
 
-  const changePassword = async (data: PasswordForm) => {
+  const saveAccount = async (data: AccountForm) => {
     try {
-      await api.patch("/users/me/password", data);
-      password.reset();
-      setShowChangePasswordModal(false);
-      toast.success("Đã đổi mật khẩu thành công");
+      if (isDemoMode) {
+        useDemoStore.getState().setMockUser({ full_name: data.full_name, email: data.email, phone: data.phone });
+        if (data.new_password) {
+          toast.success(language === "vi" ? "Đã cập nhật thông tin và mật khẩu" : "Account & password updated");
+        } else {
+          toast.success(language === "vi" ? "Đã cập nhật thông tin tài khoản" : "Account updated");
+        }
+        setShowAccountModal(false);
+        return;
+      }
+      
+      if (isAuthenticated) {
+        const response = await api.patch("/users/me", { full_name: data.full_name, email: data.email, phone: data.phone });
+        setUser(response.data);
+
+        if (data.old_password && data.new_password) {
+          await api.patch("/users/me/password", {
+            old_password: data.old_password,
+            new_password: data.new_password,
+          });
+        }
+      }
+      setShowAccountModal(false);
+      toast.success(language === "vi" ? "Đã lưu thay đổi" : "Changes saved");
     } catch {
-      toast.error("Không thể đổi mật khẩu");
+      toast.error(language === "vi" ? "Lưu thay đổi thất bại" : "Update failed");
     }
   };
 
@@ -303,32 +403,19 @@ export default function AccountPage() {
         <span>{preferenceText.profileHint}</span>
       </header>
 
-      <section className="account-identity">
+      <button 
+        type="button" 
+        onClick={() => setShowAccountModal(true)} 
+        className="account-identity w-full text-left cursor-pointer transition-transform active:scale-[0.98] focus:outline-none focus:ring-2 focus:ring-teal-500 rounded-2xl"
+      >
         <div className="account-avatar">{initials}</div>
         <div>
           <strong>{activeUser?.full_name || "LUMO User"}</strong>
           <span><Mail size={14} />{activeUser?.email || "user@lumohub.vn"}</span>
         </div>
         <span className="account-verified"><ShieldCheck size={15} /> {preferenceText.protected}</span>
-      </section>
+      </button>
 
-      <section className="account-shortcuts" aria-label={language === "en" ? "Quick access" : "Truy cập nhanh"}>
-        <Link href="/settings/devices" className="account-shortcut aqua">
-          <span><LumoBandIcon size={21} /></span>
-          <div><strong>{preferenceText.devices}</strong><small>{preferenceText.devicesHint}</small></div>
-          <ChevronRight size={17} />
-        </Link>
-        <Link href="/settings/event-buttons" className="account-shortcut coral">
-          <span><AudioLines size={20} /></span>
-          <div><strong>{preferenceText.checkin}</strong><small>{preferenceText.checkinHint}</small></div>
-          <ChevronRight size={17} />
-        </Link>
-        <Link href="/notifications" className="account-shortcut sky">
-          <span><BellRing size={20} /></span>
-          <div><strong>{preferenceText.notifications}</strong><small>{preferenceText.notificationsHint}</small></div>
-          <ChevronRight size={17} />
-        </Link>
-      </section>
 
       <section className="account-section compact" aria-label="Account Settings">
         <button
@@ -342,7 +429,7 @@ export default function AccountPage() {
           <div className="text-left">
             <strong className="text-slate-900 dark:text-[#edf8f8]">{preferenceText.personal}</strong>
             <small className="text-slate-500 dark:text-[#98adb2] block">
-              {user?.phone ? `${user.phone} • ` : ""}{preferenceText.personalHint}
+              {preferenceText.personalHint}
             </small>
           </div>
           <div className="flex items-center gap-1 text-xs text-teal-600 dark:text-teal-400 font-semibold px-2 py-1 rounded-lg bg-teal-500/10">
@@ -353,21 +440,23 @@ export default function AccountPage() {
 
         <div className="account-divider" />
 
+
+
         <button
           type="button"
-          onClick={() => setShowChangePasswordModal(true)}
+          onClick={() => setShowEditSosModal(true)}
           className="account-action cursor-pointer"
         >
-          <span className="w-10 h-10 rounded-xl bg-amber-500/10 text-amber-600 dark:text-amber-400 flex items-center justify-center">
-            <KeyRound size={20} />
+          <span className="w-10 h-10 rounded-xl bg-rose-500/10 text-rose-600 dark:text-rose-400 flex items-center justify-center">
+            <Heart size={20} />
           </span>
           <div className="text-left">
-            <strong className="text-slate-900 dark:text-[#edf8f8]">{preferenceText.password}</strong>
-            <small className="text-slate-500 dark:text-[#98adb2] block">{preferenceText.passwordHint}</small>
+            <strong className="text-slate-900 dark:text-[#edf8f8]">{preferenceText.sosTitle}</strong>
+            <small className="text-slate-500 dark:text-[#98adb2] block">{preferenceText.sosHint}</small>
           </div>
-          <div className="flex items-center gap-1 text-xs text-amber-600 dark:text-amber-400 font-semibold px-2 py-1 rounded-lg bg-amber-500/10">
-            <Lock size={13} />
-            <span>{language === "en" ? "Change" : "Đổi"}</span>
+          <div className="flex items-center gap-1 text-xs text-rose-600 dark:text-rose-400 font-semibold px-2 py-1 rounded-lg bg-rose-500/10">
+            <Edit3 size={13} />
+            <span>{language === "en" ? "Edit" : "Sửa"}</span>
           </div>
         </button>
 
@@ -422,25 +511,84 @@ export default function AccountPage() {
             </div>
 
             <form onSubmit={profile.handleSubmit(saveProfile)} className="space-y-4">
+              <div className="mb-4">
+                <label className="text-xs font-semibold text-slate-500 mb-2 block">
+                  {language === "vi" ? "Số lượng Ông/Bà sử dụng" : "Number of Elderly Users"}
+                </label>
+                <div className="flex bg-slate-100 dark:bg-[#183840] p-1 rounded-xl">
+                  <button
+                    type="button"
+                    className={`flex-1 py-1.5 text-xs font-semibold rounded-lg transition-all ${
+                      profile.watch("elderly_count") === 1 
+                        ? "bg-white dark:bg-[#204a55] text-teal-600 dark:text-teal-400 shadow-sm" 
+                        : "text-slate-500 hover:text-slate-700 dark:hover:text-slate-300"
+                    }`}
+                    onClick={() => {
+                      profile.setValue("elderly_count", 1);
+                      profile.setValue("elderly_name_2", "");
+                      profile.setValue("elderly_phone_2", "");
+                    }}
+                  >
+                    1 {language === "vi" ? "Người" : "Person"}
+                  </button>
+                  <button
+                    type="button"
+                    className={`flex-1 py-1.5 text-xs font-semibold rounded-lg transition-all ${
+                      profile.watch("elderly_count") === 2 
+                        ? "bg-white dark:bg-[#204a55] text-teal-600 dark:text-teal-400 shadow-sm" 
+                        : "text-slate-500 hover:text-slate-700 dark:hover:text-slate-300"
+                    }`}
+                    onClick={() => profile.setValue("elderly_count", 2)}
+                  >
+                    2 {language === "vi" ? "Người" : "People"}
+                  </button>
+                </div>
+              </div>
+
               <label className="account-field">
-                <span>{preferenceText.name}</span>
+                <span>{preferenceText.name} {profile.watch("elderly_count") === 2 ? (language === "vi" ? "1 (Ví dụ: Ông)" : "1") : ""}</span>
                 <span className="account-input">
                   <UserRound size={18} />
-                  <input {...profile.register("full_name")} autoComplete="name" />
+                  <input {...profile.register("elderly_name")} autoComplete="name" />
                 </span>
-                {profile.formState.errors.full_name && <small>{profile.formState.errors.full_name.message}</small>}
+                {profile.formState.errors.elderly_name && <small>{profile.formState.errors.elderly_name.message}</small>}
               </label>
 
               <label className="account-field">
-                <span>{preferenceText.phone}</span>
+                <span>{preferenceText.phone} {profile.watch("elderly_count") === 2 ? "1" : ""}</span>
                 <span className="account-input">
                   <Phone size={18} />
-                  <input {...profile.register("phone")} inputMode="tel" autoComplete="tel" placeholder="090 123 4567" />
+                  <input {...profile.register("elderly_phone")} inputMode="tel" autoComplete="tel" placeholder="090 123 4567" />
                 </span>
               </label>
 
+              {profile.watch("elderly_count") === 2 && (
+                <div className="pt-2">
+                  <div className="account-divider my-2 border-t border-slate-100 dark:border-slate-800" />
+                  
+                  <label className="account-field mt-4">
+                    <span>{preferenceText.name} {language === "vi" ? "2 (Ví dụ: Bà)" : "2"}</span>
+                    <span className="account-input">
+                      <UserRound size={18} />
+                      <input {...profile.register("elderly_name_2")} autoComplete="name" />
+                    </span>
+                    {profile.formState.errors.elderly_name_2 && <small className="text-red-500">{profile.formState.errors.elderly_name_2.message}</small>}
+                  </label>
+
+                  <label className="account-field mt-4">
+                    <span>{preferenceText.phone} 2</span>
+                    <span className="account-input">
+                      <Phone size={18} />
+                      <input {...profile.register("elderly_phone_2")} inputMode="tel" autoComplete="tel" placeholder="090 123 4567" />
+                    </span>
+                  </label>
+                </div>
+              )}
+
+              <div className="account-divider my-2 border-t border-slate-100 dark:border-slate-800" />
+
               <label className="account-field">
-                <span>{language === "vi" ? "Địa chỉ nơi ở" : "Home address"}</span>
+                <span>{language === "vi" ? "Địa chỉ nơi ở (của Ông/bà)" : "Home address"}</span>
                 <span className="account-input">
                   <MapPin size={18} />
                   <input {...profile.register("address")} placeholder={language === "vi" ? "Số 18, Ngõ 42 Liễu Giai, Ba Đình, Hà Nội" : "18 Lieu Giai, Ba Dinh, Hanoi"} />
@@ -469,62 +617,140 @@ export default function AccountPage() {
         </div>
       )}
 
-      {showChangePasswordModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-150">
-          <div className="relative w-full max-w-md overflow-hidden rounded-3xl bg-white dark:bg-[#102a31] border border-slate-200 dark:border-[rgba(200,229,232,0.16)] shadow-2xl p-6 text-slate-800 dark:text-[#edf8f8]">
+      {showEditSosModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-150" onMouseDown={() => setShowEditSosModal(false)}>
+          <div className="relative w-full max-w-md max-h-[90vh] overflow-y-auto rounded-3xl bg-white dark:bg-[#102a31] border border-slate-200 dark:border-[rgba(200,229,232,0.16)] shadow-2xl p-6 text-slate-800 dark:text-[#edf8f8]" onMouseDown={(e) => e.stopPropagation()}>
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center gap-2.5">
-                <div className="w-9 h-9 rounded-full bg-amber-500/10 text-amber-600 dark:text-amber-400 flex items-center justify-center">
-                  <KeyRound size={20} />
+                <div className="w-9 h-9 rounded-full bg-rose-500/10 text-rose-600 dark:text-rose-400 flex items-center justify-center">
+                  <Heart size={20} />
                 </div>
                 <div>
-                  <h3 className="font-bold text-base">{preferenceText.password}</h3>
-                  <p className="text-xs text-slate-500 dark:text-[#98adb2]">{preferenceText.passwordHint}</p>
+                  <h3 className="font-bold text-base">{preferenceText.sosTitle}</h3>
+                  <p className="text-xs text-slate-500 dark:text-[#98adb2]">{preferenceText.sosHint}</p>
                 </div>
               </div>
-              <button
-                type="button"
-                onClick={() => setShowChangePasswordModal(false)}
-                className="text-slate-400 hover:text-slate-600 dark:hover:text-white p-1.5 rounded-full hover:bg-slate-100 dark:hover:bg-[#183840] transition-colors"
-              >
-                <X size={18} />
-              </button>
             </div>
 
-            <form onSubmit={password.handleSubmit(changePassword)} className="space-y-4">
+            <form onSubmit={sos.handleSubmit(saveSos)} className="space-y-4">
               <label className="account-field">
-                <span>{preferenceText.currentPassword}</span>
+                <span>{language === "vi" ? "Tên hàng xóm (Liên hệ khẩn cấp)" : "Neighbor Name (Emergency)"}</span>
                 <span className="account-input">
-                  <Lock size={18} />
-                  <input type="password" {...password.register("old_password")} autoComplete="current-password" />
+                  <UserRound size={18} />
+                  <input {...sos.register("neighbor_name")} placeholder={language === "vi" ? "Anh Ba" : "Mr. John"} />
                 </span>
-                {password.formState.errors.old_password && <small>{password.formState.errors.old_password.message}</small>}
               </label>
 
               <label className="account-field">
-                <span>{preferenceText.newPassword}</span>
+                <span>{language === "vi" ? "Số điện thoại hàng xóm" : "Neighbor Phone"}</span>
                 <span className="account-input">
-                  <Lock size={18} />
-                  <input type="password" {...password.register("new_password")} autoComplete="new-password" />
+                  <Phone size={18} />
+                  <input {...sos.register("neighbor_phone")} inputMode="tel" autoComplete="tel" placeholder="0901 234 567" />
                 </span>
-                {password.formState.errors.new_password && <small>{password.formState.errors.new_password.message}</small>}
               </label>
 
               <div className="flex items-center justify-end gap-2 pt-2">
                 <button
                   type="button"
-                  onClick={() => setShowChangePasswordModal(false)}
+                  onClick={() => setShowEditSosModal(false)}
                   className="px-4 py-2.5 rounded-xl border border-slate-200 dark:border-[rgba(200,229,232,0.18)] text-xs font-semibold text-slate-600 dark:text-[#c1d2d5] hover:bg-slate-100 dark:hover:bg-[#183840] transition-all"
                 >
                   Hủy
                 </button>
                 <button
                   type="submit"
-                  disabled={password.formState.isSubmitting}
-                  className="px-5 py-2.5 rounded-xl bg-amber-600 hover:bg-amber-500 text-white text-xs font-bold shadow-md transition-all flex items-center gap-1.5 active:scale-95"
+                  disabled={sos.formState.isSubmitting}
+                  className="px-5 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-500 text-white text-xs font-bold shadow-md transition-all flex items-center gap-1.5 active:scale-95"
                 >
-                  {password.formState.isSubmitting ? <Loader2 size={15} className="animate-spin" /> : <Check size={15} />}
-                  {preferenceText.confirmPassword}
+                  {sos.formState.isSubmitting ? <Loader2 size={15} className="animate-spin" /> : <Save size={15} />}
+                  {sos.formState.isSubmitting ? preferenceText.saving : preferenceText.save}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+
+      {showAccountModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-150" onMouseDown={() => setShowAccountModal(false)}>
+          <div className="relative w-full max-w-md max-h-[90vh] overflow-y-auto rounded-3xl bg-white dark:bg-[#102a31] border border-slate-200 dark:border-[rgba(200,229,232,0.16)] shadow-2xl p-6 text-slate-800 dark:text-[#edf8f8]" onMouseDown={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-2.5">
+                <div className="w-9 h-9 rounded-full bg-slate-500/10 text-slate-600 dark:text-slate-400 flex items-center justify-center">
+                  <UserRound size={20} />
+                </div>
+                <div>
+                  <h3 className="font-bold text-base">{preferenceText.account}</h3>
+                  <p className="text-xs text-slate-500 dark:text-[#98adb2]">{preferenceText.personalHint}</p>
+                </div>
+              </div>
+            </div>
+
+            <form onSubmit={account.handleSubmit(saveAccount)} className="space-y-4">
+              <label className="account-field">
+                <span>{language === "vi" ? "Họ và tên" : "Full Name"}</span>
+                <span className="account-input">
+                  <UserRound size={18} />
+                  <input {...account.register("full_name")} autoComplete="name" />
+                </span>
+                {account.formState.errors.full_name && <small>{account.formState.errors.full_name.message}</small>}
+              </label>
+
+              <label className="account-field">
+                <span>Email</span>
+                <span className="account-input">
+                  <Mail size={18} />
+                  <input {...account.register("email")} type="email" autoComplete="email" placeholder="example@gmail.com" />
+                </span>
+                {account.formState.errors.email && <small>{account.formState.errors.email.message}</small>}
+              </label>
+
+              <label className="account-field">
+                <span>{language === "vi" ? "Số điện thoại" : "Phone number"}</span>
+                <span className="account-input">
+                  <Phone size={18} />
+                  <input {...account.register("phone")} inputMode="tel" autoComplete="tel" placeholder="090 123 4567" />
+                </span>
+              </label>
+
+              <div className="account-divider my-2 border-t border-slate-100 dark:border-slate-800" />
+              
+              <p className="text-xs font-semibold text-slate-500 mb-2">{preferenceText.password}</p>
+
+              <label className="account-field">
+                <span>{preferenceText.currentPassword}</span>
+                <span className="account-input">
+                  <Lock size={18} />
+                  <input {...account.register("old_password")} type="password" placeholder="••••••••" />
+                </span>
+                {account.formState.errors.old_password && <small>{account.formState.errors.old_password.message}</small>}
+              </label>
+
+              <label className="account-field">
+                <span>{preferenceText.newPassword}</span>
+                <span className="account-input">
+                  <KeyRound size={18} />
+                  <input {...account.register("new_password")} type="password" placeholder="••••••••" />
+                </span>
+                {account.formState.errors.new_password && <small>{account.formState.errors.new_password.message}</small>}
+              </label>
+
+              <div className="flex items-center justify-end gap-2 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setShowAccountModal(false)}
+                  className="px-4 py-2.5 rounded-xl border border-slate-200 dark:border-[rgba(200,229,232,0.18)] text-xs font-semibold text-slate-600 dark:text-[#c1d2d5] hover:bg-slate-100 dark:hover:bg-[#183840] transition-all"
+                >
+                  Hủy
+                </button>
+                <button
+                  type="submit"
+                  disabled={account.formState.isSubmitting}
+                  className="px-5 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 dark:bg-slate-200 dark:hover:bg-white dark:text-slate-900 text-white text-xs font-bold shadow-md transition-all flex items-center gap-1.5 active:scale-95"
+                >
+                  {account.formState.isSubmitting ? <Loader2 size={15} className="animate-spin" /> : <Save size={15} />}
+                  {account.formState.isSubmitting ? preferenceText.saving : preferenceText.save}
                 </button>
               </div>
             </form>

@@ -3,7 +3,7 @@
 import { useEffect } from "react";
 import { useNotificationStore } from "@/store/notificationStore";
 import { usePreferenceStore } from "@/store/preferenceStore";
-import { useDemoStore } from "@/store/demoStore";
+import { useDemoStore } from "@/demo/store";
 import { format } from "date-fns";
 import { Bell, CheckCheck } from "lucide-react";
 

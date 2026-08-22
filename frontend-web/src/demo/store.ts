@@ -91,9 +91,17 @@ export interface DemoState {
 
 const DEFAULT_MOCK_USER: User = {
   id: 999,
-  full_name: "Cụ Nguyễn Thị Mai",
-  email: "mai.nguyen@luminostech.vn",
-  phone: "0912 345 678",
+  full_name: "Phạm Nguyễn Tuấn Kiệt",
+  email: "kiet.pham@luminostech.vn",
+  phone: "0988 123 456",
+  address: "Số 18, Ngõ 42 Liễu Giai, Ba Đình, Hà Nội",
+  neighbor_name: "Anh Ba",
+  neighbor_phone: "0901 234 567",
+  elderly_name: "Bà Nguyễn Thị Mai",
+  elderly_phone: "0912 345 678",
+  elderly_name_2: "",
+  elderly_phone_2: "",
+  elderly_count: 1,
   avatar_url: "",
   role: "user",
   is_active: true,
@@ -183,9 +191,9 @@ export const PRESET_PROFILES: Record<FamilyPreset, MockProfile[]> = {
     {
       id: "profile_1",
       name: "Mẹ",
-      fullName: "Cụ Nguyễn Thị Mai",
+      fullName: "Bà Nguyễn Thị Mai",
       address: "Số 18, Ngõ 42 Liễu Giai, Ba Đình, Hà Nội",
-      caregiver: "Anh Trí (Con trai - 0988 123 456)",
+      caregiver: "Phạm Nguyễn Tuấn Kiệt (Con trai - 0988 123 456)",
       phone: "0912 345 678",
       age: "76 tuổi (1948)",
       type: "band",
@@ -200,9 +208,9 @@ export const PRESET_PROFILES: Record<FamilyPreset, MockProfile[]> = {
     {
       id: "profile_2",
       name: "Ba",
-      fullName: "Cụ Nguyễn Văn Hùng",
+      fullName: "Ông Nguyễn Văn Hùng",
       address: "Số 18, Ngõ 42 Liễu Giai, Ba Đình, Hà Nội",
-      caregiver: "Anh Trí (Con trai - 0988 123 456)",
+      caregiver: "Phạm Nguyễn Tuấn Kiệt (Con trai - 0988 123 456)",
       phone: "0903 888 999",
       age: "79 tuổi (1945)",
       type: "band",
@@ -233,7 +241,7 @@ export const PRESET_PROFILES: Record<FamilyPreset, MockProfile[]> = {
     {
       id: "profile_1",
       name: "Bà",
-      fullName: "Cụ Trần Thị Năm",
+      fullName: "Bà Trần Thị Năm",
       address: "Số 24 Đường Bưởi, Ba Đình, Hà Nội",
       caregiver: "Cháu Minh (Cháu nội - 0912 999 888)",
       phone: "0918 222 333",
@@ -250,7 +258,7 @@ export const PRESET_PROFILES: Record<FamilyPreset, MockProfile[]> = {
     {
       id: "profile_2",
       name: "Ông",
-      fullName: "Cụ Lê Văn Tư",
+      fullName: "Ông Lê Văn Tư",
       address: "Số 24 Đường Bưởi, Ba Đình, Hà Nội",
       caregiver: "Cháu Minh (Cháu nội - 0912 999 888)",
       phone: "0908 666 777",
@@ -277,9 +285,9 @@ export const PRESET_PROFILES: Record<FamilyPreset, MockProfile[]> = {
     {
       id: "profile_1",
       name: "Mẹ",
-      fullName: "Cụ Nguyễn Thị Mai",
+      fullName: "Bà Nguyễn Thị Mai",
       address: "Số 18, Ngõ 42 Liễu Giai, Ba Đình, Hà Nội",
-      caregiver: "Anh Trí (Con trai - 0988 123 456)",
+      caregiver: "Phạm Nguyễn Tuấn Kiệt (Con trai - 0988 123 456)",
       phone: "0912 345 678",
       age: "76 tuổi (1948)",
       type: "band",
@@ -304,7 +312,7 @@ export const PRESET_PROFILES: Record<FamilyPreset, MockProfile[]> = {
     {
       id: "profile_1",
       name: "Bà",
-      fullName: "Cụ Trần Thị Năm",
+      fullName: "Bà Trần Thị Năm",
       address: "Số 24 Đường Bưởi, Ba Đình, Hà Nội",
       caregiver: "Cháu Minh (Cháu nội - 0912 999 888)",
       phone: "0918 222 333",
@@ -377,7 +385,7 @@ export const useDemoStore = create<DemoState>()(
       mockUser: DEFAULT_MOCK_USER,
       mockProfileMeta: {
         address: "Ba Đình, Hà Nội",
-        caregiver: "Anh Trí (Con trai)",
+        caregiver: "Phạm Nguyễn Tuấn Kiệt (Con trai)",
         devicesText: "LUMO Hub 4G + 2 LUMO Bands (LH-8821 & LH-8822)"
       },
       mockDevice: DEFAULT_MOCK_DEVICE,
@@ -457,7 +465,7 @@ export const useDemoStore = create<DemoState>()(
           demoTargetProfileId: "profile_1",
           mockProfileMeta: {
             address: "Ba Đình, Hà Nội",
-            caregiver: preset === "ong_ba" ? "Cháu Minh (Cháu nội)" : "Anh Trí (Con trai)",
+            caregiver: preset === "ong_ba" ? "Cháu Minh (Cháu nội)" : "Phạm Nguyễn Tuấn Kiệt (Con trai)",
             devicesText: isSingle ? "LUMO Hub 4G + LUMO Band (LH-8821)" : "LUMO Hub 4G + 2 LUMO Bands (LH-8821 & LH-8822)"
           }
         });
