@@ -96,10 +96,10 @@ export default function EventDetailModal({ event, onClose, onEdit, onDuplicate }
         {/* Priority & Status badges */}
         <div className="flex items-center gap-2 flex-wrap">
           <Tag size={16} className="text-gray-400 shrink-0" />
-          <span className={`badge text-xs ${priorityClass[event.priority]}`}>
+          <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold tracking-wide text-xs ${priorityClass[event.priority]}`}>
             {priorityLabel[event.priority]}
           </span>
-          <span className={`badge text-xs ${statusClass[event.status]}`}>
+          <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold tracking-wide text-xs ${statusClass[event.status]}`}>
             {statusLabel[event.status]}
           </span>
         </div>
@@ -125,7 +125,7 @@ export default function EventDetailModal({ event, onClose, onEdit, onDuplicate }
       {/* Actions */}
       <div className="flex items-center justify-between pt-4 mt-4 border-t border-gray-100">
         <div className="flex items-center gap-2">
-          <button onClick={handleDelete} className="btn-danger text-sm">
+          <button onClick={handleDelete} className="inline-flex items-center gap-2 px-4 py-2 bg-red-600 text-white rounded-xl font-semibold text-sm hover:bg-red-700 active:scale-[0.97] transition-all duration-150 shadow-sm text-sm">
             <Trash2 size={14} /> {t.delete}
           </button>
           <button
@@ -135,7 +135,7 @@ export default function EventDetailModal({ event, onClose, onEdit, onDuplicate }
             <Copy size={14} /> {t.duplicate}
           </button>
         </div>
-        <button onClick={() => onEdit(event)} className="btn-primary text-sm">
+        <button onClick={() => onEdit(event)} className="inline-flex items-center gap-2 px-4 py-2 bg-primary-600 text-white rounded-xl font-semibold text-sm hover:bg-primary-700 active:scale-[0.97] transition-all duration-150 disabled:opacity-50 disabled:cursor-not-allowed shadow-sm hover:shadow-md text-sm">
           <Pencil size={14} /> {t.edit}
         </button>
       </div>

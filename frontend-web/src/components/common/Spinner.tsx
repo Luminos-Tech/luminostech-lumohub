@@ -24,7 +24,7 @@ export function Badge({ label, color = "blue" }: BadgeProps) {
     gray:   "bg-gray-100 text-gray-600",
     purple: "bg-primary-100 text-primary-700",
   };
-  return <span className={cn("badge", colors[color])}>{label}</span>;
+  return <span className={cn("inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold tracking-wide", colors[color])}>{label}</span>;
 }
 
 // ─── EmptyState ───────────────────────────────────────────────────────────────

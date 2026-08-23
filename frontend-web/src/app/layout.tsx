@@ -1,8 +1,8 @@
 import type { Metadata, Viewport } from "next";
-import { Toaster } from "sonner";
 import { ServiceWorkerRegistration } from "@/components/ServiceWorkerRegistration";
 import NotificationRealtime from "@/components/notifications/NotificationRealtime";
 import PreferenceSync from "@/components/PreferenceSync";
+import AppToaster from "@/components/layout/AppToaster";
 import "@fontsource/manrope/400.css";
 import "@fontsource/manrope/500.css";
 import "@fontsource/manrope/600.css";
@@ -24,8 +24,8 @@ export const metadata: Metadata = {
     siteName: "Lumo Hub",
   },
   icons: {
-    icon: "/favicon.ico",
-    apple: "/apple-touch-icon.png",
+    icon: "/icons/favicon.ico",
+    apple: "/icons/apple-touch-icon.png",
   },
 };
 
@@ -55,7 +55,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <ServiceWorkerRegistration />
         <NotificationRealtime />
         {children}
-        <Toaster position="top-right" richColors />
+        <AppToaster />
       </body>
     </html>
   );

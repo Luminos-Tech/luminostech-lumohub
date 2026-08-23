@@ -1,6 +1,6 @@
-from fastapi import APIRouter, Depends, HTTPException, Request
-from fastapi.responses import Response
-from sqlalchemy.orm import Session
+from fastapi import APIRouter, Depends, HTTPException, Request  # type: ignore
+from fastapi.responses import Response  # type: ignore
+from sqlalchemy.orm import Session  # type: ignore
 from app.db.session import get_db
 from app.schemas.device import DeviceCreateRequest, DeviceUpdateRequest, DeviceResponse
 from app.crud.device import (
@@ -13,7 +13,7 @@ from app.crud.device import (
 from app.crud.log import log_action
 from app.services.deps import get_current_active_user
 from app.models.user import User
-import qrcode
+import qrcode  # type: ignore
 import io
 import json
 
@@ -26,6 +26,34 @@ def list_devices(
     current_user: User = Depends(get_current_active_user),
 ):
     return get_devices_by_user(db, current_user.id)
+
+
+@router.get("/qr")
+def generate_user_qr(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_active_user),
+):
+    """
+    Generate QR code image for device pairing.
+    """
+    payload = {"user_id": current_user.id}
+    json_text = json.dumps(payload, ensure_ascii=False, separators=(",", ":"))
+
+    qr = qrcode.QRCode(
+        version=1,
+        error_correction=qrcode.constants.ERROR_CORRECT_M,
+        box_size=10,
+        border=4,
+    )
+    qr.add_data(json_text)
+    qr.make(fit=True)
+
+    img = qr.make_image(fill_color="black", back_color="white")
+    buf = io.BytesIO()
+    img.save(buf)
+    buf.seek(0)
+
+    return Response(content=buf.getvalue(), media_type="image/png")
 
 
 @router.get("/{device_id}", response_model=DeviceResponse)
@@ -102,43 +130,3 @@ def delete_one_device(
         target_type="device",
         target_id=device_id,
     )
-
-
-# =============================================================================
-# QR Code 生成接口 - 用于设备配对（让设备扫描）
-# 返回格式: PNG 图片, 内容为 JSON: {"user_id": 123}
-# 设备扫描后提取 user_id，然后发送 {device_id, user_id} 到后端完成配对
-# =============================================================================
-@router.get("/qr")
-def generate_user_qr(
-    db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_active_user),
-):
-    """
-    生成用户配对用的 QR 码图片。
-
-    返回 PNG 格式的 QR 码图片，内容为 {"user_id": <当前用户ID>}。
-    LUMO 设备扫描此二维码后，提取 user_id，
-    然后将 {device_id, user_id} 发回后端 /api/v1/devices 完成配对注册。
-    """
-    # 构造配对数据：只需要 user_id，设备扫描后自行附加 device_id
-    payload = {"user_id": current_user.id}
-    json_text = json.dumps(payload, ensure_ascii=False, separators=(",", ":"))
-
-    # 生成 QR 码
-    qr = qrcode.QRCode(
-        version=1,
-        error_correction=qrcode.constants.ERROR_CORRECT_M,
-        box_size=10,
-        border=4,
-    )
-    qr.add_data(json_text)
-    qr.make(fit=True)
-
-    # 渲染为图片
-    img = qr.make_image(fill_color="black", back_color="white")
-    buf = io.BytesIO()
-    img.save(buf, format="PNG")
-    buf.seek(0)
-
-    return Response(content=buf.getvalue(), media_type="image/png")

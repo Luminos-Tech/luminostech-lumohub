@@ -1,17 +1,11 @@
-import Image from "next/image";
-import Link from "next/link";
+import AuthLogoBrand from "@/components/auth/AuthLogoBrand";
 import { ShieldCheck } from "lucide-react";
 
 export default function AuthLayout({ children }: { children: React.ReactNode }) {
   return (
     <main className="auth-shell">
       <section className="auth-panel" aria-label="Lumo">
-        <Link href="/" className="auth-brand" aria-label="Lumo - Trang chủ">
-          <span className="auth-brand-mark">
-            <Image src="/logo-luminostech.png" alt="" width={47} height={62} priority />
-          </span>
-          <span><strong>Lumo</strong><small>by LuminosTech</small></span>
-        </Link>
+        <AuthLogoBrand />
 
         <div className="auth-intro">
           <span className="auth-trust"><ShieldCheck size={15} /> An tâm mỗi ngày</span>

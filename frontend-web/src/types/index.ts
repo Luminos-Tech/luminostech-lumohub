@@ -3,6 +3,14 @@ export interface User {
   full_name: string;
   email: string;
   phone?: string;
+  address?: string;
+  neighbor_name?: string;
+  neighbor_phone?: string;
+  elderly_name?: string;
+  elderly_phone?: string;
+  elderly_name_2?: string;
+  elderly_phone_2?: string;
+  elderly_count?: 1 | 2;
   avatar_url?: string;
   role: "user" | "admin";
   is_active: boolean;

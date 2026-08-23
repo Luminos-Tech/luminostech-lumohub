@@ -1,6 +1,7 @@
 import { create } from "zustand";
 import type { Notification } from "@/types";
 import { api } from "@/lib/api";
+import { useDemoStore } from "@/demo/store";
 
 interface NotificationState {
   notifications: Notification[];
@@ -16,9 +17,17 @@ export const useNotificationStore = create<NotificationState>((set, get) => ({
   unreadCount: 0,
 
   fetchNotifications: async () => {
-    const res = await api.get<Notification[]>("/notifications");
-    const notifs = res.data;
-    set({ notifications: notifs, unreadCount: notifs.filter((n) => !n.is_read).length });
+    try {
+      const res = await api.get<Notification[]>("/notifications");
+      const notifs = res.data;
+      set({ notifications: notifs, unreadCount: notifs.filter((n) => !n.is_read).length });
+    } catch (error) {
+      const demoState = useDemoStore.getState();
+      if (demoState?.mockNotifications) {
+        const unread = demoState.mockNotifications.filter((n) => !n.is_read).length;
+        set((s) => ({ ...s, unreadCount: unread }));
+      }
+    }
   },
 
   receiveNotification: (notification) => {
@@ -35,18 +44,30 @@ export const useNotificationStore = create<NotificationState>((set, get) => ({
   },
 
   markRead: async (id) => {
-    await api.patch(`/notifications/${id}/read`);
     set((s) => {
       const updated = s.notifications.map((n) => (n.id === id ? { ...n, is_read: true } : n));
       return { notifications: updated, unreadCount: updated.filter((n) => !n.is_read).length };
     });
+    useDemoStore.getState().markMockNotificationRead?.(id);
+
+    try {
+      await api.patch(`/notifications/${id}/read`);
+    } catch {
+      // Offline / demo mode fallback
+    }
   },
 
   markAllRead: async () => {
-    await api.patch("/notifications/read-all");
     set((s) => ({
       notifications: s.notifications.map((n) => ({ ...n, is_read: true })),
       unreadCount: 0,
     }));
+    useDemoStore.getState().markAllMockNotificationsRead?.();
+
+    try {
+      await api.patch("/notifications/read-all");
+    } catch {
+      // Offline / demo mode fallback
+    }
   },
 }));

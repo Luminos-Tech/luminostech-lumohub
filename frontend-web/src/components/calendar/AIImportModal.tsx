@@ -328,7 +328,7 @@ export default function AIImportModal({ onClose, onCreated }: Props) {
             <>
               <button
                 onClick={() => { setExtractedEvents(null); setError(null); }}
-                className="btn-secondary flex-1"
+                className="inline-flex items-center gap-2 px-4 py-2 bg-white text-gray-700 border border-gray-200 rounded-xl font-semibold text-sm hover:bg-gray-50 hover:border-gray-300 active:scale-[0.97] transition-all duration-150 flex-1"
               >
                 ← Nhập lại
               </button>
@@ -342,7 +342,7 @@ export default function AIImportModal({ onClose, onCreated }: Props) {
               </button>
             </>
           ) : (
-            <button onClick={onClose} className="btn-secondary w-full">Hủy</button>
+            <button onClick={onClose} className="inline-flex items-center gap-2 px-4 py-2 bg-white text-gray-700 border border-gray-200 rounded-xl font-semibold text-sm hover:bg-gray-50 hover:border-gray-300 active:scale-[0.97] transition-all duration-150 w-full">Hủy</button>
           )}
         </div>
       </div>
