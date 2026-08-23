@@ -69,7 +69,9 @@ export default function ProtectedLayout({ children }: { children: React.ReactNod
             event.preventDefault();
             window.dispatchEvent(new CustomEvent(OPEN_AUTH_EVENT));
           }
-        }}>{children}</main>
+        }}>
+          <div className="app-route-content">{children}</div>
+        </main>
         <BottomNav />
       </div>
       {authOpen && <AuthModal onClose={closeAuth} />}

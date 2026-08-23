@@ -1,6 +1,7 @@
 idf_component_register(
     SRCS
         "Lumo-LuminosTech.c"
+        "lumo_runtime.c"
         "audio/audio_player.c"
         "oled/oled.c"
         "button/button.c"
