@@ -1,0 +1,11 @@
+idf_component_register(
+    SRCS
+        "../src/main.c"
+        "../src/lumo_ble.c"
+        "../src/esp32_link.c"
+    INCLUDE_DIRS
+        "../include"
+    REQUIRES
+        bt
+        nvs_flash
+)

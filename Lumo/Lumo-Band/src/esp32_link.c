@@ -1,12 +1,12 @@
-#include <zephyr/logging/log.h>
+#include "esp_log.h"
 
 #include "esp32_link.h"
 #include "lumo_band_config.h"
 #include "lumo_ble.h"
 
-LOG_MODULE_REGISTER(esp32_link, LOG_LEVEL_INF);
+static const char *TAG = "lumo_link";
 
-int lumo_esp32_link_init(void)
+esp_err_t lumo_esp32_link_init(void)
 {
     /*
      * BLE transport is implemented by lumo_ble.c. A phone or companion hub
@@ -15,24 +15,24 @@ int lumo_esp32_link_init(void)
      * TODO: If UART or another transport is selected, initialize it here.
      * TODO: Add framing, authentication, retry and offline queue policy.
      */
-    LOG_INF("BLE peer transport selected: %d", LUMO_ESP32_LINK_TRANSPORT);
-    return 0;
+    ESP_LOGI(TAG, "BLE peer transport selected: %d", LUMO_ESP32_LINK_TRANSPORT);
+    return ESP_OK;
 }
 
-int lumo_esp32_link_send(const uint8_t *data, size_t len)
+esp_err_t lumo_esp32_link_send(const uint8_t *data, size_t len)
 {
     /* Route messages through the selected transport. */
 #if LUMO_ESP32_LINK_TRANSPORT == LUMO_LINK_TRANSPORT_BLE
     return lumo_ble_notify(data, len);
 #elif LUMO_ESP32_LINK_TRANSPORT == LUMO_LINK_TRANSPORT_UART
     /* TODO: Send a framed message through the optional companion UART. */
-    ARG_UNUSED(data);
-    ARG_UNUSED(len);
-    return 0;
+    (void)data;
+    (void)len;
+    return ESP_OK;
 #else
     /* TODO: Add the custom transport implementation. */
-    ARG_UNUSED(data);
-    ARG_UNUSED(len);
-    return 0;
+    (void)data;
+    (void)len;
+    return ESP_OK;
 #endif
 }

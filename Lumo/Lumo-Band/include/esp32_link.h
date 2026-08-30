@@ -3,8 +3,9 @@
 
 #include <stddef.h>
 #include <stdint.h>
+#include "esp_err.h"
 
-int lumo_esp32_link_init(void);
-int lumo_esp32_link_send(const uint8_t *data, size_t len);
+esp_err_t lumo_esp32_link_init(void);
+esp_err_t lumo_esp32_link_send(const uint8_t *data, size_t len);
 
 #endif /* ESP32_LINK_H */

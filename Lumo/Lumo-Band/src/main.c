@@ -1,33 +1,22 @@
-#include <zephyr/kernel.h>
-#include <zephyr/logging/log.h>
+#include <inttypes.h>
 
-#include "esp32_link.h"
-#include "lumo_ble.h"
+#include "esp_log.h"
+#include "freertos/FreeRTOS.h"
+#include "freertos/task.h"
 
-LOG_MODULE_REGISTER(lumo_band, LOG_LEVEL_INF);
+static const char *TAG = "lumo_band";
 
-int main(void)
+void app_main(void)
 {
-    int err;
+    uint32_t counter = 0;
 
-    LOG_INF("Lumo-band starting");
+    ESP_LOGI(TAG, "================================");
+    ESP_LOGI(TAG, " LUMO-BAND ESP32-C3 SUPERMINI");
+    ESP_LOGI(TAG, " ESP-IDF flash and console OK");
+    ESP_LOGI(TAG, "================================");
 
-    err = lumo_ble_init();
-    if (err) {
-        LOG_ERR("BLE initialization failed (%d)", err);
-        return err;
-    }
-
-    err = lumo_esp32_link_init();
-    if (err) {
-        LOG_ERR("BLE peer link initialization failed (%d)", err);
-        return err;
-    }
-
-    LOG_INF("Lumo-band ready");
     while (1) {
-        k_sleep(K_SECONDS(5));
+        ESP_LOGI(TAG, "Lumo-Band running: %" PRIu32 " second(s)", counter++);
+        vTaskDelay(pdMS_TO_TICKS(1000));
     }
-
-    return 0;
 }
