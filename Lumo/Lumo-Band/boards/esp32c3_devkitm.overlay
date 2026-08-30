@@ -1,0 +1,84 @@
+/*
+ * Compatibility overlay: build the Lumo-Band SuperMini pin map against the
+ * upstream esp32c3_devkitm target as requested by the migration checklist.
+ */
+
+#include <zephyr/dt-bindings/gpio/gpio.h>
+#include <zephyr/dt-bindings/pinctrl/esp-pinctrl-common.h>
+#include <dt-bindings/pinctrl/esp32c3-pinctrl.h>
+#include <zephyr/dt-bindings/pinctrl/esp32c3-gpio-sigmap.h>
+
+/ {
+    lumo_band_leds {
+        compatible = "gpio-leds";
+
+        lumo_status_led: lumo_status_led {
+            gpios = <&gpio0 8 GPIO_ACTIVE_LOW>;
+            label = "Lumo-Band status LED";
+        };
+    };
+
+    aliases {
+        led0 = &lumo_status_led;
+        lumo-band-led = &lumo_status_led;
+        lumo-band-button = &user_button1;
+        lumo-band-i2c = &i2c0;
+        lumo-band-spi = &spi2;
+    };
+
+    chosen {
+        /* ESP32-C3 SuperMini exposes the native USB Serial/JTAG peripheral. */
+        zephyr,console = &usb_serial;
+        zephyr,shell-uart = &usb_serial;
+    };
+};
+
+&pinctrl {
+    lumo_i2c0_default: lumo_i2c0_default {
+        group1 {
+            /* TODO: Confirm these pins against the assembled sensor PCB. */
+            pinmux = <I2C0_SDA_GPIO5>,
+                     <I2C0_SCL_GPIO6>;
+            bias-pull-up;
+            drive-open-drain;
+            output-high;
+        };
+    };
+
+    lumo_spim2_default: lumo_spim2_default {
+        group1 {
+            pinmux = <SPIM2_MISO_GPIO0>,
+                     <SPIM2_SCLK_GPIO4>,
+                     <SPIM2_CSEL_GPIO7>;
+        };
+        group2 {
+            pinmux = <SPIM2_MOSI_GPIO3>;
+            output-low;
+        };
+    };
+};
+
+&uart0 {
+    status = "disabled";
+};
+
+&usb_serial {
+    status = "okay";
+};
+
+&i2c0 {
+    status = "okay";
+    clock-frequency = <I2C_BITRATE_STANDARD>;
+    pinctrl-0 = <&lumo_i2c0_default>;
+    pinctrl-names = "default";
+};
+
+&spi2 {
+    status = "okay";
+    pinctrl-0 = <&lumo_spim2_default>;
+    pinctrl-names = "default";
+};
+
+&esp32_bt_hci {
+    status = "okay";
+};

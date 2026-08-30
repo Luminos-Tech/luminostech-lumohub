@@ -1,0 +1,64 @@
+/*
+ * Lumo-Band signal map for the ESP32-C3 SuperMini.
+ *
+ * The upstream board already maps LED to GPIO8 and BOOT button to GPIO9.
+ * Sensor devices are not present in the current application yet, so this
+ * overlay reserves buses only. Add each sensor node when its exact part and
+ * address are known.
+ */
+
+#include <zephyr/dt-bindings/pinctrl/esp-pinctrl-common.h>
+#include <dt-bindings/pinctrl/esp32c3-pinctrl.h>
+#include <zephyr/dt-bindings/pinctrl/esp32c3-gpio-sigmap.h>
+
+/ {
+    aliases {
+        lumo-band-led = &blue_led_0;
+        lumo-band-button = &user_button1;
+        lumo-band-i2c = &i2c0;
+        lumo-band-spi = &spi2;
+    };
+};
+
+&pinctrl {
+    lumo_i2c0_default: lumo_i2c0_default {
+        group1 {
+            /* TODO: Confirm these pins against the assembled sensor PCB. */
+            pinmux = <I2C0_SDA_GPIO5>,
+                     <I2C0_SCL_GPIO6>;
+            bias-pull-up;
+            drive-open-drain;
+            output-high;
+        };
+    };
+
+    lumo_spim2_default: lumo_spim2_default {
+        group1 {
+            /* GPIO2, GPIO8 and GPIO9 are strapping pins and are avoided. */
+            pinmux = <SPIM2_MISO_GPIO0>,
+                     <SPIM2_SCLK_GPIO4>,
+                     <SPIM2_CSEL_GPIO7>;
+        };
+        group2 {
+            pinmux = <SPIM2_MOSI_GPIO3>;
+            output-low;
+        };
+    };
+};
+
+&i2c0 {
+    status = "okay";
+    clock-frequency = <I2C_BITRATE_STANDARD>;
+    pinctrl-0 = <&lumo_i2c0_default>;
+    pinctrl-names = "default";
+};
+
+&spi2 {
+    status = "okay";
+    pinctrl-0 = <&lumo_spim2_default>;
+    pinctrl-names = "default";
+};
+
+&esp32_bt_hci {
+    status = "okay";
+};
