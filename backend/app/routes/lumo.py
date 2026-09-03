@@ -8,12 +8,15 @@ from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime
 
 from fastapi import APIRouter, Depends, HTTPException, Query, UploadFile, File
+from fastapi.responses import Response
 from google import genai
 import google.genai.types as gtypes
 from groq import Groq
 import requests
 
 from app.core.config import settings
+from app.services.deps import get_current_active_user
+from app.models.user import User
 
 router = APIRouter(prefix="/lumo", tags=["LUMO"])
 
@@ -215,6 +218,55 @@ def _match_wakeword(transcription: str) -> str | None:
 @router.get("/", tags=["LUMO"])
 async def lumo_root():
     return {"status": "ok", "message": "LUMO service running"}
+
+
+@router.get("/tts-preview", tags=["LUMO"], response_class=Response)
+async def lumo_tts_preview(
+    text: str = Query(..., min_length=1, max_length=500),
+    voice_name: str = Query("Kore"),
+    current_user: User = Depends(get_current_active_user),
+):
+    """Synthesize a short TTS preview without going through the full STT->LLM pipeline.
+
+    Used by the frontend settings page to let the user audition voices. Requires
+    authentication to prevent abuse of the Gemini TTS API key.
+    """
+    if not settings.GEMINI_API_KEY:
+        raise HTTPException(status_code=503, detail="GEMINI_API_KEY not set")
+
+    def _synthesize():
+        client = genai.Client(api_key=settings.GEMINI_API_KEY)
+        resp = client.models.generate_content(
+            model="gemini-2.5-flash-preview-tts",
+            contents=text,
+            config=gtypes.GenerateContentConfig(
+                response_modalities=["AUDIO"],
+                speech_config=gtypes.SpeechConfig(
+                    voice_config=gtypes.VoiceConfig(
+                        prebuilt_voice_config=gtypes.PrebuiltVoiceConfig(
+                            voice_name=voice_name,
+                        )
+                    )
+                ),
+            ),
+        )
+        inline = resp.candidates[0].content.parts[0].inline_data
+        audio_bytes = _extract_inline_audio_bytes(inline.data)
+        if inline.mime_type == "audio/wav":
+            return audio_bytes, inline.mime_type
+        sample_rate = _sample_rate_from_mime(inline.mime_type, default=24000)
+        tmp = f"/tmp/lumo_tts_preview_{os.getpid()}.wav"
+        try:
+            _pcm_to_wav(audio_bytes, tmp, sample_rate=sample_rate)
+            with open(tmp, "rb") as f:
+                wav = f.read()
+        finally:
+            if os.path.exists(tmp):
+                os.unlink(tmp)
+        return wav, "audio/wav"
+
+    wav_bytes, mime = await _run_sync_in_executor(_synthesize)
+    return Response(content=wav_bytes, media_type=mime)
 
 
 @router.get("/version1", tags=["LUMO Versions"])

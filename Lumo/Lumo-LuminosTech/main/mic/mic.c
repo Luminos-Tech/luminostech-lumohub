@@ -3,8 +3,10 @@
 #include <string.h>
 #include <stdlib.h>
 #include <stdint.h>
+#include <math.h>
 
 #include "esp_log.h"
+#include "esp_timer.h"
 #include "driver/i2s_std.h"
 #include "freertos/FreeRTOS.h"
 
@@ -15,6 +17,7 @@ static mic_config_t s_cfg = {0};
 static bool s_initialized = false;
 static bool s_running = false;
 static size_t s_frame_samples = 0;
+static int64_t s_last_debug_log_us = 0;
 
 /**
  * FIX: >> 14 → >> 16
@@ -128,6 +131,7 @@ esp_err_t mic_start(void)
     }
 
     s_running = true;
+    s_last_debug_log_us = 0;
     ESP_LOGI(TAG, "Mic started");
     return ESP_OK;
 }
@@ -236,6 +240,51 @@ esp_err_t mic_read_frame(int16_t *buffer, size_t samples_capacity, size_t *sampl
 
     free(raw_buffer);
     *samples_read = out_count;
+
+    if (out_count == 0)
+    {
+        ESP_LOGW(TAG, "mic_read_frame returned zero samples");
+    }
+    else
+    {
+        int16_t min_value = 32767;
+        int16_t max_value = -32768;
+        uint32_t nonzero_count = 0;
+        uint64_t sum_squares = 0;
+
+        for (size_t i = 0; i < out_count; ++i)
+        {
+            const int32_t value = buffer[i];
+            if (buffer[i] < min_value)
+            {
+                min_value = buffer[i];
+            }
+            if (buffer[i] > max_value)
+            {
+                max_value = buffer[i];
+            }
+            if (buffer[i] != 0)
+            {
+                ++nonzero_count;
+            }
+            sum_squares += (uint64_t)(value * value);
+        }
+
+        const int64_t now_us = esp_timer_get_time();
+        if (now_us - s_last_debug_log_us >= 500000)
+        {
+            const double rms = sqrt((double)sum_squares / (double)out_count);
+            ESP_LOGI(TAG,
+                     "MIC_DEBUG samples=%u nonzero=%u min=%d max=%d rms=%.2f",
+                     (unsigned)out_count,
+                     (unsigned)nonzero_count,
+                     (int)min_value,
+                     (int)max_value,
+                     rms);
+            s_last_debug_log_us = now_us;
+        }
+    }
+
     return ESP_OK;
 }
 

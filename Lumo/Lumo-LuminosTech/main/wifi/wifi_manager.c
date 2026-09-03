@@ -16,7 +16,6 @@
 
 #include "wifi_manager.h"
 #include "web_portal.h"
-
 static const char *TAG = "WIFI_MGR";
 
 #define WIFI_CONNECTED_BIT BIT0
@@ -227,4 +226,105 @@ bool wifi_is_connected(void)
 
     EventBits_t bits = xEventGroupGetBits(s_wifi_event_group);
     return (bits & WIFI_CONNECTED_BIT) != 0;
+}
+
+/* Compare two SSIDs against saved credentials in NVS. */
+static bool ssid_already_saved(const char *ssid)
+{
+    char saved_ssid[33] = {0};
+    char saved_pass[65] = {0};
+    if (!wifi_load_credentials(saved_ssid, sizeof(saved_ssid),
+                               saved_pass, sizeof(saved_pass)))
+    {
+        return false;
+    }
+    return strcmp(saved_ssid, ssid) == 0;
+}
+
+int wifi_scan_networks(wifi_network_info_t *out, int max)
+{
+    if (out == NULL || max <= 0)
+    {
+        return 0;
+    }
+
+    wifi_init_common();
+
+    /* Ensure STA interface is up before scan. */
+    wifi_mode_t mode;
+    if (esp_wifi_get_mode(&mode) != ESP_OK || (mode != WIFI_MODE_STA && mode != WIFI_MODE_APSTA))
+    {
+        ESP_ERROR_CHECK(esp_wifi_set_mode(WIFI_MODE_STA));
+        ESP_ERROR_CHECK(esp_wifi_start());
+    }
+
+    wifi_scan_config_t scan_config = {
+        .ssid = NULL,
+        .bssid = NULL,
+        .channel = 0,
+        .show_hidden = false,
+        .scan_type = WIFI_SCAN_TYPE_ACTIVE,
+        .scan_time.active.min = 100,
+        .scan_time.active.max = 300,
+    };
+
+    esp_err_t err = esp_wifi_scan_start(&scan_config, true);
+    if (err != ESP_OK)
+    {
+        ESP_LOGE(TAG, "wifi_scan_start failed: %s", esp_err_to_name(err));
+        return 0;
+    }
+
+    uint16_t ap_count = 0;
+    ESP_ERROR_CHECK(esp_wifi_scan_get_ap_num(&ap_count));
+    if (ap_count == 0)
+    {
+        return 0;
+    }
+
+    uint16_t actual = (ap_count > (uint16_t)max) ? (uint16_t)max : ap_count;
+    wifi_ap_record_t *ap_records = calloc(actual, sizeof(wifi_ap_record_t));
+    if (ap_records == NULL)
+    {
+        ESP_LOGE(TAG, "Cannot allocate AP records");
+        return 0;
+    }
+
+    uint16_t filled = actual;
+    ESP_ERROR_CHECK(esp_wifi_scan_get_ap_records(&filled, ap_records));
+
+    int written = 0;
+    for (int i = 0; i < filled && written < max; i++)
+    {
+        if (ap_records[i].ssid[0] == '\0')
+        {
+            continue; /* skip hidden networks */
+        }
+        wifi_network_info_t *o = &out[written];
+        memset(o, 0, sizeof(*o));
+        strncpy(o->ssid, (const char *)ap_records[i].ssid, sizeof(o->ssid) - 1);
+        o->rssi = ap_records[i].rssi;
+        o->authmode = ap_records[i].authmode;
+        o->saved = ssid_already_saved(o->ssid);
+        written++;
+    }
+
+    /* Sort by RSSI descending (strongest first) */
+    for (int i = 0; i < written - 1; i++)
+    {
+        for (int j = i + 1; j < written; j++)
+        {
+            if (out[j].rssi > out[i].rssi)
+            {
+                wifi_network_info_t tmp = out[i];
+                out[i] = out[j];
+                out[j] = tmp;
+            }
+        }
+    }
+
+    free(ap_records);
+
+    ESP_LOGI(TAG, "Scan complete: %d network(s)", written);
+    return written;
 }

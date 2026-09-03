@@ -143,6 +143,17 @@ sdkconfig.old
 build/
 dependencies.lock
 
+# Zephyr / west workspace generated files
+Lumo/.venv/
+Lumo/.west/
+Lumo/zephyr-source/
+Lumo/zephyr/
+Lumo/modules/
+Lumo/bootloader/
+Lumo/tools/
+Lumo/Lumo-Band/build*/
+Lumo/Lumo-LuminosTech/sdkconfig.ble-central
+
 # Test files
 test_*.py
 test_*.wav

@@ -17,10 +17,7 @@ def get_me(current_user: User = Depends(get_current_active_user)):
 
 @router.patch("/me", response_model=UserResponse)
 def update_me(body: UserUpdateRequest, db: Session = Depends(get_db), current_user: User = Depends(get_current_active_user)):
-    updated = update_user(db, current_user,
-                          full_name=body.full_name,
-                          phone=body.phone,
-                          avatar_url=body.avatar_url)
+    updated = update_user(db, current_user, **body.model_dump(exclude_none=True))
     return updated
 
 

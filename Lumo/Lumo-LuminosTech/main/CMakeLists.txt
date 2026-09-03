@@ -2,6 +2,7 @@ idf_component_register(
     SRCS
         "Lumo-LuminosTech.c"
         "lumo_runtime.c"
+        "ble/lumo_band_central.c"
         "audio/audio_player.c"
         "oled/oled.c"
         "button/button.c"
@@ -15,6 +16,7 @@ idf_component_register(
         "audio"
         "oled"
         "button"
+        "ble"
         "wifi"
         "oled/font5x7"
     REQUIRES
@@ -29,6 +31,7 @@ idf_component_register(
         esp_http_client
         mbedtls
         spiffs
+        bt
     EMBED_TXTFILES
         "certs/server_cert.pem"
 )

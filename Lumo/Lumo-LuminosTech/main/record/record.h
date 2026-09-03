@@ -35,6 +35,8 @@ extern "C"
      */
     esp_err_t recorder_stop(void);
 
+    esp_err_t recorder_get_last_error(void);
+
     /**
      * @brief Kiểm tra recorder đang chạy hay không.
      */

@@ -13,6 +13,7 @@ typedef struct
     bool microphone;
     bool voice_assistant;
     bool microphone_level_log;
+    bool microphone_record_test;
 } lumo_feature_config_t;
 
 void lumo_runtime_start(const lumo_feature_config_t *features);
