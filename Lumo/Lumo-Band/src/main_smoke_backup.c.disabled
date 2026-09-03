@@ -1,0 +1,50 @@
+#include <inttypes.h>
+
+#include "esp_err.h"
+#include "esp_log.h"
+#include "esp_mac.h"
+#include "esp_system.h"
+#include "freertos/FreeRTOS.h"
+#include "freertos/task.h"
+
+static const char *TAG = "lumo_band";
+
+static void log_ble_mac(const uint8_t mac[6])
+{
+    ESP_LOGI(TAG, "BLE MAC: %02X:%02X:%02X:%02X:%02X:%02X",
+             mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
+}
+
+void app_main(void)
+{
+    uint8_t ble_mac[6] = {0};
+    uint32_t counter = 0;
+    esp_err_t mac_err;
+
+    /* Doc MAC BLE; neu loi thi dung MAC goc trong eFuse. */
+    mac_err = esp_read_mac(ble_mac, ESP_MAC_BT);
+    if (mac_err != ESP_OK) {
+        ESP_LOGW(TAG, "Cannot read BLE MAC (%s), using eFuse MAC",
+                 esp_err_to_name(mac_err));
+        mac_err = esp_efuse_mac_get_default(ble_mac);
+    }
+
+    if (mac_err == ESP_OK) {
+        log_ble_mac(ble_mac);
+    } else {
+        ESP_LOGE(TAG, "Cannot read MAC: %s", esp_err_to_name(mac_err));
+    }
+
+    ESP_LOGI(TAG, "================================");
+    ESP_LOGI(TAG, " LUMO-BAND ESP32-C3 SUPERMINI");
+    ESP_LOGI(TAG, " ESP-IDF flash and console OK");
+    ESP_LOGI(TAG, "================================");
+
+    while (1) {
+        if (mac_err == ESP_OK) {
+            log_ble_mac(ble_mac);
+        }
+        ESP_LOGI(TAG, "Lumo-Band running: %" PRIu32 " second(s)", counter++);
+        vTaskDelay(pdMS_TO_TICKS(1000));
+    }
+}

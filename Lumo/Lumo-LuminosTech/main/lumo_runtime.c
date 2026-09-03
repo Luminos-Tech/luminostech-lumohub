@@ -3,11 +3,14 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/stat.h>
 #include <time.h>
+#include <dirent.h>
 
 #include "sdkconfig.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/queue.h"
+#include "freertos/semphr.h"
 #include "freertos/task.h"
 #include "esp_crt_bundle.h"
 #include "esp_err.h"
@@ -16,6 +19,7 @@
 #include "esp_netif_sntp.h"
 #include "esp_spiffs.h"
 #include "esp_timer.h"
+#include "mbedtls/base64.h"
 #include "nvs_flash.h"
 
 #include "audio/audio_player.h"
@@ -29,8 +33,9 @@
 
 #define DEVICE_CODE "001"
 #define RECORD_WAV_PATH "/spiffs/record.wav"
+#define MIC_TEST_DURATION_MS 5000
 #define RESPONSE_WAV_PATH "/spiffs/response.wav"
-#define STARTUP_WAV_PATH "/spiffs/LumoHello.wav"
+#define STARTUP_WAV_PATH "/spiffs/checkLife.wav"
 #define AUDIO_SERVER_URL "https://lumohub.luminostech.tech/audio/"
 
 #define BUTTON_GPIO GPIO_NUM_42
@@ -95,6 +100,13 @@ static bool feature_config_is_valid(void)
         valid = false;
     }
 
+    if (FEATURES.microphone_record_test &&
+        (!FEATURES.storage || !FEATURES.microphone))
+    {
+        ESP_LOGE(TAG, "microphone_record_test requires storage and microphone");
+        valid = false;
+    }
+
     return valid;
 }
 
@@ -102,7 +114,7 @@ static void log_feature_state(void)
 {
     ESP_LOGI(TAG,
              "Features: storage=%d button=%d audio=%d display=%d network=%d "
-             "events=%d mic=%d voice=%d mic_log=%d",
+             "events=%d mic=%d voice=%d mic_log=%d mic_test=%d",
              FEATURES.storage,
              FEATURES.button,
              FEATURES.audio,
@@ -111,7 +123,8 @@ static void log_feature_state(void)
              FEATURES.server_events,
              FEATURES.microphone,
              FEATURES.voice_assistant,
-             FEATURES.microphone_level_log);
+             FEATURES.microphone_level_log,
+             FEATURES.microphone_record_test);
 }
 
 static void display_message(const char *message)
@@ -164,6 +177,22 @@ static esp_err_t init_spiffs_storage(void)
     {
         ESP_LOGI(TAG, "SPIFFS total=%u, used=%u",
                  (unsigned)total, (unsigned)used);
+    }
+
+    ESP_LOGI(TAG, "Listing /spiffs/ contents:");
+    DIR *d = opendir("/spiffs");
+    if (d)
+    {
+        struct dirent *e;
+        while ((e = readdir(d)) != NULL)
+        {
+            ESP_LOGI(TAG, "  %s", e->d_name);
+        }
+        closedir(d);
+    }
+    else
+    {
+        ESP_LOGW(TAG, "Cannot open /spiffs/ directory");
     }
 
     return err;
@@ -311,6 +340,272 @@ static esp_err_t init_server_events(void)
     return ESP_OK;
 }
 
+static esp_err_t mic_test_dump_file_b64(const char *path)
+{
+    FILE *file = NULL;
+    unsigned char input[45];
+    unsigned char encoded[64];
+    esp_log_level_t default_level;
+    esp_log_level_t mic_level;
+    esp_log_level_t recorder_level;
+    esp_log_level_t band_ble_level;
+    long file_size;
+    size_t bytes_read;
+
+    if (path == NULL)
+    {
+        return ESP_ERR_INVALID_ARG;
+    }
+
+    file = fopen(path, "rb");
+    if (file == NULL)
+    {
+        ESP_LOGE(TAG, "Cannot open WAV for UART export: %s", path);
+        return ESP_FAIL;
+    }
+
+    if (fseek(file, 0, SEEK_END) != 0)
+    {
+        ESP_LOGE(TAG, "Cannot seek WAV for UART export");
+        fclose(file);
+        return ESP_FAIL;
+    }
+
+    file_size = ftell(file);
+    if (file_size < 0 || fseek(file, 0, SEEK_SET) != 0)
+    {
+        ESP_LOGE(TAG, "Cannot determine WAV size for UART export");
+        fclose(file);
+        return ESP_FAIL;
+    }
+
+    /* Giam log dong thoi de stream Base64 khong bi chen dong. */
+    default_level = esp_log_level_get(NULL);
+    mic_level = esp_log_level_get("MIC");
+    recorder_level = esp_log_level_get("RECORDER");
+    band_ble_level = esp_log_level_get("BAND_BLE");
+    esp_log_level_set("*", ESP_LOG_NONE);
+    esp_log_level_set("MIC", ESP_LOG_NONE);
+    esp_log_level_set("RECORDER", ESP_LOG_NONE);
+    esp_log_level_set("BAND_BLE", ESP_LOG_NONE);
+
+    printf("===B64BEGIN=== size=%ld\n", file_size);
+    while ((bytes_read = fread(input, 1, sizeof(input), file)) > 0)
+    {
+        size_t encoded_len = 0;
+        int rc = mbedtls_base64_encode(encoded, sizeof(encoded), &encoded_len,
+                                       input, bytes_read);
+        if (rc != 0)
+        {
+            esp_log_level_set("*", default_level);
+            esp_log_level_set("MIC", mic_level);
+            esp_log_level_set("RECORDER", recorder_level);
+            esp_log_level_set("BAND_BLE", band_ble_level);
+            fclose(file);
+            ESP_LOGE(TAG, "Base64 encode failed: -0x%04X", -rc);
+            return ESP_FAIL;
+        }
+
+        printf("%.*s\n", (int)encoded_len, (char *)encoded);
+    }
+
+    if (ferror(file) != 0)
+    {
+        esp_log_level_set("*", default_level);
+        esp_log_level_set("MIC", mic_level);
+        esp_log_level_set("RECORDER", recorder_level);
+        esp_log_level_set("BAND_BLE", band_ble_level);
+        fclose(file);
+        ESP_LOGE(TAG, "WAV read failed during UART export");
+        return ESP_FAIL;
+    }
+
+    printf("===B64END===\n");
+    if (fflush(stdout) != 0)
+    {
+        esp_log_level_set("*", default_level);
+        esp_log_level_set("MIC", mic_level);
+        esp_log_level_set("RECORDER", recorder_level);
+        esp_log_level_set("BAND_BLE", band_ble_level);
+        fclose(file);
+        ESP_LOGE(TAG, "UART flush failed after WAV export");
+        return ESP_FAIL;
+    }
+    esp_log_level_set("*", default_level);
+    esp_log_level_set("MIC", mic_level);
+    esp_log_level_set("RECORDER", recorder_level);
+    esp_log_level_set("BAND_BLE", band_ble_level);
+
+    if (fclose(file) != 0)
+    {
+        ESP_LOGE(TAG, "WAV close failed after UART export");
+        return ESP_FAIL;
+    }
+
+    return ESP_OK;
+}
+
+static esp_err_t run_microphone_record_test(void)
+{
+    const recorder_config_t config = {
+        .output_path = RECORD_WAV_PATH,
+        .sample_rate = 16000,
+        .duration_ms = MIC_TEST_DURATION_MS,
+    };
+
+    ESP_LOGI(TAG, "MIC_TEST_RECORD_BEGIN duration=%dms sample_rate=%dHz path=%s",
+             config.duration_ms, config.sample_rate, config.output_path);
+
+    esp_err_t err = recorder_start(&config);
+    if (err != ESP_OK)
+    {
+        ESP_LOGE(TAG, "Microphone test recording failed: %s",
+                 esp_err_to_name(err));
+        return err;
+    }
+
+    while (recorder_is_recording())
+    {
+        vTaskDelay(pdMS_TO_TICKS(100));
+    }
+
+    esp_err_t recorder_error = recorder_get_last_error();
+    if (recorder_error != ESP_OK)
+    {
+        ESP_LOGE(TAG, "Recorder failed: %s", esp_err_to_name(recorder_error));
+        (void)remove(config.output_path);
+        return recorder_error;
+    }
+
+    struct stat file_info;
+    if (stat(config.output_path, &file_info) != 0)
+    {
+        ESP_LOGE(TAG, "Microphone test WAV is missing or empty");
+        (void)remove(config.output_path);
+        return ESP_FAIL;
+    }
+
+    uint8_t header[44];
+    FILE *file = fopen(config.output_path, "rb");
+    bool valid = file != NULL &&
+                 fread(header, 1, sizeof(header), file) == sizeof(header);
+    if (file != NULL)
+    {
+        fclose(file);
+    }
+
+    const uint32_t expected_data_bytes =
+        (uint32_t)((uint64_t)config.sample_rate * 2U *
+                   (uint64_t)config.duration_ms / 1000U);
+    const uint32_t chunk_size =
+        valid ? ((uint32_t)header[4] |
+                 ((uint32_t)header[5] << 8) |
+                 ((uint32_t)header[6] << 16) |
+                 ((uint32_t)header[7] << 24)) : 0;
+    const uint32_t sample_rate =
+        valid ? ((uint32_t)header[24] |
+                 ((uint32_t)header[25] << 8) |
+                 ((uint32_t)header[26] << 16) |
+                 ((uint32_t)header[27] << 24)) : 0;
+    const uint32_t byte_rate =
+        valid ? ((uint32_t)header[28] |
+                 ((uint32_t)header[29] << 8) |
+                 ((uint32_t)header[30] << 16) |
+                 ((uint32_t)header[31] << 24)) : 0;
+    const uint16_t audio_format =
+        valid ? (uint16_t)header[20] | ((uint16_t)header[21] << 8) : 0;
+    const uint16_t channels =
+        valid ? (uint16_t)header[22] | ((uint16_t)header[23] << 8) : 0;
+    const uint16_t block_align =
+        valid ? (uint16_t)header[32] | ((uint16_t)header[33] << 8) : 0;
+    const uint16_t bits_per_sample =
+        valid ? (uint16_t)header[34] | ((uint16_t)header[35] << 8) : 0;
+    const uint32_t data_size =
+        valid ? ((uint32_t)header[40] |
+                 ((uint32_t)header[41] << 8) |
+                 ((uint32_t)header[42] << 16) |
+                 ((uint32_t)header[43] << 24)) : 0;
+
+    valid = valid &&
+            memcmp(header, "RIFF", 4) == 0 &&
+            memcmp(&header[8], "WAVE", 4) == 0 &&
+            memcmp(&header[12], "fmt ", 4) == 0 &&
+            memcmp(&header[36], "data", 4) == 0 &&
+            chunk_size == 36U + expected_data_bytes &&
+            data_size == expected_data_bytes &&
+            sample_rate == (uint32_t)config.sample_rate &&
+            byte_rate == (uint32_t)config.sample_rate * 2U &&
+            audio_format == 1U && channels == 1U &&
+            block_align == 2U && bits_per_sample == 16U &&
+            (uint32_t)file_info.st_size == 44U + expected_data_bytes;
+
+    if (!valid)
+    {
+        ESP_LOGE(TAG, "WAV header invalid");
+        (void)remove(config.output_path);
+        return ESP_ERR_INVALID_RESPONSE;
+    }
+
+    ESP_LOGI(TAG, "Record xong: %.2f giay | %lu bytes | %s",
+             (double)config.duration_ms / 1000.0,
+             (unsigned long)expected_data_bytes,
+             config.output_path);
+    ESP_LOGI(TAG, "MIC_TEST_RECORD_DONE bytes=%ld path=%s",
+             (long)file_info.st_size, config.output_path);
+
+    err = mic_test_dump_file_b64(config.output_path);
+    if (err != ESP_OK)
+    {
+        ESP_LOGE(TAG, "UART WAV export failed: %s", esp_err_to_name(err));
+        return err;
+    }
+
+    return ESP_OK;
+}
+
+typedef struct
+{
+    SemaphoreHandle_t done;
+    esp_err_t result;
+} microphone_test_job_t;
+
+static void microphone_test_task(void *arg)
+{
+    microphone_test_job_t *job = (microphone_test_job_t *)arg;
+
+    job->result = run_microphone_record_test();
+    xSemaphoreGive(job->done);
+    vTaskDelete(NULL);
+}
+
+static esp_err_t run_microphone_record_test_in_task(void)
+{
+    microphone_test_job_t job = {
+        .done = xSemaphoreCreateBinary(),
+        .result = ESP_FAIL,
+    };
+
+    if (job.done == NULL)
+    {
+        return ESP_ERR_NO_MEM;
+    }
+
+    if (xTaskCreate(microphone_test_task,
+                    "mic_test_task",
+                    12288,
+                    &job,
+                    5,
+                    NULL) != pdPASS)
+    {
+        vSemaphoreDelete(job.done);
+        return ESP_ERR_NO_MEM;
+    }
+
+    xSemaphoreTake(job.done, portMAX_DELAY);
+    vSemaphoreDelete(job.done);
+    return job.result;
+}
+
 static void queue_button_event(bool first_event)
 {
     if (!FEATURES.server_events || s_http_queue == NULL)
@@ -437,6 +732,85 @@ static void handle_button_press(bool first_event)
     start_voice_interaction();
 }
 
+static float estimate_frequency_hz(const int16_t *pcm, size_t samples,
+                                   int sample_rate)
+{
+    if (pcm == NULL || samples < 3 || sample_rate <= 0)
+    {
+        return 0.0f;
+    }
+
+    int64_t sum = 0;
+    for (size_t i = 0; i < samples; i++)
+    {
+        sum += pcm[i];
+    }
+    const int32_t mean = (int32_t)(sum / (int64_t)samples);
+
+    int32_t peak = 0;
+    for (size_t i = 0; i < samples; i++)
+    {
+        int32_t value = (int32_t)pcm[i] - mean;
+        if (value < 0)
+        {
+            value = -value;
+        }
+        if (value > peak)
+        {
+            peak = value;
+        }
+    }
+
+    int32_t threshold = peak / 8;
+    if (threshold < 64)
+    {
+        threshold = 64;
+    }
+    if (peak < threshold * 2)
+    {
+        return 0.0f;
+    }
+
+    bool armed = false;
+    size_t first_crossing = 0;
+    size_t last_crossing = 0;
+    size_t crossings = 0;
+
+    for (size_t i = 0; i < samples; i++)
+    {
+        const int32_t value = (int32_t)pcm[i] - mean;
+        if (value <= -threshold)
+        {
+            armed = true;
+        }
+        else if (armed && value >= threshold)
+        {
+            if (crossings == 0)
+            {
+                first_crossing = i;
+            }
+            last_crossing = i;
+            crossings++;
+            armed = false;
+        }
+    }
+
+    if (crossings < 2 || last_crossing <= first_crossing)
+    {
+        return 0.0f;
+    }
+
+    const float frequency =
+        (float)(crossings - 1) * (float)sample_rate /
+        (float)(last_crossing - first_crossing);
+    if (frequency < 20.0f || frequency > (float)sample_rate * 0.5f)
+    {
+        return 0.0f;
+    }
+
+    return frequency;
+}
+
 static void monitor_microphone_level(int16_t *pcm, size_t frame_samples)
 {
     size_t samples_read = 0;
@@ -455,6 +829,11 @@ static void monitor_microphone_level(int16_t *pcm, size_t frame_samples)
     }
 
     const bool is_silence = mic_is_silence(pcm, samples_read, 0.00020f);
+    const int sample_rate = mic_get_sample_rate();
+    const float frequency_hz = is_silence
+                                   ? 0.0f
+                                   : estimate_frequency_hz(pcm, samples_read,
+                                                           sample_rate);
     int16_t min_value = 32767;
     int16_t max_value = -32768;
 
@@ -471,8 +850,11 @@ static void monitor_microphone_level(int16_t *pcm, size_t frame_samples)
     }
 
     ESP_LOGI(TAG,
-             "[%s] samples=%u level=%.4f min=%d max=%d frame=%d",
+             "[%s] sample_rate=%dHz freq_est=%.1fHz samples=%u "
+             "level=%.4f min=%d max=%d frame=%d",
              is_silence ? "SILENCE" : "VOICE",
+             sample_rate,
+             (double)frequency_hz,
              (unsigned)samples_read,
              level,
              min_value,
@@ -580,12 +962,13 @@ static esp_err_t initialize_enabled_features(void)
 
     if (FEATURES.storage && FEATURES.audio)
     {
-        err = audio_play(STARTUP_WAV_PATH);
-        if (err != ESP_OK)
-        {
-            ESP_LOGW(TAG, "Startup audio was not played: %s",
-                     esp_err_to_name(err));
-        }
+        // [LUMO-DEV] Auto playback disabled — keep silent during WiFi-only tests.
+        // err = audio_play(STARTUP_WAV_PATH);
+        // if (err != ESP_OK)
+        // {
+        //     ESP_LOGW(TAG, "Startup audio was not played: %s",
+        //              esp_err_to_name(err));
+        // }
     }
 
     if (FEATURES.button && FEATURES.voice_assistant)
@@ -629,6 +1012,16 @@ void lumo_runtime_start(const lumo_feature_config_t *features)
         }
     }
 
+    if (FEATURES.microphone_record_test)
+    {
+        err = run_microphone_record_test_in_task();
+        if (err != ESP_OK)
+        {
+            ESP_LOGE(TAG, "Microphone record test failed: %s",
+                     esp_err_to_name(err));
+        }
+    }
+
     int16_t *pcm = NULL;
     size_t frame_samples = 0;
     if (FEATURES.microphone_level_log)
@@ -652,6 +1045,16 @@ void lumo_runtime_start(const lumo_feature_config_t *features)
 
     for (;;)
     {
+        // [LUMO-DEV] Auto playback disabled — keep silent during WiFi-only tests.
+        // if (FEATURES.storage && FEATURES.audio)
+        // {
+        //     esp_err_t play_err = audio_play(STARTUP_WAV_PATH);
+        //     if (play_err != ESP_OK)
+        //     {
+        //         ESP_LOGW(TAG, "Loop play failed: %s", esp_err_to_name(play_err));
+        //     }
+        // }
+
         if (FEATURES.button)
         {
             button_update(&s_button, (uint32_t)(esp_timer_get_time() / 1000ULL));
@@ -671,6 +1074,6 @@ void lumo_runtime_start(const lumo_feature_config_t *features)
             monitor_microphone_level(pcm, frame_samples);
         }
 
-        vTaskDelay(pdMS_TO_TICKS(idle_mode ? 1000 : 10));
+        vTaskDelay(pdMS_TO_TICKS(200));
     }
 }

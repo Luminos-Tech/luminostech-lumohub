@@ -1,21 +1,31 @@
+# syntax=docker/dockerfile:1.4
+# ─────────────────────────────────────────────────────────────────────────────
+# LUMO Hub — Frontend Web production Dockerfile
+# ─────────────────────────────────────────────────────────────────────────────
+#
 # Build trên máy local trước (tránh lỗi mạng trong Docker):
 #   npm run build
 # Sau đó build Docker không cần npm install:
-#   docker build -t lumohub-frontend --target production .
+#   DOCKER_BUILDKIT=1 docker build -t lumohub-frontend --target production .
+# ─────────────────────────────────────────────────────────────────────────────
 
 FROM node:20-alpine AS deps
 WORKDIR /app
 COPY package.json package-lock.json* ./
-RUN npm ci --legacy-peer-deps 2>/dev/null || npm install --legacy-peer-deps
+# BuildKit cache mount: persist npm cache giữa các lần build → lần 2 cực nhanh
+RUN --mount=type=cache,target=/root/.npm \
+    npm ci --legacy-peer-deps --prefer-offline --no-audit --no-fund
 
-# builder chỉ cần build source, không cần deps (đã có .next từ local)
+# ─────────────────────────────────────────────────────────────────────────────
 FROM node:20-alpine AS builder
 WORKDIR /app
 COPY . .
 ENV NEXT_TELEMETRY_DISABLED=1
-RUN npm ci --legacy-peer-deps 2>/dev/null || npm install --legacy-peer-deps
+RUN --mount=type=cache,target=/root/.npm \
+    npm ci --legacy-peer-deps --prefer-offline --no-audit --no-fund
 RUN npm run build
 
+# ─────────────────────────────────────────────────────────────────────────────
 FROM node:20-alpine AS production
 WORKDIR /app
 RUN apk add --no-cache dumb-init

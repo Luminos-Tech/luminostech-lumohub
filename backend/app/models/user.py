@@ -1,4 +1,4 @@
-from sqlalchemy import BigInteger, Boolean, String, Text, TIMESTAMP
+from sqlalchemy import BigInteger, Boolean, SmallInteger, String, Text, TIMESTAMP
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.sql import func
 from app.db.session import Base
@@ -17,6 +17,16 @@ class User(Base):
     is_active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
     created_at: Mapped[object] = mapped_column(TIMESTAMP, nullable=False, server_default=func.now())
     updated_at: Mapped[object] = mapped_column(TIMESTAMP, nullable=False, server_default=func.now(), onupdate=func.now())
+
+    # Elderly profile + SOS contacts (added in 0.12.0)
+    elderly_count: Mapped[int] = mapped_column(SmallInteger, nullable=False, default=1, server_default="1")
+    elderly_name: Mapped[str | None] = mapped_column(String(150), nullable=True)
+    elderly_name_2: Mapped[str | None] = mapped_column(String(150), nullable=True)
+    elderly_phone: Mapped[str | None] = mapped_column(String(20), nullable=True)
+    elderly_phone_2: Mapped[str | None] = mapped_column(String(20), nullable=True)
+    neighbor_name: Mapped[str | None] = mapped_column(String(150), nullable=True)
+    neighbor_phone: Mapped[str | None] = mapped_column(String(20), nullable=True)
+    address: Mapped[str | None] = mapped_column(String(255), nullable=True)
 
     # Relationships
     events = relationship("Event", back_populates="user", cascade="all, delete-orphan")

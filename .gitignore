@@ -152,6 +152,7 @@ Lumo/modules/
 Lumo/bootloader/
 Lumo/tools/
 Lumo/Lumo-Band/build*/
+Lumo/Lumo-LuminosTech/sdkconfig.ble-central
 
 # Test files
 test_*.py

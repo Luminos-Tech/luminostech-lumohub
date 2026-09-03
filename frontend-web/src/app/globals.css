@@ -218,6 +218,50 @@ button:focus-visible, a:focus-visible, input:focus-visible, textarea:focus-visib
 .auth-switch { margin: 0; text-align: center; color: var(--lumo-muted); font-size: 11px; }
 .auth-switch a { color: var(--lumo-green); font-weight: 800; }
 .auth-switch button { padding: 0; border: 0; color: var(--lumo-green); background: transparent; font: inherit; font-weight: 800; cursor: pointer; }
+
+/* Remember me + forgot link row */
+.auth-row-between { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin: -2px 2px -2px; flex-wrap: wrap; }
+.auth-remember { display: inline-flex; align-items: center; gap: 7px; color: var(--lumo-muted); font-size: 11px; font-weight: 600; cursor: pointer; user-select: none; }
+.auth-remember input { width: 15px; height: 15px; accent-color: var(--lumo-green); cursor: pointer; }
+.auth-link { display: inline-flex; align-items: center; gap: 4px; padding: 0; border: 0; color: var(--lumo-coral); background: transparent; font: inherit; font-size: 11px; font-weight: 700; cursor: pointer; text-decoration: none; }
+.auth-link:hover { text-decoration: underline; }
+
+/* Security badge */
+.auth-security-badge { display: inline-flex; align-items: center; gap: 6px; margin: -2px auto 0; padding: 6px 10px; border-radius: 999px; color: var(--lumo-green); background: var(--lumo-green-soft); font-size: 9px; line-height: 1.4; font-weight: 700; }
+
+/* Password strength meter */
+.auth-strength { display: flex; flex-direction: column; gap: 4px; margin-top: 2px; }
+.auth-strength-track { width: 100%; height: 4px; border-radius: 999px; background: #edf6f6; overflow: hidden; }
+.auth-strength-track > span { display: block; height: 100%; border-radius: 999px; transition: width .25s ease, background-color .25s ease; }
+.auth-strength small { color: var(--lumo-muted); font-size: 9px; font-weight: 700; }
+.auth-strength small strong { font-weight: 800; }
+.auth-strength--muted .auth-strength-track > span { width: 0; background: #edf6f6; }
+.auth-strength--weak .auth-strength-track > span { background: #f43f5e; }
+.auth-strength--fair .auth-strength-track > span { background: #f59e0b; }
+.auth-strength--good .auth-strength-track > span { background: #14b8a6; }
+.auth-strength--strong .auth-strength-track > span { background: var(--lumo-green); }
+.auth-strength--weak small strong { color: #e11d48; }
+.auth-strength--fair small strong { color: #d97706; }
+.auth-strength--good small strong { color: #0f766e; }
+.auth-strength--strong small strong { color: var(--lumo-green); }
+
+/* Terms acceptance */
+.auth-terms { display: flex; align-items: flex-start; gap: 9px; margin: 0 2px -2px; color: var(--lumo-muted); font-size: 10.5px; line-height: 1.5; font-weight: 500; cursor: pointer; }
+.auth-terms input { width: 15px; height: 15px; margin-top: 1px; accent-color: var(--lumo-green); cursor: pointer; flex-shrink: 0; }
+.auth-terms a { color: var(--lumo-coral); font-weight: 700; text-decoration: none; }
+.auth-terms a:hover { text-decoration: underline; }
+.auth-terms-error { display: block; margin: 4px 2px -2px; color: #b34434; font-size: 10px; line-height: 1.4; font-weight: 600; }
+
+/* Modal close button */
+.auth-modal-close { position: absolute; top: 12px; right: 12px; width: 32px; height: 32px; display: grid; place-items: center; border: 1px solid var(--lumo-line); border-radius: 10px; color: var(--lumo-muted); background: rgba(255,255,255,.85); cursor: pointer; transition: color .15s ease, background .15s ease, transform .15s ease; z-index: 2; }
+.auth-modal-close:hover { color: var(--lumo-ink); background: white; }
+.auth-modal-close:active { transform: scale(.95); }
+
+/* Tabs with icon */
+.auth-modal-tabs button { display: inline-flex; align-items: center; justify-content: center; gap: 6px; }
+.auth-modal-tabs button svg { opacity: .8; }
+.auth-modal-tabs button.active svg { opacity: 1; }
+
 .auth-message { display: flex; align-items: flex-start; gap: 9px; padding: 11px 12px; border-radius: 7px; font-size: 11px; line-height: 1.5; font-weight: 600; }
 .auth-message svg { flex: 0 0 auto; margin-top: 1px; }
 .auth-message.error { color: #953f32; background: var(--coral-soft, #ffe4dd); border: 1px solid rgba(255,132,107,.4); }
@@ -430,6 +474,28 @@ button:focus-visible, a:focus-visible, input:focus-visible, textarea:focus-visib
 [data-theme="dark"] .notification-modal-heading small, .dark .notification-modal-heading small { background: #183840; }
 [data-theme="dark"] .auth-submit, .dark .auth-submit, [data-theme="dark"] .auth-modal-tabs button.active, .dark .auth-modal-tabs button.active { color: #08191e; }
 [data-theme="dark"] .auth-submit:hover, .dark .auth-submit:hover { background: #dff7ff; }
+
+/* Dark mode for new auth extras */
+[data-theme="dark"] .auth-modal-close, .dark .auth-modal-close { border-color: rgba(200,229,232,.16); background: rgba(14,46,56,.65); color: rgba(255,255,255,.7); }
+[data-theme="dark"] .auth-modal-close:hover, .dark .auth-modal-close:hover { color: white; background: #183840; }
+[data-theme="dark"] .auth-link, .dark .auth-link { color: #5eead4; }
+[data-theme="dark"] .auth-remember, .dark .auth-remember { color: rgba(232,245,245,.7); }
+[data-theme="dark"] .auth-security-badge, .dark .auth-security-badge { background: rgba(12,135,142,.18); color: #7ddbd7; }
+[data-theme="dark"] .auth-strength-track, .dark .auth-strength-track { background: #183840; }
+[data-theme="dark"] .auth-strength small, .dark .auth-strength small { color: rgba(232,245,245,.65); }
+[data-theme="dark"] .auth-terms, .dark .auth-terms { color: rgba(232,245,245,.6); }
+[data-theme="dark"] .auth-terms a, .dark .auth-terms a { color: #5eead4; }
+[data-theme="dark"] .auth-strength--weak small strong { color: #fb7185; }
+[data-theme="dark"] .auth-strength--fair small strong { color: #fbbf24; }
+[data-theme="dark"] .auth-strength--good small strong { color: #2dd4bf; }
+[data-theme="dark"] .auth-strength--strong small strong { color: #7ddbd7; }
+
+@media (max-width: 380px) {
+  .auth-modal { padding: 18px 14px 20px; border-radius: 14px; }
+  .auth-modal-tabs button { font-size: 10px; }
+  .auth-row-between { gap: 6px; }
+  .auth-remember, .auth-link { font-size: 10px; }
+}
 .auth-input-wrap input:-webkit-autofill,
 .auth-input-wrap input:-webkit-autofill:hover,
 .auth-input-wrap input:-webkit-autofill:focus,

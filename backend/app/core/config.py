@@ -53,7 +53,7 @@ class Settings(BaseSettings):
     REFRESH_TOKEN_EXPIRE_DAYS: int = 7
     CORS_ORIGINS: str = "https://lumohub.luminostech.tech, https://api.luminostech.tech"
     APP_ENV: str = ""
-    APP_VERSION: str = "0.10.0"
+    APP_VERSION: str = "0.12.0"
 
     GEMINI_API_KEY: str = ""
     PERPLEXITY_API_KEY: str = ""

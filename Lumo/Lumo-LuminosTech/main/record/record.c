@@ -5,6 +5,8 @@
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
+#include <errno.h>
+#include <unistd.h>
 
 #include "esp_log.h"
 #include "freertos/FreeRTOS.h"
@@ -62,6 +64,7 @@ static TaskHandle_t s_task_handle = NULL;
 static SemaphoreHandle_t s_done_sem = NULL;
 static volatile bool s_stop_flag = false;
 static volatile bool s_recording = false;
+static volatile esp_err_t s_record_result = ESP_OK;
 
 static recorder_config_t s_cfg = {0};
 
@@ -75,6 +78,7 @@ static void recorder_task(void *arg)
     int16_t *frame_buf = NULL;
     uint32_t total_written = 0;
     esp_err_t err = ESP_OK;
+    s_record_result = ESP_FAIL;
 
     size_t frame_samples = mic_get_frame_samples();
     if (frame_samples == 0)
@@ -90,16 +94,28 @@ static void recorder_task(void *arg)
         goto cleanup;
     }
 
+    if (remove(s_cfg.output_path) != 0 && errno != ENOENT)
+    {
+        ESP_LOGE(TAG, "Cannot remove old recording: %s", s_cfg.output_path);
+        goto cleanup;
+    }
+
     f = fopen(s_cfg.output_path, "wb");
     if (!f)
     {
         ESP_LOGE(TAG, "Không mở được file: %s", s_cfg.output_path);
         goto cleanup;
     }
+    s_record_result = ESP_OK;
 
     /* Placeholder header, cập nhật đúng khi dừng */
     wav_header_t header = {0};
-    fwrite(&header, sizeof(wav_header_t), 1, f);
+    if (fwrite(&header, sizeof(wav_header_t), 1, f) != 1)
+    {
+        s_record_result = ESP_FAIL;
+        ESP_LOGE(TAG, "Placeholder WAV header write failed");
+        goto cleanup;
+    }
 
     /* Tính số samples tối đa nếu có duration_ms */
     uint32_t target_samples = 0;
@@ -127,6 +143,7 @@ static void recorder_task(void *arg)
 
         size_t samples_read = 0;
         err = mic_read_frame(frame_buf, frame_samples, &samples_read);
+        s_record_result = err;
         if (err != ESP_OK)
         {
             ESP_LOGE(TAG, "mic_read_frame lỗi: %s", esp_err_to_name(err));
@@ -134,6 +151,13 @@ static void recorder_task(void *arg)
         }
 
         /* Nếu có duration, clip frame cuối cho đúng */
+        if (samples_read == 0)
+        {
+            s_record_result = ESP_ERR_INVALID_SIZE;
+            ESP_LOGE(TAG, "mic_read_frame returned zero samples");
+            break;
+        }
+
         size_t samples_to_write = samples_read;
         if (has_duration && total_written + samples_to_write > target_samples)
         {
@@ -141,6 +165,7 @@ static void recorder_task(void *arg)
         }
 
         size_t written = fwrite(frame_buf, sizeof(int16_t), samples_to_write, f);
+        s_record_result = written == samples_to_write ? ESP_OK : ESP_FAIL;
         if (written != samples_to_write)
         {
             ESP_LOGE(TAG, "fwrite thất bại");
@@ -152,13 +177,48 @@ static void recorder_task(void *arg)
     }
 
     /* Cập nhật WAV header thực tế */
+    if (s_record_result != ESP_OK)
+    {
+        goto cleanup;
+    }
+
     uint32_t data_bytes = total_written * sizeof(int16_t);
-    rewind(f);
+    if (fseek(f, 0, SEEK_SET) != 0)
+    {
+        s_record_result = ESP_FAIL;
+        ESP_LOGE(TAG, "WAV header seek failed");
+        goto cleanup;
+    }
     wav_header_fill(&header, (uint32_t)s_cfg.sample_rate, data_bytes);
-    fwrite(&header, sizeof(wav_header_t), 1, f);
-    fclose(f);
+    if (fwrite(&header, sizeof(wav_header_t), 1, f) != 1)
+    {
+        s_record_result = ESP_FAIL;
+        ESP_LOGE(TAG, "Final WAV header write failed");
+        goto cleanup;
+    }
+    if (fflush(f) != 0)
+    {
+        s_record_result = ESP_FAIL;
+        ESP_LOGE(TAG, "WAV fflush failed");
+        goto cleanup;
+    }
+    if (fsync(fileno(f)) != 0)
+    {
+        s_record_result = ESP_FAIL;
+        ESP_LOGE(TAG, "WAV fsync failed");
+        goto cleanup;
+    }
+    if (fclose(f) != 0)
+    {
+        s_record_result = ESP_FAIL;
+        f = NULL;
+        ESP_LOGE(TAG, "WAV fclose failed");
+        goto cleanup;
+    }
     f = NULL;
 
+    /* Runtime verifies the closed file before reporting success. */
+#if 0
     float duration_sec = (s_cfg.sample_rate > 0)
                              ? (float)total_written / (float)s_cfg.sample_rate
                              : 0.0f;
@@ -166,9 +226,22 @@ static void recorder_task(void *arg)
     ESP_LOGI(TAG, "■ Record xong: %.2f giây | %lu bytes | %s",
              duration_sec, (unsigned long)data_bytes, s_cfg.output_path);
 
+#endif
+
 cleanup:
     if (f)
-        fclose(f);
+    {
+        if (fclose(f) != 0)
+        {
+            s_record_result = ESP_FAIL;
+            ESP_LOGE(TAG, "WAV fclose failed during cleanup");
+        }
+        f = NULL;
+    }
+    if (s_record_result != ESP_OK)
+    {
+        (void)remove(s_cfg.output_path);
+    }
     if (frame_buf)
         free(frame_buf);
 
@@ -212,6 +285,7 @@ esp_err_t recorder_start(const recorder_config_t *cfg)
     }
 
     s_stop_flag = false;
+    s_record_result = ESP_OK;
     s_recording = true;
 
     BaseType_t ret = xTaskCreate(recorder_task, "recorder_task", 4096,
@@ -219,6 +293,7 @@ esp_err_t recorder_start(const recorder_config_t *cfg)
     if (ret != pdPASS)
     {
         s_recording = false;
+        s_record_result = ESP_ERR_NO_MEM;
         ESP_LOGE(TAG, "Không tạo được recorder_task");
         return ESP_ERR_NO_MEM;
     }
@@ -246,4 +321,9 @@ esp_err_t recorder_stop(void)
 bool recorder_is_recording(void)
 {
     return s_recording;
+}
+
+esp_err_t recorder_get_last_error(void)
+{
+    return s_record_result;
 }

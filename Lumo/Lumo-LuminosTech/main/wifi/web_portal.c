@@ -7,6 +7,7 @@
 #include "esp_http_server.h"
 #include "esp_system.h"
 #include "esp_netif.h"
+#include "esp_wifi.h"
 #include "lwip/raw.h"
 #include "lwip/pbuf.h"
 #include "lwip/ip4.h"
@@ -334,54 +335,119 @@ static const char *html_config =
     "background:linear-gradient(135deg,#0f0c29,#302b63,#24243e);"
     "min-height:100vh;display:flex;align-items:center;justify-content:center;"
     "padding:20px}"
-    ".card{background:#fff;border-radius:20px;padding:40px 35px;width:100%;max-width:440px;"
+    ".card{background:#fff;border-radius:20px;padding:32px 30px;width:100%;max-width:480px;"
     "box-shadow:0 20px 60px rgba(0,0,0,.4);text-align:center}"
-    ".icon{font-size:52px;margin-bottom:10px}"
+    ".icon{font-size:48px;margin-bottom:6px}"
     "h2{color:#302b63;font-size:22px;margin-bottom:4px}"
-    ".sub{color:#888;font-size:13px;margin-bottom:28px}"
-    ".field{margin-bottom:18px;text-align:left}"
+    ".sub{color:#888;font-size:13px;margin-bottom:22px}"
+    ".field{margin-bottom:14px;text-align:left}"
     "label{display:block;color:#444;font-size:13px;font-weight:600;margin-bottom:6px}"
-    "input{width:100%;padding:12px 16px;border:2px solid #e0e0e0;border-radius:12px;"
-    "font-size:15px;outline:none;transition:border-color .2s}"
-    "input:focus{border-color:#6c63ff}"
+    "input,select{width:100%;padding:11px 14px;border:2px solid #e0e0e0;border-radius:12px;"
+    "font-size:15px;outline:none;background:#fff;transition:border-color .2s}"
+    "input:focus,select:focus{border-color:#6c63ff}"
+    ".row{display:flex;gap:8px;align-items:stretch}"
+    ".row select{flex:1}"
+    ".row button{flex:0 0 auto;padding:0 14px;background:#eef0ff;color:#4834d4;"
+    "border:2px solid #d6d8ff;border-radius:12px;font-weight:700;font-size:13px;"
+    "cursor:pointer;transition:background .15s}"
+    ".row button:hover{background:#dfe1ff}"
+    ".row button:disabled{opacity:.5;cursor:wait}"
     ".btn{width:100%;padding:14px;background:linear-gradient(135deg,#6c63ff,#4834d4);"
     "color:#fff;border:none;border-radius:12px;font-size:16px;font-weight:700;"
     "cursor:pointer;transition:transform .1s,opacity .2s;margin-top:6px}"
     ".btn:hover{opacity:.88}"
     ".btn:active{transform:scale(.97)}"
-    ".info{margin-top:20px;font-size:12px;color:#aaa}"
-    ".status{margin-top:12px;padding:10px;border-radius:8px;font-size:14px}"
-    ".status.ok{background:#d4edda;color:#155724}"
-    ".status.fail{background:#f8d7da;color:#721c24}"
-    ".status.loading{background:#fff3cd;color:#856404}"
+    ".btn:disabled{opacity:.5;cursor:not-allowed}"
+    ".info{margin-top:14px;font-size:12px;color:#aaa}"
+    ".status{margin-bottom:14px;padding:10px;border-radius:8px;font-size:13px;display:none}"
+    ".status.ok{display:block;background:#d4edda;color:#155724}"
+    ".status.fail{display:block;background:#f8d7da;color:#721c24}"
+    ".status.loading{display:block;background:#fff3cd;color:#856404}"
+    ".net{font-size:13px;color:#444;text-align:left}"
+    ".net .meta{color:#888;font-size:11px;margin-left:6px}"
+    ".net.saved::before{content:\"\\2713 \";color:#27ae60;font-weight:700}"
     "</style>"
     "</head>"
     "<body>"
     "<div class=card>"
-    "<div class=icon>&#127919;</div>"
+    "<div class=icon>&#128268;</div>"
     "<h2>LumoHub WiFi Setup</h2>"
-    "<p class=sub>Ket noi ESP32 voi mang WiFi cua ban</p>"
+    "<p class=sub>Chon WiFi gan day hoac nhap tay, roi nhap mat khau.</p>"
     "<div id=\"status\"></div>"
-    "<form id=\"wf\" method=POST action=/save>"
+    "<form id=\"wf\" method=POST action=/api/connect>"
     "<div class=field>"
-    "<label>Ten WiFi (SSID)</label>"
-    "<input name=ssid id=\"ssid\" placeholder=\"VD: WifiNhaBan\" required maxlength=32>"
+    "<label>WiFi gan day</label>"
+    "<div class=row>"
+    "<select id=\"pick\" name=\"ssid\" required>"
+    "<option value=\"\">--- Chon WiFi ---</option>"
+    "<option value=\"__manual__\">Nhap tay (SSID khac)...</option>"
+    "</select>"
+    "<button type=button id=\"rescan\">Quet lai</button>"
+    "</div>"
+    "</div>"
+    "<div class=field id=\"manualWrap\" style=\"display:none\">"
+    "<label>Hoac nhap SSID khac</label>"
+    "<input id=\"ssidCustom\" name=\"ssid_custom\" placeholder=\"VD: WifiNhaBan\" maxlength=32>"
     "</div>"
     "<div class=field>"
     "<label>Mat khau WiFi</label>"
-    "<input name=pass type=password placeholder=\"Bo trong neu khong co mat khau\" maxlength=64>"
+    "<input name=pass type=password placeholder=\"Bo trong neu WiFi khong co mat khau\" maxlength=64>"
     "</div>"
-    "<button class=btn type=submit>Luu &amp; Ket Noi</button>"
+    "<button class=btn type=submit id=\"submit\">Luu &amp; Ket Noi</button>"
     "</form>"
-    "<p class=info>ESP32 se tu dong ket noi sau khi luu.</p>"
+    "<p class=info>Nut \"Quet lai\" se yeu cau ESP32 quet lai cac mang WiFi xung quanh.</p>"
     "</div>"
     "<script>"
-    "document.getElementById('wf').onsubmit=function(){"
-    "var s=document.getElementById('status');"
-    "s.className='status loading';"
-    "s.textContent='Dang luu va ket noi...';"
-    "s.style.display='block';"
+    "var pick=document.getElementById('pick'),"
+    "manualWrap=document.getElementById('manualWrap'),"
+    "ssidCustom=document.getElementById('ssidCustom'),"
+    "rescan=document.getElementById('rescan'),"
+    "statusEl=document.getElementById('status'),"
+    "form=document.getElementById('wf'),"
+    "submitBtn=document.getElementById('submit');"
+    ""
+    "function showStatus(txt,kind){"
+    "statusEl.className='status '+kind;statusEl.textContent=txt;statusEl.style.display='block';"
+    "}"
+    ""
+    "pick.onchange=function(){"
+    "if(pick.value==='__manual__'){manualWrap.style.display='block';ssidCustom.required=true;}"
+    "else{manualWrap.style.display='none';ssidCustom.required=false;}"
     "};"
+    ""
+    "form.onsubmit=function(){"
+    "if(pick.value==='__manual__'){pick.disabled=true;ssidCustom.name='ssid';}"
+    "submitBtn.disabled=true;showStatus('Dang luu va ket noi...','loading');"
+    "};"
+    ""
+    "rescan.onclick=function(){"
+    "rescan.disabled=true;rescan.textContent='Dang quet...';"
+    "fetch('/api/scan').then(function(r){return r.json();}).then(function(j){"
+    "rescan.disabled=false;rescan.textContent='Quet lai';"
+    "renderList(j.networks||[]);"
+    "if((j.networks||[]).length){showStatus('Tim thay '+(j.networks||[]).length+' mang WiFi.','ok');}"
+    "else{showStatus('Khong tim thay mang WiFi nao.','fail');}"
+    "}).catch(function(){rescan.disabled=false;rescan.textContent='Quet lai';showStatus('Loi khi quet.','fail');});"
+    "};"
+    ""
+    "function renderList(networks){"
+    "var saved=networks.filter(function(n){return n.saved;}).map(function(n){return n.ssid;});"
+    "var html='<option value=\"\">--- Chon WiFi ---</option>';"
+    "networks.forEach(function(n){"
+    "var r=n.rssi,signal='Yeu';if(r>=-55)signal='Manh';else if(r>=-70)signal='Trung binh';"
+    "var label=n.ssid+' ('+signal+' - '+r+'dBm)';"
+    "if(n.saved)label='\\u2713 '+label;"
+    "html+='<option value=\"'+n.ssid.replace(/\"/g,'&quot;')+'\">'+label+'</option>';"
+    "});"
+    "html+='<option value=\"__manual__\">Nhap tay (SSID khac)...</option>';"
+    "pick.innerHTML=html;"
+    "if(saved.length){"
+    "for(var i=0;i<pick.options.length;i++){if(saved.indexOf(pick.options[i].value)>=0){pick.selectedIndex=i;break;}}"
+    "}"
+    "}"
+    ""
+    "// Auto-scan on page load"
+    "window.addEventListener('load',function(){rescan.click();});"
     "</script>"
     "</body>"
     "</html>";
@@ -480,7 +546,77 @@ static esp_err_t root_handler(httpd_req_t *req)
     return ESP_OK;
 }
 
-static esp_err_t save_handler(httpd_req_t *req)
+static const char *authmode_to_str(uint8_t authmode)
+{
+    switch (authmode)
+    {
+        case WIFI_AUTH_OPEN:            return "OPEN";
+        case WIFI_AUTH_WEP:             return "WEP";
+        case WIFI_AUTH_WPA_PSK:         return "WPA";
+        case WIFI_AUTH_WPA2_PSK:        return "WPA2";
+        case WIFI_AUTH_WPA_WPA2_PSK:    return "WPA/WPA2";
+        case WIFI_AUTH_WPA3_PSK:        return "WPA3";
+        case WIFI_AUTH_WPA2_ENTERPRISE: return "WPA2-ENT";
+        default:                        return "UNKNOWN";
+    }
+}
+
+/* GET /api/scan  -> JSON {networks:[{ssid,rssi,auth,saved}]} */
+static esp_err_t scan_handler(httpd_req_t *req)
+{
+    wifi_network_info_t nets[WIFI_SCAN_MAX_NETWORKS];
+    int n = wifi_scan_networks(nets, WIFI_SCAN_MAX_NETWORKS);
+
+    /* Build JSON by hand (no extra deps). Worst-case size: ~80 bytes per entry. */
+    size_t cap = 64 + (size_t)n * 96;
+    char *out = malloc(cap);
+    if (!out)
+    {
+        httpd_resp_set_status(req, "500 Internal Server Error");
+        httpd_resp_send(req, "{\"networks\":[]}", HTTPD_RESP_USE_STRLEN);
+        return ESP_OK;
+    }
+
+    size_t len = 0;
+    int w = snprintf(out + len, cap - len, "{\"networks\":[");
+    if (w > 0) len += (size_t)w;
+    for (int i = 0; i < n; i++)
+    {
+        /* Escape SSID for JSON: simple backslash + quote handling */
+        char esc[96];
+        size_t p = 0;
+        for (size_t k = 0; nets[i].ssid[k] && p < sizeof(esc) - 2; k++)
+        {
+            char c = nets[i].ssid[k];
+            if (c == '\\' || c == '\"') { esc[p++] = '\\'; esc[p++] = c; }
+            else if ((uint8_t)c < 0x20) { /* skip control chars */ }
+            else                         { esc[p++] = c; }
+        }
+        esc[p] = '\0';
+
+        if (len + 128 < cap)
+        {
+            int n2 = snprintf(out + len, cap - len,
+                              "%s{\"ssid\":\"%s\",\"rssi\":%d,\"auth\":\"%s\",\"saved\":%s}",
+                              (i == 0 ? "" : ","),
+                              esc,
+                              (int)nets[i].rssi,
+                              authmode_to_str(nets[i].authmode),
+                              nets[i].saved ? "true" : "false");
+            if (n2 > 0) len += (size_t)n2;
+        }
+    }
+    int tail = snprintf(out + len, cap - len, "]}");
+    if (tail > 0 && (size_t)tail < cap - len) len += (size_t)tail;
+
+    httpd_resp_set_type(req, "application/json");
+    httpd_resp_send(req, out, len);
+    free(out);
+    return ESP_OK;
+}
+
+/* POST /api/connect  form-encoded: ssid=&pass=  (or ssid_custom= renamed by client) */
+static esp_err_t connect_handler(httpd_req_t *req)
 {
     char *buf = malloc(req->content_len + 1);
     if (!buf) { httpd_resp_send_500(req); return ESP_FAIL; }
@@ -493,7 +629,15 @@ static esp_err_t save_handler(httpd_req_t *req)
     parse_form(buf, ssid, sizeof(ssid), pass, sizeof(pass));
     free(buf);
 
-    ESP_LOGI(TAG, "WiFi credentials received — SSID: %s", ssid);
+    if (ssid[0] == '\0')
+    {
+        httpd_resp_set_status(req, "400 Bad Request");
+        httpd_resp_set_type(req, "text/plain");
+        httpd_resp_send(req, "Missing ssid", HTTPD_RESP_USE_STRLEN);
+        return ESP_OK;
+    }
+
+    ESP_LOGI(TAG, "WiFi credentials received -- SSID: %s", ssid);
     wifi_connect_new_credentials(ssid, pass);
 
     httpd_resp_set_type(req, "text/html; charset=utf-8");
@@ -574,9 +718,15 @@ void web_portal_start(void)
         .user_ctx = NULL,
     };
     httpd_uri_t save = {
-        .uri = "/save",
+        .uri = "/api/connect",
         .method = HTTP_POST,
-        .handler = save_handler,
+        .handler = connect_handler,
+        .user_ctx = NULL,
+    };
+    httpd_uri_t scan = {
+        .uri = "/api/scan",
+        .method = HTTP_GET,
+        .handler = scan_handler,
         .user_ctx = NULL,
     };
 
@@ -651,6 +801,7 @@ void web_portal_start(void)
     /* Register all routes */
     httpd_register_uri_handler(http_server, &root);
     httpd_register_uri_handler(http_server, &save);
+    httpd_register_uri_handler(http_server, &scan);
     httpd_register_uri_handler(http_server, &gen204);
     httpd_register_uri_handler(http_server, &gen204b);
     httpd_register_uri_handler(http_server, &hotspot);

@@ -1,8 +1,14 @@
 from fastapi import APIRouter, Depends, HTTPException, Request  # type: ignore
 from fastapi.responses import Response  # type: ignore
 from sqlalchemy.orm import Session  # type: ignore
+from sqlalchemy.sql import func
 from app.db.session import get_db
-from app.schemas.device import DeviceCreateRequest, DeviceUpdateRequest, DeviceResponse
+from app.schemas.device import (
+    DeviceCreateRequest,
+    DeviceTelemetryRequest,
+    DeviceUpdateRequest,
+    DeviceResponse,
+)
 from app.crud.device import (
     get_device_by_id,
     upsert_device,
@@ -130,3 +136,35 @@ def delete_one_device(
         target_type="device",
         target_id=device_id,
     )
+
+
+@router.patch("/{device_id}/telemetry", response_model=DeviceResponse)
+def update_device_telemetry(
+    device_id: int,
+    body: DeviceTelemetryRequest,
+    request: Request,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_active_user),
+):
+    """Hub / wearable pushes last-known telemetry (battery, fall, activity)."""
+    device = get_device_by_id(db, device_id)
+    if not device:
+        raise HTTPException(status_code=404, detail="Device not found")
+    if device.user_id != current_user.id:
+        raise HTTPException(status_code=403, detail="Not authorized")
+
+    payload = body.model_dump(exclude_none=True)
+    if not payload:
+        raise HTTPException(status_code=400, detail="No telemetry fields supplied")
+    payload["telemetry_updated_at"] = func.now()
+
+    updated = update_device(db, device, **payload)
+    log_action(
+        db,
+        action="update_device_telemetry",
+        user_id=current_user.id,
+        target_type="device",
+        target_id=device.id,
+        ip_address=request.client.host if request.client else None,
+    )
+    return updated
