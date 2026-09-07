@@ -17,24 +17,22 @@ extern "C"
     } http_api_config_t;
 
     /**
-     * @brief Gọi server với text truyền vào, parse JSON và trả về field "textRes"
-     *
-     * @param config     Cấu hình server
-     * @param input_text Text gửi lên server
-     * @param out_text   Chuỗi kết quả cấp phát động, caller phải free()
-     *
-     * @return esp_err_t
+     * @brief Gọi server với text truyền vào, parse JSON và trả về field "textRes" (deprecated)
+     * @deprecated Không còn được gọi từ firmware. Thay bằng http_api_upload_audio_get_audio.
      */
     esp_err_t http_api_get_text_response(const http_api_config_t *config,
                                          const char *input_text,
-                                         char **out_text);
+                                         char **out_text)
+        __attribute__((deprecated));
 
     /**
-     * @brief Upload file WAV lên server, nhận lại text (deprecated - dùng http_api_upload_audio_get_audio)
+     * @brief Upload file WAV lên server, nhận lại text (deprecated — dùng http_api_upload_audio_get_audio)
+     * @deprecated Chỉ dùng trong quá trình phát triển. Không còn được gọi từ firmware.
      */
     esp_err_t http_api_upload_audio_get_text(const char *server_url,
                                              const char *file_path,
-                                             char **out_text);
+                                             char **out_text)
+        __attribute__((deprecated));
 
     /**
      * @brief Upload file WAV lên server.

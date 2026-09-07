@@ -3,20 +3,24 @@
 #include "ble/lumo_band_central.h"
 #include "lumo_runtime.h"
 
-/* Chay record test 5s o moi boot: ghi ra /spiffs/record.wav, verify header,
- * sau do dump base64 qua UART de PC bat va decode (===B64BEGIN=== ... ===B64END===).
- * Dong thoi van mo mic level log de theo doi rms theo thoi gian thuc. */
+/* Full voice stack:
+ *  - WiFi + HTTP: để POST record.wav lên /audio/ của backend
+ *  - Mic + record 5s: lấy audio người dùng
+ *  - Audio playback: phát response.wav server trả về
+ *  - Button GPIO42: bấm để bắt đầu voice interaction
+ *  - BLE central: giữ nguyên để scan Lumo Band (không dùng cho voice)
+ *  - mic_record_test: tắt (đã xong test 5s) — không xung đột mic resource */
 static const lumo_feature_config_t FEATURES = {
     .storage = true,
-    .microphone = false,
+    .microphone = true,
     .microphone_level_log = false,
     .microphone_record_test = false,
-    .button = false,
-    .audio = false,
-    .display = false,
+    .button = true,
+    .audio = true,
+    .display = true,
     .network = true,
     .server_events = false,
-    .voice_assistant = false,
+    .voice_assistant = true,
 };
 
 void app_main(void)

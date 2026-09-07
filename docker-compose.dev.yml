@@ -33,6 +33,10 @@ services:
       ACCESS_TOKEN_EXPIRE_MINUTES: 30
       REFRESH_TOKEN_EXPIRE_DAYS: 7
       CORS_ORIGINS: http://localhost:3000,http://127.0.0.1:3000
+    # Inject LLM API keys from backend/.env (Gemini/Groq/Tavily/Perplexity)
+    # so the dev container can hit /api/v1/lumo/audio/ end-to-end.
+    env_file:
+      - ./backend/.env
     ports:
       - "8000:8000"
     volumes:

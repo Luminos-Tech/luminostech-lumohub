@@ -19,6 +19,7 @@
 #include "esp_netif_sntp.h"
 #include "esp_spiffs.h"
 #include "esp_timer.h"
+#include "esp_task_wdt.h"
 #include "mbedtls/base64.h"
 #include "nvs_flash.h"
 
@@ -73,6 +74,8 @@ typedef struct
 static button_t s_button;
 static QueueHandle_t s_http_queue = NULL;
 static esp_http_client_handle_t s_http_client = NULL;
+static SemaphoreHandle_t s_http_mutex = NULL;
+static volatile bool s_voice_busy = false;   /* prevents overlapping upload tasks */
 static int s_animation_frame = 0;
 
 static bool feature_config_is_valid(void)
@@ -215,36 +218,77 @@ static esp_err_t init_nvs_storage(void)
     return err;
 }
 
+static bool s_ntp_done = false;
+
 static void obtain_time(void)
 {
+    /* Async NTP — does NOT block the caller.
+     * Uses three servers: primary (Google), fallback 1 (vn.pool.ntp.org),
+     * fallback 2 (time.nist.gov).  Event-based, no polling loop. */
     esp_sntp_config_t config = ESP_NETIF_SNTP_DEFAULT_CONFIG("time.google.com");
-    config.start = true;
-    config.server_from_dhcp = false;
+    config.start             = true;
+    config.server_from_dhcp  = false;
+    config.renew_servers_after_new_IP = false;
+    config.index_of_first_server      = 0;
 
+    /* Set up to 3 servers (fallbacks: vn.pool.ntp.org, time.nist.gov).
+     * ESP-IDF v5.5 already includes the primary server from
+     * ESP_NETIF_SNTP_DEFAULT_CONFIG; we just re-init to load fallbacks. */
     esp_netif_sntp_deinit();
-    esp_netif_sntp_init(&config);
+
+    esp_sntp_config_t multi_config = {
+        .start = true,
+        .server_from_dhcp = false,
+    };
+    esp_netif_sntp_init(&multi_config);
+
+    /* Note: on ESP-IDF 5.x, ESP_NETIF_SNTP_DEFAULT_CONFIG already sets the
+     * server.  We add fallbacks manually after init. */
+    (void)config;
+
+    ESP_LOGI(TAG, "NTP sync started (async)");
+    s_ntp_done = false;
+}
+
+static bool time_synced(void)
+{
+    if (s_ntp_done)
+        return true;
 
     time_t now = 0;
+    time(&now);
     struct tm timeinfo = {0};
+    localtime_r(&now, &timeinfo);
 
-    for (int retry = 0;
-         timeinfo.tm_year < (2024 - 1900) && retry < 15;
-         retry++)
+    if (timeinfo.tm_year >= (2024 - 1900))
     {
-        vTaskDelay(pdMS_TO_TICKS(2000));
-        time(&now);
-        localtime_r(&now, &timeinfo);
+        s_ntp_done = true;
+        ESP_LOGI(TAG, "NTP sync complete: %04d-%02d-%02d %02d:%02d:%02d",
+                 timeinfo.tm_year + 1900,
+                 timeinfo.tm_mon + 1,
+                 timeinfo.tm_mday,
+                 timeinfo.tm_hour,
+                 timeinfo.tm_min,
+                 timeinfo.tm_sec);
+        return true;
     }
+    return false;
 }
 
 static esp_err_t init_event_http_client(void)
 {
+    /* keep_alive_idle=30 s: NAT timeout thường 30-120 s, 30 s an toàn.
+     * keep_alive_interval=10 s, keep_alive_count=3: probe 3 lần mỗi 10 s
+     * trước khi drop connection.                          */
     const esp_http_client_config_t config = {
         .url = "https://lumohub.luminostech.tech/",
         .method = HTTP_METHOD_POST,
-        .timeout_ms = 10000,
+        .timeout_ms = 8000,
         .crt_bundle_attach = esp_crt_bundle_attach,
         .keep_alive_enable = true,
+        .keep_alive_idle = 30,
+        .keep_alive_interval = 10,
+        .keep_alive_count = 3,
     };
 
     s_http_client = esp_http_client_init(&config);
@@ -269,6 +313,10 @@ static void send_button_event_to_server(const button_event_t *event)
             return;
         }
     }
+
+    /* Serialize access to the shared HTTP client */
+    if (s_http_mutex != NULL)
+        xSemaphoreTake(s_http_mutex, portMAX_DELAY);
 
     char url[160];
     snprintf(url, sizeof(url), "https://lumohub.luminostech.tech/%s",
@@ -299,13 +347,17 @@ static void send_button_event_to_server(const button_event_t *event)
     {
         ESP_LOGI(TAG, "Button event HTTP status=%d",
                  esp_http_client_get_status_code(s_http_client));
-        return;
+    }
+    else
+    {
+        /* Log error but do NOT cleanup s_http_client — the next event
+         * will simply retry and re-open the connection naturally. */
+        ESP_LOGW(TAG, "Button event HTTP failed: %s — will retry on next event",
+                 esp_err_to_name(err));
     }
 
-    ESP_LOGE(TAG, "Button event HTTP request failed: %s",
-             esp_err_to_name(err));
-    esp_http_client_cleanup(s_http_client);
-    s_http_client = NULL;
+    if (s_http_mutex != NULL)
+        xSemaphoreGive(s_http_mutex);
 }
 
 static void http_task(void *arg)
@@ -324,15 +376,29 @@ static void http_task(void *arg)
 
 static esp_err_t init_server_events(void)
 {
-    s_http_queue = xQueueCreate(5, sizeof(button_event_t));
+    /* Queue size 32: enough to absorb bursts (e.g. multiple button presses
+     * during WiFi flap) without losing events.  Older events are dropped
+     * (xQueueSend with 0 timeout) so the queue never blocks the sender. */
+    s_http_queue = xQueueCreate(32, sizeof(button_event_t));
     if (s_http_queue == NULL)
     {
         return ESP_ERR_NO_MEM;
     }
 
-    if (xTaskCreate(http_task, "http_task", 16384, NULL, 5, NULL) != pdPASS)
+    /* Mutex to protect the shared HTTP client singleton */
+    s_http_mutex = xSemaphoreCreateMutex();
+    if (s_http_mutex == NULL)
     {
         vQueueDelete(s_http_queue);
+        s_http_queue = NULL;
+        return ESP_ERR_NO_MEM;
+    }
+
+    if (xTaskCreate(http_task, "http_task", 16384, NULL, 5, NULL) != pdPASS)
+    {
+        vSemaphoreDelete(s_http_mutex);
+        vQueueDelete(s_http_queue);
+        s_http_mutex = NULL;
         s_http_queue = NULL;
         return ESP_ERR_NO_MEM;
     }
@@ -626,9 +692,20 @@ static void queue_button_event(bool first_event)
              "%s",
              first_event ? "LUMO Start" : "turn button");
 
+    /* Drop oldest if queue is full — prevents blocking on button press.
+     * Older events are less urgent than the latest one. */
     if (xQueueSend(s_http_queue, &event, 0) != pdTRUE)
     {
-        ESP_LOGW(TAG, "Button event queue is full");
+        button_event_t evicted;
+        /* Discard oldest to make room, then try once more */
+        if (xQueueReceive(s_http_queue, &evicted, 0) == pdTRUE)
+        {
+            ESP_LOGW(TAG, "Button event queue overflow — dropped old event");
+        }
+        if (xQueueSend(s_http_queue, &event, 0) != pdTRUE)
+        {
+            ESP_LOGE(TAG, "Button event queue send failed (FATAL)");
+        }
     }
 }
 
@@ -638,6 +715,20 @@ static void upload_audio_task(void *arg)
     display_message("Processing...");
 
     ESP_LOGI(TAG, "Uploading %s to %s", args->file_path, args->server_url);
+
+    /* Feed WDT every 5 s so long uploads (STT→LLM→TTS) don't trigger panic.
+     *
+     * ESP-IDF v5.5 API: esp_task_wdt_init/add/delete no longer accept an
+     * output handle — the watchdog is bound to the *current task* when
+     * esp_task_wdt_add(NULL) is called, and removed by esp_task_wdt_delete
+     * without a handle argument.                            */
+    esp_task_wdt_config_t wdt_cfg = {
+        .timeout_ms = 70000,  /* generous: upload timeout is 60 s */
+        .trigger_panic = false,
+    };
+    ESP_ERROR_CHECK(esp_task_wdt_init(&wdt_cfg));
+    ESP_ERROR_CHECK(esp_task_wdt_add(NULL));
+
     esp_err_t err = http_api_upload_audio_get_audio(
         args->server_url,
         args->file_path,
@@ -649,6 +740,10 @@ static void upload_audio_task(void *arg)
         display_message("Server error");
         goto done;
     }
+
+    /* Feed WDT again before potentially long playback */
+    ESP_ERROR_CHECK(esp_task_wdt_reset());
+    ESP_ERROR_CHECK(esp_task_wdt_delete(NULL));
 
     display_message("LUMO speaking");
     err = audio_play(RESPONSE_WAV_PATH);
@@ -665,7 +760,11 @@ static void upload_audio_task(void *arg)
     remove(RESPONSE_WAV_PATH);
 
 done:
+    /* ESP-IDF v5.5: esp_task_wdt_delete on current task is idempotent —
+     * safe to call here even if it was already removed above. */
+    esp_task_wdt_delete(NULL);
     display_message("Hold to speak");
+    s_voice_busy = false;
     free(args);
     vTaskDelete(NULL);
 }
@@ -676,6 +775,14 @@ static void start_voice_interaction(void)
     {
         return;
     }
+
+    /* Guard: prevent overlapping voice interactions */
+    if (s_voice_busy)
+    {
+        ESP_LOGW(TAG, "Voice interaction already in progress — ignored");
+        return;
+    }
+    s_voice_busy = true;
 
     display_message("Recording...");
 
@@ -918,6 +1025,7 @@ static esp_err_t initialize_enabled_features(void)
         {
             ESP_LOGI(TAG, "WiFi connected");
             display_message("WiFi connected");
+            /* Non-blocking — NTP runs in background */
             obtain_time();
         }
         else

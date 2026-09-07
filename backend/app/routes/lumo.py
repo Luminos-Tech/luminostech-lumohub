@@ -236,6 +236,11 @@ async def lumo_tts_preview(
 
     def _synthesize():
         client = genai.Client(api_key=settings.GEMINI_API_KEY)
+        # NOTE: Gemini TTS model `gemini-2.5-flash-preview-tts` intermittently
+        # returns 400 INVALID_ARGUMENT ("Model tried to generate text, but it
+        # should only be used for TTS") even when given plain transcript input.
+        # The full /audio/ pipeline uses the same model on the LLM-derived
+        # transcript and works reliably; only this preview endpoint hits it.
         resp = client.models.generate_content(
             model="gemini-2.5-flash-preview-tts",
             contents=text,

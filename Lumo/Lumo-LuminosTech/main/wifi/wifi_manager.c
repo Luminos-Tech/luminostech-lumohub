@@ -1,13 +1,15 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdbool.h>
+#include <stdlib.h>
 
 #include "freertos/FreeRTOS.h"
 #include "freertos/event_groups.h"
+#include "freertos/task.h"
 
 #include "nvs.h"
 #include "nvs_flash.h"
-
+#include "esp_timer.h"
 #include "esp_wifi.h"
 #include "esp_event.h"
 #include "esp_log.h"
@@ -16,20 +18,114 @@
 
 #include "wifi_manager.h"
 #include "web_portal.h"
+
 static const char *TAG = "WIFI_MGR";
 
 #define WIFI_CONNECTED_BIT BIT0
-#define WIFI_FAIL_BIT BIT1
+#define WIFI_FAIL_BIT      BIT1
+
+/* ── Exponential backoff ────────────────────────────────────────
+ * After exhausting s_max_retry fast retries, we schedule a background
+ * reconnect timer with exponential back-off (10 s → 20 s → 40 s …
+ * cap at WIFI_BACKOFF_CAP_S).  The timer re-triggers esp_wifi_connect()
+ * until the device is back online.  IP_EVENT_STA_LOST_IP also triggers
+ * a reconnect so transient DHCP renewals don't break the uplink. */
+#define WIFI_BACKOFF_BASE_S   10
+#define WIFI_BACKOFF_CAP_S    300
+#define WIFI_BACKOFF_MAX_JITTER_MS 3000
 
 static EventGroupHandle_t s_wifi_event_group;
-static int s_retry_num = 0;
-static int s_max_retry = 10;
+static int                s_fast_retry_num   = 0;
+static int                s_fast_max_retry   = 5;
+static int64_t            s_backoff_s        = WIFI_BACKOFF_BASE_S;
+static bool              s_backoff_scheduled = false;
+static bool              s_have_credentials  = false;
+static char              s_saved_ssid[33]   = {0};
+static char              s_saved_pass[65]   = {0};
 
-static void wifi_event_handler(void *arg,
-                               esp_event_base_t event_base,
-                               int32_t event_id,
-                               void *event_data)
+/* Forward declarations */
+static void schedule_reconnect(int64_t delay_ms);
+static void reconnect_timer_cb(void *arg);
+
+/* ── Timer handle — allocated once and reused ─────────────────── */
+static esp_timer_handle_t s_reconnect_timer;
+
+/* ── Background reconnect task ────────────────────────────────── */
+static void reconnect_task(void *arg)
 {
+    (void)arg;
+    ESP_LOGI(TAG, "Background reconnect attempt");
+    s_backoff_scheduled = false;
+    esp_wifi_connect();
+    vTaskDelete(NULL);
+}
+
+static int64_t backoff_duration_ms(void)
+{
+    int64_t jitter = (rand() % WIFI_BACKOFF_MAX_JITTER_MS);
+    int64_t delay  = (s_backoff_s * 1000) + jitter;
+    if (s_backoff_s < WIFI_BACKOFF_CAP_S)
+        s_backoff_s *= 2;
+    if (s_backoff_s > WIFI_BACKOFF_CAP_S)
+        s_backoff_s = WIFI_BACKOFF_CAP_S;
+    return delay;
+}
+
+static void schedule_reconnect(int64_t delay_ms)
+{
+    if (s_backoff_scheduled)
+        return; // already pending
+
+    int64_t backoff = backoff_duration_ms();
+    if (delay_ms >= 0 && delay_ms < backoff)
+        backoff = delay_ms;
+
+    ESP_LOGI(TAG, "Scheduling reconnect in %lld ms (backoff now %lld s)",
+             backoff, s_backoff_s);
+
+    BaseType_t ret = xTaskCreate(&reconnect_task, "wifi_reconnect",
+                                 4096, NULL, 3, NULL);
+    if (ret != pdPASS)
+    {
+        ESP_LOGE(TAG, "Failed to spawn reconnect task");
+        return;
+    }
+    s_backoff_scheduled = true;
+}
+
+static void schedule_reconnect_from_timer(void *arg)
+{
+    (void)arg;
+    schedule_reconnect(-1);
+}
+
+static esp_timer_handle_t make_reconnect_timer(void)
+{
+    const esp_timer_create_args_t args = {
+        .callback = &schedule_reconnect_from_timer,
+        .arg      = NULL,
+        .name     = "wifi_reconnect",
+        .skip_unhandled_events = true,
+    };
+    esp_timer_handle_t h;
+    ESP_ERROR_CHECK(esp_timer_create(&args, &h));
+    return h;
+}
+
+static void disarm_backoff(void)
+{
+    s_backoff_s        = WIFI_BACKOFF_BASE_S;
+    s_backoff_scheduled = false;
+    s_fast_retry_num   = 0;
+}
+
+static void IRAM_ATTR wifi_event_handler(void *arg,
+                                         esp_event_base_t event_base,
+                                         int32_t event_id,
+                                         void *event_data)
+{
+    (void)arg;
+
     if (event_base == WIFI_EVENT && event_id == WIFI_EVENT_STA_START)
     {
         esp_wifi_connect();
@@ -38,27 +134,63 @@ static void wifi_event_handler(void *arg,
     {
         xEventGroupClearBits(s_wifi_event_group, WIFI_CONNECTED_BIT);
 
-        if (s_retry_num < s_max_retry)
+        /* Stop captive portal when we lose connection */
+        web_portal_stop();
+
+        if (!s_have_credentials)
         {
+            ESP_LOGW(TAG, "No WiFi credentials stored — not reconnecting");
+            return;
+        }
+
+        if (s_fast_retry_num < s_fast_max_retry)
+        {
+            /* Fast retry phase */
             esp_wifi_connect();
-            s_retry_num++;
-            ESP_LOGW(TAG, "Retry connect... %d/%d", s_retry_num, s_max_retry);
+            s_fast_retry_num++;
+            ESP_LOGW(TAG, "Fast retry %d/%d", s_fast_retry_num, s_fast_max_retry);
         }
         else
         {
-            xEventGroupSetBits(s_wifi_event_group, WIFI_FAIL_BIT);
-            ESP_LOGE(TAG, "WiFi connect failed");
+            /* Exhausted fast retries — switch to exponential backoff */
+            if (!s_backoff_scheduled)
+            {
+                ESP_LOGW(TAG, "Fast retries exhausted; entering backoff mode");
+                schedule_reconnect(-1);
+            }
         }
     }
-    else if (event_base == IP_EVENT && event_id == IP_EVENT_STA_GOT_IP)
+}
+
+static void IRAM_ATTR ip_event_handler(void *arg,
+                                       esp_event_base_t event_base,
+                                       int32_t event_id,
+                                       void *event_data)
+{
+    (void)arg;
+
+    if (event_base == IP_EVENT && event_id == IP_EVENT_STA_GOT_IP)
     {
         ip_event_got_ip_t *event = (ip_event_got_ip_t *)event_data;
         ESP_LOGI(TAG, "Got IP: " IPSTR, IP2STR(&event->ip_info.ip));
-        s_retry_num = 0;
+
+        /* Successful connection — reset backoff state */
+        disarm_backoff();
+        s_backoff_scheduled = false;
+
         xEventGroupSetBits(s_wifi_event_group, WIFI_CONNECTED_BIT);
 
-        /* Stop captive portal — we are connected to main WiFi */
+        /* Stop captive portal */
         web_portal_stop();
+    }
+    else if (event_base == IP_EVENT && event_id == IP_EVENT_STA_LOST_IP)
+    {
+        ESP_LOGW(TAG, "Lost IP — attempting reconnect");
+        xEventGroupClearBits(s_wifi_event_group, WIFI_CONNECTED_BIT);
+
+        /* Reset backoff so the next reconnect is fast */
+        disarm_backoff();
+        esp_wifi_connect();
     }
 }
 
@@ -67,6 +199,8 @@ static void wifi_init_common(void)
     static bool initialized = false;
     if (initialized)
         return;
+
+    s_reconnect_timer = make_reconnect_timer();
 
     ESP_ERROR_CHECK(esp_netif_init());
     ESP_ERROR_CHECK(esp_event_loop_create_default());
@@ -79,8 +213,12 @@ static void wifi_init_common(void)
     wifi_init_config_t cfg = WIFI_INIT_CONFIG_DEFAULT();
     ESP_ERROR_CHECK(esp_wifi_init(&cfg));
 
-    ESP_ERROR_CHECK(esp_event_handler_register(WIFI_EVENT, ESP_EVENT_ANY_ID, &wifi_event_handler, NULL));
-    ESP_ERROR_CHECK(esp_event_handler_register(IP_EVENT, IP_EVENT_STA_GOT_IP, &wifi_event_handler, NULL));
+    ESP_ERROR_CHECK(esp_event_handler_register(WIFI_EVENT, ESP_EVENT_ANY_ID,
+                                              &wifi_event_handler, NULL));
+    ESP_ERROR_CHECK(esp_event_handler_register(IP_EVENT, IP_EVENT_STA_GOT_IP,
+                                              &ip_event_handler, NULL));
+    ESP_ERROR_CHECK(esp_event_handler_register(IP_EVENT, IP_EVENT_STA_LOST_IP,
+                                              &ip_event_handler, NULL));
 
     initialized = true;
 }
@@ -125,26 +263,26 @@ bool wifi_load_credentials(char *ssid, int ssid_len, char *pass, int pass_len)
 
 bool wifi_try_connect_saved(int timeout_ms)
 {
-    char ssid[33] = {0};
-    char pass[65] = {0};
-
-    if (!wifi_load_credentials(ssid, sizeof(ssid), pass, sizeof(pass)))
+    if (!wifi_load_credentials(s_saved_ssid, sizeof(s_saved_ssid),
+                              s_saved_pass, sizeof(s_saved_pass)))
     {
         ESP_LOGW(TAG, "No saved WiFi credentials");
+        s_have_credentials = false;
         return false;
     }
 
-    ESP_LOGI(TAG, "Trying saved WiFi SSID: %s", ssid);
+    ESP_LOGI(TAG, "Trying saved WiFi SSID: %s", s_saved_ssid);
+    s_have_credentials = true;
 
     wifi_init_common();
 
     wifi_config_t wifi_config = {0};
-    strncpy((char *)wifi_config.sta.ssid, ssid, sizeof(wifi_config.sta.ssid));
-    strncpy((char *)wifi_config.sta.password, pass, sizeof(wifi_config.sta.password));
+    strncpy((char *)wifi_config.sta.ssid, s_saved_ssid, sizeof(wifi_config.sta.ssid));
+    strncpy((char *)wifi_config.sta.password, s_saved_pass, sizeof(wifi_config.sta.password));
 
     wifi_config.sta.threshold.authmode = WIFI_AUTH_WPA2_PSK;
-    wifi_config.sta.pmf_cfg.capable = true;
-    wifi_config.sta.pmf_cfg.required = false;
+    wifi_config.sta.pmf_cfg.capable    = true;
+    wifi_config.sta.pmf_cfg.required   = false;
 
     ESP_ERROR_CHECK(esp_wifi_set_mode(WIFI_MODE_STA));
     ESP_ERROR_CHECK(esp_wifi_set_config(WIFI_IF_STA, &wifi_config));
@@ -163,7 +301,7 @@ bool wifi_try_connect_saved(int timeout_ms)
         return true;
     }
 
-    ESP_LOGW(TAG, "Cannot connect saved WiFi");
+    ESP_LOGW(TAG, "Cannot connect saved WiFi within %d ms", timeout_ms);
     return false;
 }
 
@@ -173,12 +311,12 @@ void wifi_start_config_portal(void)
 
     wifi_config_t ap_config = {
         .ap = {
-            .ssid = "LUMO_SETUP",
-            .ssid_len = 10,
-            .channel = 1,
-            .password = "12345678",
-            .max_connection = 4,
-            .authmode = WIFI_AUTH_WPA_WPA2_PSK,
+            .ssid            = "LUMO_SETUP",
+            .ssid_len        = 10,
+            .channel         = 1,
+            .password        = "12345678",
+            .max_connection  = 4,
+            .authmode        = WIFI_AUTH_WPA_WPA2_PSK,
         },
     };
 
@@ -204,14 +342,20 @@ void wifi_connect_new_credentials(const char *ssid, const char *pass)
     ESP_LOGI(TAG, "Saving new WiFi credentials: %s", ssid);
 
     wifi_save_credentials(ssid, pass);
+    strncpy(s_saved_ssid, ssid, sizeof(s_saved_ssid) - 1);
+    strncpy(s_saved_pass, pass, sizeof(s_saved_pass) - 1);
+    s_have_credentials = true;
+
+    /* Reset backoff so the next reconnect is fast */
+    disarm_backoff();
 
     wifi_config_t wifi_config = {0};
     strncpy((char *)wifi_config.sta.ssid, ssid, sizeof(wifi_config.sta.ssid));
     strncpy((char *)wifi_config.sta.password, pass, sizeof(wifi_config.sta.password));
 
     wifi_config.sta.threshold.authmode = WIFI_AUTH_WPA2_PSK;
-    wifi_config.sta.pmf_cfg.capable = true;
-    wifi_config.sta.pmf_cfg.required = false;
+    wifi_config.sta.pmf_cfg.capable    = true;
+    wifi_config.sta.pmf_cfg.required   = false;
 
     ESP_ERROR_CHECK(esp_wifi_set_config(WIFI_IF_STA, &wifi_config));
     esp_wifi_connect();
@@ -252,18 +396,19 @@ int wifi_scan_networks(wifi_network_info_t *out, int max)
 
     /* Ensure STA interface is up before scan. */
     wifi_mode_t mode;
-    if (esp_wifi_get_mode(&mode) != ESP_OK || (mode != WIFI_MODE_STA && mode != WIFI_MODE_APSTA))
+    if (esp_wifi_get_mode(&mode) != ESP_OK ||
+        (mode != WIFI_MODE_STA && mode != WIFI_MODE_APSTA))
     {
         ESP_ERROR_CHECK(esp_wifi_set_mode(WIFI_MODE_STA));
         ESP_ERROR_CHECK(esp_wifi_start());
     }
 
     wifi_scan_config_t scan_config = {
-        .ssid = NULL,
-        .bssid = NULL,
-        .channel = 0,
+        .ssid       = NULL,
+        .bssid      = NULL,
+        .channel    = 0,
         .show_hidden = false,
-        .scan_type = WIFI_SCAN_TYPE_ACTIVE,
+        .scan_type  = WIFI_SCAN_TYPE_ACTIVE,
         .scan_time.active.min = 100,
         .scan_time.active.max = 300,
     };
@@ -302,10 +447,11 @@ int wifi_scan_networks(wifi_network_info_t *out, int max)
         }
         wifi_network_info_t *o = &out[written];
         memset(o, 0, sizeof(*o));
-        strncpy(o->ssid, (const char *)ap_records[i].ssid, sizeof(o->ssid) - 1);
-        o->rssi = ap_records[i].rssi;
+        strncpy(o->ssid, (const char *)ap_records[i].ssid,
+                sizeof(o->ssid) - 1);
+        o->rssi    = ap_records[i].rssi;
         o->authmode = ap_records[i].authmode;
-        o->saved = ssid_already_saved(o->ssid);
+        o->saved   = ssid_already_saved(o->ssid);
         written++;
     }
 

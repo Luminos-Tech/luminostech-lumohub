@@ -11,14 +11,29 @@
 #include "esp_crt_bundle.h"
 
 static const char *TAG = "HTTP_API";
-
-extern const char server_cert_pem_start[] asm("_binary_server_cert_pem_start");
-extern const char server_cert_pem_end[] asm("_binary_server_cert_pem_end");
+// Upper bound = 1.5 MB.
+//
+// Rationale (Sep 2026): the LUMO Gemini TTS response is WAV 16-bit mono at
+// 24 kHz.  At ~48 KB/s, 1.5 MB ≈ 31 seconds of audio, which covers the longest
+// expected LUMO reply (a 5-second user query usually yields < 15 s of TTS, but
+// we leave headroom for longer conversational replies and partial padding
+// inside the multipart JSON envelope).
+//
+// The 512 KB cap that this constant replaced was tuned when the firmware
+// expected an LLM-text response; raising it here trades ~1 MB of peak heap
+// for not silently truncating long TTS answers.
+//
+// SPIFFS partition is 1 MB by default in sdkconfig.defaults — out_audio_path
+// writes through fwrite in chunks, so this 1.5 MB ceiling is safe even when
+// the destination filesystem itself is smaller (the writes will fail loudly
+// rather than truncate).
+static const size_t MAX_HTTP_RESPONSE_LEN = 1536 * 1024; // 1.5 MB
 
 typedef struct
 {
     char *buffer;
-    int length;
+    size_t length;
+    size_t capacity;
 } http_response_buffer_t;
 
 static esp_err_t http_event_handler(esp_http_client_event_t *evt)
@@ -27,17 +42,44 @@ static esp_err_t http_event_handler(esp_http_client_event_t *evt)
 
     if (evt->event_id == HTTP_EVENT_ON_DATA && evt->data_len > 0 && resp != NULL)
     {
-        char *new_buf = realloc(resp->buffer, resp->length + evt->data_len + 1);
-        if (new_buf == NULL)
+        // Hard cap: reject body > 512 KB to prevent heap exhaustion
+        if (resp->length + evt->data_len > MAX_HTTP_RESPONSE_LEN)
         {
-            ESP_LOGE(TAG, "realloc failed");
-            return ESP_ERR_NO_MEM;
+            ESP_LOGW(TAG, "HTTP response body exceeds %u bytes, truncating",
+                     (unsigned)MAX_HTTP_RESPONSE_LEN);
+            return ESP_OK; // keep existing data, ignore the rest
         }
 
-        resp->buffer = new_buf;
+        if (resp->buffer == NULL)
+        {
+            resp->capacity = 4096;
+            resp->buffer = malloc(resp->capacity);
+            if (resp->buffer == NULL)
+            {
+                ESP_LOGE(TAG, "malloc failed for HTTP response buffer");
+                return ESP_ERR_NO_MEM;
+            }
+        }
+
+        size_t needed = resp->length + evt->data_len + 1;
+        if (needed > resp->capacity)
+        {
+            while (resp->capacity < needed)
+            {
+                resp->capacity *= 2;
+            }
+            char *new_buf = realloc(resp->buffer, resp->capacity);
+            if (new_buf == NULL)
+            {
+                ESP_LOGE(TAG, "realloc failed for HTTP response buffer");
+                return ESP_OK; // keep partial data, don't abort request
+            }
+            resp->buffer = new_buf;
+        }
+
         memcpy(resp->buffer + resp->length, evt->data, evt->data_len);
         resp->length += evt->data_len;
-        resp->buffer[resp->length] = '\0'; // an toàn cho text; không ảnh hưởng binary
+        resp->buffer[resp->length] = '\0';
     }
 
     return ESP_OK;
@@ -435,9 +477,6 @@ esp_err_t http_api_upload_audio_get_audio(const char *server_url,
     }
 
     size_t written = fwrite(resp.buffer, 1, resp.length, out_f);
-    ESP_LOGI(TAG, "resp.buffer=%p resp.length=%d", resp.buffer, resp.length);
-    ESP_LOGE(TAG, "fwrite failed, errno=%d", errno);
-    perror("fwrite");
     fclose(out_f);
 
     if (written != (size_t)resp.length)

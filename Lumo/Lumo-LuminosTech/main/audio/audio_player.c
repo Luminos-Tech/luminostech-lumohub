@@ -10,6 +10,7 @@
 #include "driver/i2s_std.h"
 #include "esp_log.h"
 #include "esp_err.h"
+#include "esp_timer.h"
 
 static const char *TAG = "AUDIO";
 static volatile bool s_stop_requested = false;
@@ -21,6 +22,9 @@ static int s_lrck_gpio = -1;
 static int s_dout_gpio = -1;
 static bool s_i2s_ready = false;
 
+/** Minimum I2S clock stability settle time (ms) after reinit */
+#define I2S_SETTLE_MS 5
+
 typedef struct
 {
     uint16_t audio_format; // PCM = 1
@@ -28,7 +32,7 @@ typedef struct
     uint32_t sample_rate;
     uint16_t bits_per_sample;
     uint32_t data_offset;
-    uint32_t data_size;
+    uint32_t data_size; // even-rounded
 } wav_info_t;
 
 static uint16_t read_le16(const uint8_t *p)
@@ -112,6 +116,12 @@ static esp_err_t audio_reinit_i2s(uint32_t sample_rate)
     }
 
     s_i2s_ready = true;
+
+    /* Allow I2S clock fractional divider to settle before streaming data.
+     * Without this delay, the first few samples can have incorrect timing,
+     * causing audible clicks or pitch jitter at the start of each playback. */
+    vTaskDelay(pdMS_TO_TICKS(I2S_SETTLE_MS));
+
     ESP_LOGI(TAG, "I2S ready, sample_rate=%lu", (unsigned long)sample_rate);
     return ESP_OK;
 }
@@ -197,13 +207,21 @@ static esp_err_t parse_wav_file(FILE *fp, wav_info_t *info)
         else if (memcmp(chunk_hdr, "data", 4) == 0)
         {
             info->data_offset = (uint32_t)chunk_data_pos;
-            info->data_size = chunk_size;
+            /* Round down to even so we never read a half-sample.
+             * Odd-byte file → silent last byte, no click/pop artifact. */
+            info->data_size = chunk_size & ~1U;
+
+            if (chunk_size != info->data_size)
+            {
+                ESP_LOGW(TAG, "Odd-byte WAV data (size=%lu) — rounding to %lu",
+                         (unsigned long)chunk_size,
+                         (unsigned long)info->data_size);
+            }
 
             ESP_LOGI(TAG, "data: offset=%lu size=%lu",
                      (unsigned long)info->data_offset,
                      (unsigned long)info->data_size);
 
-            // Đã tìm thấy vùng data, không cần skip nữa
             break;
         }
         else
@@ -319,78 +337,152 @@ esp_err_t audio_play(const char *filepath)
              (unsigned long)info.data_size);
 
     size_t remaining = info.data_size;
-    size_t bytes_written = 0;
+    size_t total_written = 0;
 
     if (info.num_channels == 2)
     {
+        /* Stereo: direct passthrough, aligned to 4-byte chunks */
         uint8_t buf[1024];
 
         while (remaining > 0)
         {
-            size_t to_read = remaining > sizeof(buf) ? sizeof(buf) : remaining;
+            /* Round read request to multiple of 4 so DMA never sees
+             * unaligned transfers that could cause timing glitches */
+            size_t to_read = remaining > sizeof(buf) ? sizeof(buf)
+                            : (remaining & ~3U);          // align to 4 bytes
+
+            if (to_read == 0)
+                break;
+
             size_t got = fread(buf, 1, to_read, fp);
             if (got == 0)
             {
-                ESP_LOGW(TAG, "fread stereo got 0");
-                break;
+                if (ferror(fp))
+                {
+                    ESP_LOGE(TAG, "fread stereo error");
+                    fclose(fp);
+                    return ESP_FAIL;
+                }
+                break; // EOF
             }
 
+            size_t written = 0;
             ret = i2s_channel_write(
                 s_tx_handle,
                 buf,
                 got,
-                &bytes_written,
+                &written,
                 portMAX_DELAY);
+
             if (ret != ESP_OK)
             {
-                ESP_LOGE(TAG, "i2s_channel_write stereo failed: %s", esp_err_to_name(ret));
+                ESP_LOGE(TAG, "i2s_channel_write stereo failed: %s",
+                         esp_err_to_name(ret));
                 fclose(fp);
                 return ret;
             }
 
-            remaining -= got;
+            /* BUG FIX: use actual bytes_written, not requested bytes.
+             * If DMA buffer is full, i2s_channel_write may write fewer bytes
+             * than requested, causing 'remaining' to be decremented by the
+             * wrong amount and audio to end prematurely or loop forever. */
+            total_written += written;
+            remaining -= written;
+
+            if (written < got)
+            {
+                ESP_LOGW(TAG, "I2S buffer full — wrote %u/%u bytes, remaining=%u",
+                         (unsigned)written, (unsigned)got, (unsigned)remaining);
+                /* Seek back so we can retry unread bytes on next iteration */
+                if (fseek(fp, -(long)(got - written), SEEK_CUR) != 0)
+                {
+                    ESP_LOGE(TAG, "fseek back failed");
+                    fclose(fp);
+                    return ESP_FAIL;
+                }
+            }
         }
     }
     else
     {
+        /* Mono: convert to stereo (L=R) in-place.
+         * mono_buf holds PCM16 samples (2 bytes each).
+         * stereo_buf holds duplicated samples: [L0,R0,L1,R1,...]
+         * 256 mono samples = 512 bytes → 512 stereo samples = 1024 bytes */
         int16_t mono_buf[256];
         int16_t stereo_buf[512];
 
         while (remaining > 0)
         {
-            size_t mono_bytes = remaining > sizeof(mono_buf) ? sizeof(mono_buf) : remaining;
+            /* Read in multiples of 2 bytes (1 sample) so we never have a
+             * half-sample. Round down to ensure alignment. */
+            size_t mono_bytes = remaining > sizeof(mono_buf) ? sizeof(mono_buf)
+                                : (remaining & ~1U);
+
+            if (mono_bytes == 0)
+                break;
+
             size_t got = fread(mono_buf, 1, mono_bytes, fp);
             if (got == 0)
             {
-                ESP_LOGW(TAG, "fread mono got 0");
+                if (ferror(fp))
+                {
+                    ESP_LOGE(TAG, "fread mono error");
+                    fclose(fp);
+                    return ESP_FAIL;
+                }
                 break;
             }
 
-            size_t mono_samples = got / sizeof(int16_t);
+            /* got may be < mono_bytes only on short read (rare). */
+            size_t mono_samples = got / sizeof(int16_t);  // always even, no truncation
+
+            /* Convert mono → stereo (duplicate L to R) */
             for (size_t i = 0; i < mono_samples; i++)
             {
-                stereo_buf[i * 2] = mono_buf[i];
+                stereo_buf[i * 2]     = mono_buf[i];
                 stereo_buf[i * 2 + 1] = mono_buf[i];
             }
 
+            size_t stereo_bytes = mono_samples * 2 * sizeof(int16_t);
+            size_t written = 0;
             ret = i2s_channel_write(
                 s_tx_handle,
                 stereo_buf,
-                mono_samples * 2 * sizeof(int16_t),
-                &bytes_written,
+                stereo_bytes,
+                &written,
                 portMAX_DELAY);
+
             if (ret != ESP_OK)
             {
-                ESP_LOGE(TAG, "i2s_channel_write mono failed: %s", esp_err_to_name(ret));
+                ESP_LOGE(TAG, "i2s_channel_write mono failed: %s",
+                         esp_err_to_name(ret));
                 fclose(fp);
                 return ret;
             }
 
-            remaining -= got;
+            /* BUG FIX: use actual bytes_written to update remaining.
+             * If the I2S DMA TX buffer is full (e.g. underrun or back-pressure
+             * from slow peripheral), fewer bytes are accepted than requested.
+             * Decrementing by 'stereo_bytes' instead of 'written' would
+             * mis-calculate remaining and either:
+             *   (a) read past EOF — garbage audio or loop
+             *   (b) stop early — audio cuts off prematurely */
+            size_t consumed = (written / (2 * sizeof(int16_t))) * sizeof(int16_t);
+            total_written += consumed;
+            remaining -= consumed;
+
+            if (written < stereo_bytes)
+            {
+                ESP_LOGW(TAG,
+                         "I2S mono underrun — wrote %u/%u bytes, remaining=%u",
+                         (unsigned)written, (unsigned)stereo_bytes,
+                         (unsigned)remaining);
+            }
         }
     }
 
     fclose(fp);
-    ESP_LOGI(TAG, "Done: %s", filepath);
+    ESP_LOGI(TAG, "Done: %s (wrote %u bytes)", filepath, (unsigned)total_written);
     return ESP_OK;
 }
