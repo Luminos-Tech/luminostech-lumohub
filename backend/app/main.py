@@ -37,6 +37,23 @@ app.include_router(api_router)
 app.include_router(ws_router)
 app.include_router(ws_api_router)
 
+# ── Public audio endpoint cho ESP32 ────────────────────────────────
+# ESP32 không có JWT → không thể đi qua /api/v1/lumo/audio/ (auth-required).
+# Wrapper endpoint này gọi chung logic pipeline bên dưới, không cần auth.
+async def public_audio_endpoint(request: Request, audio: UploadFile = File(...)):
+    # Import tại thời điểm gọi để tránh circular import với app.routes
+    from app.routes.lumo import lumo_audio
+    return await lumo_audio(request, audio)
+
+app.add_api_route(
+    "/audio/",
+    public_audio_endpoint,
+    methods=["POST"],
+    summary="LUMO voice pipeline (ESP32 public, no auth)",
+    description="Upload WAV → Groq STT → Gemini TTT → Gemini TTS → raw WAV binary. "
+                 "No auth required. ESP32 calls this directly.",
+)
+
 
 @app.get("/health", tags=["Health"])
 def health_check():

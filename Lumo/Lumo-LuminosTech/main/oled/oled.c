@@ -18,18 +18,39 @@ static i2c_master_bus_handle_t s_bus_handle = NULL;
 static i2c_master_dev_handle_t s_oled_dev = NULL;
 static uint8_t s_oled_buf[OLED_BUF_SIZE];
 
-static void oled_send_cmd(uint8_t cmd)
+static esp_err_t oled_send_cmd(uint8_t cmd)
 {
     uint8_t buf[2] = {0x00, cmd};
-    ESP_ERROR_CHECK(i2c_master_transmit(s_oled_dev, buf, sizeof(buf), -1));
+    esp_err_t ret = i2c_master_transmit(s_oled_dev, buf, sizeof(buf), pdMS_TO_TICKS(50));
+    if (ret != ESP_OK)
+    {
+        /* Don't crash on transient I2C hiccups — OLED will draw garbage but
+         * the rest of the system keeps running.  The next oled_update() will
+         * retry the bus. */
+        ESP_LOGW(TAG, "I2C cmd 0x%02X failed: %s", cmd, esp_err_to_name(ret));
+    }
+    return ret;
 }
 
-static void oled_send_data(const uint8_t *data, size_t len)
+static esp_err_t oled_send_data(const uint8_t *data, size_t len)
 {
-    uint8_t tx[len + 1];
+    /* VLA-style stack alloc would overflow for large pages; use malloc/free. */
+    uint8_t *tx = (uint8_t *)malloc(len + 1);
+    if (tx == NULL)
+    {
+        ESP_LOGE(TAG, "tx buffer alloc failed (%u bytes)", (unsigned)len + 1);
+        return ESP_ERR_NO_MEM;
+    }
     tx[0] = 0x40;
     memcpy(&tx[1], data, len);
-    ESP_ERROR_CHECK(i2c_master_transmit(s_oled_dev, tx, sizeof(tx), -1));
+    esp_err_t ret = i2c_master_transmit(s_oled_dev, tx, len + 1, pdMS_TO_TICKS(100));
+    free(tx);
+    if (ret != ESP_OK)
+    {
+        ESP_LOGW(TAG, "I2C data tx (%u bytes) failed: %s",
+                 (unsigned)len, esp_err_to_name(ret));
+    }
+    return ret;
 }
 
 static void oled_init_panel(void)
@@ -248,7 +269,12 @@ esp_err_t oled_begin(int sda_pin, int scl_pin, uint8_t i2c_addr)
         .flags.enable_internal_pullup = true,
     };
 
-    ESP_RETURN_ON_ERROR(i2c_new_master_bus(&bus_config, &s_bus_handle), TAG, "i2c_new_master_bus failed");
+    esp_err_t ret = i2c_new_master_bus(&bus_config, &s_bus_handle);
+    if (ret != ESP_OK)
+    {
+        ESP_LOGE(TAG, "i2c_new_master_bus failed: %s", esp_err_to_name(ret));
+        return ret;
+    }
 
     i2c_device_config_t dev_cfg = {
         .dev_addr_length = I2C_ADDR_BIT_LEN_7,
@@ -256,7 +282,14 @@ esp_err_t oled_begin(int sda_pin, int scl_pin, uint8_t i2c_addr)
         .scl_speed_hz = I2C_FREQ_HZ,
     };
 
-    ESP_RETURN_ON_ERROR(i2c_master_bus_add_device(s_bus_handle, &dev_cfg, &s_oled_dev), TAG, "i2c add device failed");
+    ret = i2c_master_bus_add_device(s_bus_handle, &dev_cfg, &s_oled_dev);
+    if (ret != ESP_OK)
+    {
+        ESP_LOGE(TAG, "i2c add device failed: %s", esp_err_to_name(ret));
+        i2c_del_master_bus(s_bus_handle);
+        s_bus_handle = NULL;
+        return ret;
+    }
 
     oled_init_panel();
     oled_clear();
@@ -350,11 +383,16 @@ void oled_draw_text_5x7(int x, int y, const char *text, bool color)
 
 void oled_update(void)
 {
+    /* Best-effort: log lỗi I2C nhưng KHÔNG crash hệ thống. Nếu bus kẹt,
+     * LCD chỉ tạm không update frame này, các task khác vẫn chạy bình thường. */
     for (int page = 0; page < 8; page++)
     {
-        oled_send_cmd(0xB0 + page);
-        oled_send_cmd(0x02);
-        oled_send_cmd(0x10);
+        if (oled_send_cmd(0xB0 + page) != ESP_OK)
+            continue;
+        if (oled_send_cmd(0x02) != ESP_OK)
+            continue;
+        if (oled_send_cmd(0x10) != ESP_OK)
+            continue;
         oled_send_data(&s_oled_buf[OLED_WIDTH * page], OLED_WIDTH);
     }
 }

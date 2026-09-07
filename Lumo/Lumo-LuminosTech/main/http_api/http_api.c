@@ -447,6 +447,8 @@ esp_err_t http_api_upload_audio_get_audio(const char *server_url,
 
     esp_http_client_set_header(client, "Content-Type",
                                "multipart/form-data; boundary=----ESP32Boundary");
+    /* Backend trả raw WAV binary thẳng khi Accept: audio/wav */
+    esp_http_client_set_header(client, "Accept", "audio/wav");
     esp_http_client_set_post_field(client, (const char *)body_buf, body_len);
 
     err = esp_http_client_perform(client);

@@ -30,13 +30,15 @@ if(MODE STREQUAL "button_test")
 
 elseif(MODE STREQUAL "full")
     # === FULL RUNTIME (production) ===
+    # OLED DISABLED — OLED module không được gắn trên hardware, không build
+    # để tránh khởi tạo I2C bus và gây crash. Để bật lại: thêm dòng
+    #     "oled/oled.c" vào SRCS và "oled" + "oled/font5x7" vào INCLUDE_DIRS.
     idf_component_register(
         SRCS
             "Lumo-LuminosTech.c"
             "lumo_runtime.c"
             "ble/lumo_band_central.c"
             "audio/audio_player.c"
-            "oled/oled.c"
             "button/button.c"
             "wifi/web_portal.c"
             "wifi/wifi_manager.c"
@@ -46,13 +48,10 @@ elseif(MODE STREQUAL "full")
         INCLUDE_DIRS
             "."
             "audio"
-            "oled"
             "button"
             "ble"
             "wifi"
-            "oled/font5x7"
         REQUIRES
-            esp_driver_i2c
             esp_driver_i2s
             esp_driver_gpio
             esp_timer

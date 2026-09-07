@@ -104,7 +104,12 @@ static esp_err_t audio_reinit_i2s(uint32_t sample_rate)
     ret = i2s_channel_init_std_mode(s_tx_handle, &std_cfg);
     if (ret != ESP_OK)
     {
-        ESP_LOGE(TAG, "i2s_channel_init_std_mode failed: %s", esp_err_to_name(ret));
+        /* FIX (HIGH-2): i2s_new_channel() đã allocate s_tx_handle nhưng init
+         * mode fail — phải del channel để tránh leak + double alloc lần sau. */
+        ESP_LOGE(TAG, "i2s_channel_init_std_mode failed: %s",
+                 esp_err_to_name(ret));
+        i2s_del_channel(s_tx_handle);
+        s_tx_handle = NULL;
         return ret;
     }
 
@@ -112,6 +117,8 @@ static esp_err_t audio_reinit_i2s(uint32_t sample_rate)
     if (ret != ESP_OK)
     {
         ESP_LOGE(TAG, "i2s_channel_enable failed: %s", esp_err_to_name(ret));
+        i2s_del_channel(s_tx_handle);
+        s_tx_handle = NULL;
         return ret;
     }
 

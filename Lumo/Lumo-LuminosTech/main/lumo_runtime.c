@@ -27,7 +27,7 @@
 #include "button/button.h"
 #include "http_api/http_api.h"
 #include "mic/mic.h"
-#include "oled/oled.h"
+/* OLED đã bị disable — không include oled.h */
 #include "record/record.h"
 #include "wifi/wifi_manager.h"
 #include "lumo_runtime.h"
@@ -132,30 +132,15 @@ static void log_feature_state(void)
 
 static void display_message(const char *message)
 {
-    if (!FEATURES.display)
-    {
-        return;
-    }
-
-    oled_clear();
-    oled_draw_text_5x7(10, 33, message, true);
-    oled_update();
+    /* OLED disabled — luôn return để không init I2C bus. */
+    (void)message;
+    return;
 }
 
 static void display_wifi_setup(void)
 {
-    if (!FEATURES.display)
-    {
-        return;
-    }
-
-    oled_clear();
-    oled_draw_text_5x7(10, 10, "Open: 192.168.4.1", true);
-    oled_draw_text_5x7(10, 20, "PASS: 12345678", true);
-    oled_draw_text_5x7(10, 30, "WIFI: LUMO SETUP", true);
-    oled_draw_text_5x7(20, 40, "Connect WiFi", true);
-    oled_draw_text_5x7(30, 50, "LuminosTech", true);
-    oled_update();
+    /* OLED disabled */
+    return;
 }
 
 static esp_err_t init_spiffs_storage(void)
@@ -220,33 +205,36 @@ static esp_err_t init_nvs_storage(void)
 
 static bool s_ntp_done = false;
 
+/* Maximum time we are willing to wait for the first SNTP sync. */
+#define NTP_MAX_WAIT_MS 10000
+
 static void obtain_time(void)
 {
-    /* Async NTP — does NOT block the caller.
-     * Uses three servers: primary (Google), fallback 1 (vn.pool.ntp.org),
-     * fallback 2 (time.nist.gov).  Event-based, no polling loop. */
-    esp_sntp_config_t config = ESP_NETIF_SNTP_DEFAULT_CONFIG("time.google.com");
-    config.start             = true;
-    config.server_from_dhcp  = false;
-    config.renew_servers_after_new_IP = false;
-    config.index_of_first_server      = 0;
-
-    /* Set up to 3 servers (fallbacks: vn.pool.ntp.org, time.nist.gov).
-     * ESP-IDF v5.5 already includes the primary server from
-     * ESP_NETIF_SNTP_DEFAULT_CONFIG; we just re-init to load fallbacks. */
-    esp_netif_sntp_deinit();
-
-    esp_sntp_config_t multi_config = {
+    /* FIX (HIGH-4): Cấu hình SNTP đúng 3 servers. Code cũ gọi
+     * esp_netif_sntp_deinit() rồi init chỉ với struct không có
+     * .servers → NTP bắn ra nhưng không có server nào để query.
+     * Hậu quả: TLS certificate validation có thể fail (chứng chỉ
+     * Google thường mới vào đầu năm, thiết bị không biết ngày). */
+    esp_sntp_config_t config = {
         .start = true,
         .server_from_dhcp = false,
+        .renew_servers_after_new_IP = false,
+        .index_of_first_server = 0,
+        .num_servers = 3,
+        .servers = {
+            "time.google.com",
+            "vn.pool.ntp.org",
+            "time.nist.gov",
+        },
+        .smooth_sync = true,
+        .ip_event_to_renew = IP_EVENT_STA_GOT_IP,
     };
-    esp_netif_sntp_init(&multi_config);
 
-    /* Note: on ESP-IDF 5.x, ESP_NETIF_SNTP_DEFAULT_CONFIG already sets the
-     * server.  We add fallbacks manually after init. */
-    (void)config;
+    /* Nếu SNTP đã init trước đó (sau reconnect WiFi) thì deinit an toàn. */
+    esp_netif_sntp_deinit();
+    esp_netif_sntp_init(&config);
 
-    ESP_LOGI(TAG, "NTP sync started (async)");
+    ESP_LOGI(TAG, "NTP sync started (async, 3 servers)");
     s_ntp_done = false;
 }
 
@@ -273,6 +261,23 @@ static bool time_synced(void)
         return true;
     }
     return false;
+}
+
+/* Wait for NTP sync — used to make sure TLS cert validation has
+ * the correct system time before any HTTPS call. */
+static esp_err_t wait_for_ntp_sync(uint32_t timeout_ms)
+{
+    const uint32_t start = (uint32_t)(esp_timer_get_time() / 1000ULL);
+    while ((uint32_t)(esp_timer_get_time() / 1000ULL) - start < timeout_ms)
+    {
+        if (time_synced())
+        {
+            return ESP_OK;
+        }
+        vTaskDelay(pdMS_TO_TICKS(200));
+    }
+    ESP_LOGW(TAG, "NTP sync timeout after %u ms — TLS may fail", timeout_ms);
+    return ESP_ERR_TIMEOUT;
 }
 
 static esp_err_t init_event_http_client(void)
@@ -302,6 +307,9 @@ static void send_button_event_to_server(const button_event_t *event)
         ESP_LOGW(TAG, "Button event skipped: WiFi is not connected");
         return;
     }
+
+    /* FIX (HIGH-5): đợi NTP trước HTTPS — TLS cần system clock hợp lệ. */
+    (void)wait_for_ntp_sync(NTP_MAX_WAIT_MS);
 
     if (s_http_client == NULL)
     {
@@ -718,16 +726,38 @@ static void upload_audio_task(void *arg)
 
     /* Feed WDT every 5 s so long uploads (STT→LLM→TTS) don't trigger panic.
      *
-     * ESP-IDF v5.5 API: esp_task_wdt_init/add/delete no longer accept an
-     * output handle — the watchdog is bound to the *current task* when
-     * esp_task_wdt_add(NULL) is called, and removed by esp_task_wdt_delete
-     * without a handle argument.                            */
+     * FIX (HIGH-1): không dùng ESP_ERROR_CHECK cho esp_task_wdt_init —
+     * nếu WDT đã được init ở task khác (hoặc bởi component khác) thì
+     * init gọi 2 lần sẽ trả ESP_ERR_INVALID_STATE → panic CPU. */
     esp_task_wdt_config_t wdt_cfg = {
         .timeout_ms = 70000,  /* generous: upload timeout is 60 s */
         .trigger_panic = false,
     };
-    ESP_ERROR_CHECK(esp_task_wdt_init(&wdt_cfg));
+    esp_err_t wdt_init_ret = esp_task_wdt_init(&wdt_cfg);
+    if (wdt_init_ret != ESP_OK && wdt_init_ret != ESP_ERR_INVALID_STATE)
+    {
+        ESP_LOGE(TAG, "WDT init failed: %s", esp_err_to_name(wdt_init_ret));
+        display_message("Server error");
+        s_voice_busy = false;
+        free(args);
+        vTaskDelete(NULL);
+        return;
+    }
     ESP_ERROR_CHECK(esp_task_wdt_add(NULL));
+
+    /* FIX (HIGH-5): đợi NTP sync tối đa 10 s trước khi mở HTTPS. TLS
+     * cần giờ hệ thống để validate chứng chỉ — nếu sntp chưa sync
+     * (cold boot) thì HTTPS sẽ fail với lỗi certificate. */
+    (void)wait_for_ntp_sync(NTP_MAX_WAIT_MS);
+
+    /* Guard: không POST nếu WiFi chưa connected */
+    if (!wifi_is_connected())
+    {
+        ESP_LOGW(TAG, "WiFi not connected — skipping voice upload");
+        s_voice_busy = false;
+        vTaskDelete(NULL);
+        return;
+    }
 
     esp_err_t err = http_api_upload_audio_get_audio(
         args->server_url,
@@ -742,8 +772,8 @@ static void upload_audio_task(void *arg)
     }
 
     /* Feed WDT again before potentially long playback */
-    ESP_ERROR_CHECK(esp_task_wdt_reset());
-    ESP_ERROR_CHECK(esp_task_wdt_delete(NULL));
+    esp_task_wdt_reset();
+    esp_task_wdt_delete(NULL);
 
     display_message("LUMO speaking");
     err = audio_play(RESPONSE_WAV_PATH);
@@ -795,14 +825,28 @@ static void start_voice_interaction(void)
     esp_err_t err = recorder_start(&config);
     if (err != ESP_OK)
     {
+        /* FIX (CRIT-3): Không reset s_voice_busy nếu recorder fail sẽ brick
+         * thiết bị — mọi lần bấm nút tiếp theo đều bị ignore cho tới reboot. */
         ESP_LOGE(TAG, "Recording failed to start: %s", esp_err_to_name(err));
         display_message("Record failed");
+        s_voice_busy = false;
         return;
     }
 
     while (recorder_is_recording())
     {
         vTaskDelay(pdMS_TO_TICKS(200));
+    }
+
+    esp_err_t recorder_error = recorder_get_last_error();
+    if (recorder_error != ESP_OK)
+    {
+        /* Tương tự — release busy flag để user có thể bấm lại. */
+        ESP_LOGE(TAG, "Recording completed with error: %s",
+                 esp_err_to_name(recorder_error));
+        display_message("Record error");
+        s_voice_busy = false;
+        return;
     }
 
     ESP_LOGI(TAG, "Recording completed");
@@ -813,6 +857,7 @@ static void start_voice_interaction(void)
     {
         ESP_LOGE(TAG, "Cannot allocate voice upload arguments");
         display_message("Memory error");
+        s_voice_busy = false;
         return;
     }
 
@@ -829,6 +874,9 @@ static void start_voice_interaction(void)
         ESP_LOGE(TAG, "Cannot create voice upload task");
         free(args);
         display_message("Task error");
+        /* FIX (CRIT-3): reset busy — upload không chạy nên task_done không
+         * được gọi, busy flag phải release thủ công. */
+        s_voice_busy = false;
     }
 }
 
@@ -1004,12 +1052,12 @@ static esp_err_t initialize_enabled_features(void)
 
     if (FEATURES.display)
     {
-        err = oled_begin(OLED_SDA_GPIO, OLED_SCL_GPIO, OLED_I2C_ADDRESS);
-        if (err != ESP_OK)
-        {
-            return err;
-        }
-        display_message("LUMO starting");
+        /* OLED hard-disabled — block cũ sẽ không chạy. Để bật lại: thêm
+         * lại SRCS oled/oled.c trong CMakeLists.txt và include oled.h. */
+        // err = oled_begin(OLED_SDA_GPIO, OLED_SCL_GPIO, OLED_I2C_ADDRESS);
+        // if (err != ESP_OK) { return err; }
+        // display_message("LUMO starting");
+        (void)err;
     }
 
     if (FEATURES.network)
@@ -1142,7 +1190,6 @@ void lumo_runtime_start(const lumo_feature_config_t *features)
         }
     }
 
-    bool last_button_pressed = false;
     bool first_button_event = true;
     const bool idle_mode = !FEATURES.button && !FEATURES.microphone_level_log;
 
@@ -1165,16 +1212,17 @@ void lumo_runtime_start(const lumo_feature_config_t *features)
 
         if (FEATURES.button)
         {
+            /* FIX (MED-1): dùng button_is_clicked (edge-detect) thay vì
+             * button_is_pressed (level). Code cũ trigger khi nhấn xuống nhưng
+             * debounce logic ở button.c chỉ set stable_state → bấm ngắn có
+             * thể bị miss hoặc bấm dài trigger nhiều lần. */
             button_update(&s_button, (uint32_t)(esp_timer_get_time() / 1000ULL));
-            const bool button_pressed = button_is_pressed(&s_button);
 
-            if (button_pressed && !last_button_pressed)
+            if (button_is_clicked(&s_button))
             {
                 handle_button_press(first_button_event);
                 first_button_event = false;
             }
-
-            last_button_pressed = button_pressed;
         }
 
         if (FEATURES.microphone_level_log && pcm != NULL)

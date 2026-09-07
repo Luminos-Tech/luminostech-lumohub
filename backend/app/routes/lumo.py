@@ -7,7 +7,7 @@ import wave
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime
 
-from fastapi import APIRouter, Depends, HTTPException, Query, UploadFile, File
+from fastapi import APIRouter, Depends, HTTPException, Query, Request, UploadFile, File
 from fastapi.responses import Response
 from google import genai
 import google.genai.types as gtypes
@@ -411,11 +411,22 @@ async def lumo_wakeword_verify(audio: UploadFile = File(...)):
 
 
 @router.post("/audio/", tags=["LUMO Audio"])
-async def lumo_audio(audio: UploadFile = File(...)):
+async def lumo_audio(request: Request, audio: UploadFile = File(...)):
+    """Voice pipeline: STT (Groq Whisper) → TTT (Gemini) → TTS (Gemini 2.5 TTS).
+
+    Returns raw WAV binary when the client sends  Accept: audio/wav  (ESP32 path).
+    Falls back to JSON {audio_base64,...} for browsers / other clients.
+    """
     pid = os.getpid()
-    suffix = os.path.splitext(audio.filename)[-1] or ".wav"
-    tmp_in = f"/tmp/esp32_in_{pid}{suffix}"
+    tmp_in = f"/tmp/esp32_in_{pid}.wav"
     tmp_out = f"/tmp/esp32_out_{pid}.wav"
+
+    # ── Check if ESP32 wants raw WAV bytes ──────────────────────────────
+    accept = request.headers.get("accept", "")
+    want_wav = ("audio/wav" in accept or "*/*" in accept) and "json" not in accept
+    if want_wav:
+        suffix = os.path.splitext(audio.filename)[-1] or ".wav"
+        tmp_in = f"/tmp/esp32_in_{pid}{suffix}"
 
     content = await audio.read()
 
@@ -513,6 +524,18 @@ async def lumo_audio(audio: UploadFile = File(...)):
 
         with open(tmp_out, "rb") as f:
             wav_bytes = f.read()
+
+        if want_wav:
+            # ESP32 path: trả raw WAV binary thẳng, không bọc JSON.
+            # esp_http_client đọc resp.buffer → ghi thẳng vào .wav file → play.
+            from fastapi.responses import Response
+            return Response(
+                content=wav_bytes,
+                media_type="audio/wav",
+                headers={
+                    "Content-Disposition": "attachment; filename=response.wav",
+                },
+            )
 
         return {
             "audio_base64": base64.b64encode(wav_bytes).decode("ascii"),

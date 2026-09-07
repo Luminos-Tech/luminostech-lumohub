@@ -44,7 +44,7 @@ SAMPLE_RATE = 16000        # Hz — trùng với firmware ESP32 đang dùng
 CHANNELS = 1
 DTYPE = "int16"
 DEFAULT_DURATION = 5.0
-DEFAULT_BACKEND = os.getenv("BACKEND_URL", "http://127.0.0.1:8000")
+DEFAULT_BACKEND = os.getenv("BACKEND_URL", "https://api.luminostech.tech")
 LOCAL_RECORD_PATH = Path("local_record.wav")
 RESPONSE_PATH = Path("response.wav")
 
