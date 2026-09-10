@@ -54,24 +54,6 @@ static uint16_t read_u16_le(const uint8_t *src)
     return (uint16_t)src[0] | ((uint16_t)src[1] << 8);
 }
 
-static const char *payload_state_name(uint8_t state)
-{
-    switch (state) {
-    case 0:
-        return "IDLE";
-    case 1:
-        return "MOVE";
-    case 2:
-        return "IMPACT_WAIT";
-    case 3:
-        return "FALL_CONFIRMED";
-    case 4:
-        return "SENSOR_OFFLINE";
-    default:
-        return "UNKNOWN";
-    }
-}
-
 static void log_address(const char *label, const ble_addr_t *addr)
 {
     ESP_LOGI(TAG, "%s %02X:%02X:%02X:%02X:%02X:%02X",
@@ -392,21 +374,97 @@ static int gap_event(struct ble_gap_event *event, void *arg)
             const uint16_t steps = read_u16_le(&payload[7]);
             const uint8_t battery = payload[9];
 
+            /* ============================================================
+             * TODO: Thêm logic xử lý khi peak >= 6g
+             * - Biến: peak1s_x100 (peak × 100)
+             * - Điều kiện: peak1s_x100 >= 600  (tương đương 6g)
+             * - Các biến đã parse:
+             *   - state       (payload[1])
+             *   - magnitude_x100 (payload[2-3])
+             *   - peak1s_x100 (payload[4-5])
+             *   - heart_rate (payload[6])
+             *   - steps       (payload[7-8])
+             *   - battery     (payload[9])
+             * ============================================================ */
+            if (peak1s_x100 >= 600) {
+                /* TODO: Thêm logic xử lý ở đây
+                 * Ví dụ:
+                 *   - Gửi cảnh báo ngã
+                 *   - Bật loa thông báo
+                 *   - Gửi notification lên server
+                 */
+            }
+
             if (version != BLE_PAYLOAD_VERSION) {
                 ESP_LOGW(TAG, "Unsupported BLE payload version: 0x%02X",
                          version);
                 return 0;
             }
 
-            ESP_LOGI(TAG,
-                     "RECV: v=%u st=%s |a|=%.2fg peak=%.2fg hr=%u steps=%u bat=%u",
-                     (unsigned)version,
-                     payload_state_name(state),
-                     (double)magnitude_x100 / 100.0,
-                     (double)peak1s_x100 / 100.0,
-                     (unsigned)heart_rate,
-                     (unsigned)steps,
-                     (unsigned)battery);
+            /* Log level theo mức nghiêm trọng của state */
+            switch (state) {
+            case 0: /* IDLE — bình thường */
+                ESP_LOGI(TAG,
+                         "RECV: v=%u st=IDLE      |a|=%.2fg peak=%.2fg hr=%u steps=%u bat=%u",
+                         (unsigned)version,
+                         (double)magnitude_x100 / 100.0,
+                         (double)peak1s_x100 / 100.0,
+                         (unsigned)heart_rate,
+                         (unsigned)steps,
+                         (unsigned)battery);
+                break;
+            case 1: /* MOVE — bình thường */
+                ESP_LOGI(TAG,
+                         "RECV: v=%u st=MOVE      |a|=%.2fg peak=%.2fg hr=%u steps=%u bat=%u",
+                         (unsigned)version,
+                         (double)magnitude_x100 / 100.0,
+                         (double)peak1s_x100 / 100.0,
+                         (unsigned)heart_rate,
+                         (unsigned)steps,
+                         (unsigned)battery);
+                break;
+            case 2: /* IMPACT_WAIT — cảnh báo: có thể ngã */
+                ESP_LOGW(TAG,
+                         "RECV: v=%u st=IMPACT_WAIT |a|=%.2fg peak=%.2fg hr=%u steps=%u bat=%u  ⚠️ CHECKING FALL",
+                         (unsigned)version,
+                         (double)magnitude_x100 / 100.0,
+                         (double)peak1s_x100 / 100.0,
+                         (unsigned)heart_rate,
+                         (unsigned)steps,
+                         (unsigned)battery);
+                break;
+            case 3: /* FALL_CONFIRMED — nguy hiểm: ngã đã xác nhận */
+                ESP_LOGE(TAG,
+                         "RECV: v=%u st=FALL_CONFIRMED |a|=%.2fg peak=%.2fg hr=%u steps=%u bat=%u  🚨 FALL DETECTED!",
+                         (unsigned)version,
+                         (double)magnitude_x100 / 100.0,
+                         (double)peak1s_x100 / 100.0,
+                         (unsigned)heart_rate,
+                         (unsigned)steps,
+                         (unsigned)battery);
+                break;
+            case 4: /* SENSOR_OFFLINE — cảnh báo: mất kết nối wearable */
+                ESP_LOGW(TAG,
+                         "RECV: v=%u st=SENSOR_OFFLINE |a|=%.2fg peak=%.2fg hr=%u steps=%u bat=%u  ⚠️ WEARABLE DISCONNECTED",
+                         (unsigned)version,
+                         (double)magnitude_x100 / 100.0,
+                         (double)peak1s_x100 / 100.0,
+                         (unsigned)heart_rate,
+                         (unsigned)steps,
+                         (unsigned)battery);
+                break;
+            default:
+                ESP_LOGW(TAG,
+                         "RECV: v=%u st=UNKNOWN(0x%02X) |a|=%.2fg peak=%.2fg hr=%u steps=%u bat=%u",
+                         (unsigned)version,
+                         (unsigned)state,
+                         (double)magnitude_x100 / 100.0,
+                         (double)peak1s_x100 / 100.0,
+                         (unsigned)heart_rate,
+                         (unsigned)steps,
+                         (unsigned)battery);
+                break;
+            }
         } else {
             ESP_LOGW(TAG, "Cannot copy notification: %d", rc);
         }

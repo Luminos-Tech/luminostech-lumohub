@@ -134,8 +134,23 @@ static void IRAM_ATTR wifi_event_handler(void *arg,
     {
         xEventGroupClearBits(s_wifi_event_group, WIFI_CONNECTED_BIT);
 
-        /* Stop captive portal when we lose connection */
-        web_portal_stop();
+        /* FIX: chỉ stop portal khi STA thật sự đang connected mà bị mất.
+         * Nếu vừa mới bật AP mode (config portal) thì KHÔNG stop,
+         * vì disconnect hiện tại là do backoff retry, không phải do user. */
+        static bool s_portal_was_active = false;
+        if (web_portal_is_active())
+        {
+            s_portal_was_active = true;
+        }
+        if (s_portal_was_active && web_portal_is_active())
+        {
+            /* portal đang chạy — giữ nguyên, không stop */
+            ESP_LOGD(TAG, "STA disconnected but AP portal active; keeping portal");
+        }
+        else
+        {
+            web_portal_stop();
+        }
 
         if (!s_have_credentials)
         {
@@ -155,6 +170,16 @@ static void IRAM_ATTR wifi_event_handler(void *arg,
             /* Exhausted fast retries — switch to exponential backoff */
             if (!s_backoff_scheduled)
             {
+                /* IMPORTANT: while the captive portal is active, do NOT
+                 * schedule more STA scan attempts. APSTA has to share the
+                 * single RF chain on ESP32 — every STA probe drains the
+                 * beacon budget and makes phones fail to see "LUMO_SETUP". */
+                if (web_portal_is_active())
+                {
+                    ESP_LOGD(TAG, "Backoff paused while captive portal is active");
+                    return;
+                }
+
                 ESP_LOGW(TAG, "Fast retries exhausted; entering backoff mode");
                 schedule_reconnect(-1);
             }
@@ -261,6 +286,24 @@ bool wifi_load_credentials(char *ssid, int ssid_len, char *pass, int pass_len)
     return err == ESP_OK;
 }
 
+/* Wipe stored credentials so the captive portal comes up clean.
+ * Called from lumo_runtime when the button is held >= 5 s. */
+void wifi_factory_reset(void)
+{
+    nvs_handle_t nvs;
+    if (nvs_open("wifi_cfg", NVS_READWRITE, &nvs) == ESP_OK)
+    {
+        nvs_erase_all(nvs);
+        nvs_commit(nvs);
+        nvs_close(nvs);
+        ESP_LOGW(TAG, "FACTORY RESET: wifi_cfg namespace erased");
+    }
+    else
+    {
+        ESP_LOGE(TAG, "FACTORY RESET: cannot open wifi_cfg");
+    }
+}
+
 bool wifi_try_connect_saved(int timeout_ms)
 {
     if (!wifi_load_credentials(s_saved_ssid, sizeof(s_saved_ssid),
@@ -271,7 +314,10 @@ bool wifi_try_connect_saved(int timeout_ms)
         return false;
     }
 
-    ESP_LOGI(TAG, "Trying saved WiFi SSID: %s", s_saved_ssid);
+    /* DEBUG: log SSID/PASS thực sự lưu trong NVS (length + hex for whitespace) */
+    ESP_LOGI(TAG, "Trying saved WiFi SSID: '%s' (len=%u)", s_saved_ssid, (unsigned)strlen(s_saved_ssid));
+    ESP_LOGI(TAG, "  PASS length = %u", (unsigned)strlen(s_saved_pass));
+
     s_have_credentials = true;
 
     wifi_init_common();

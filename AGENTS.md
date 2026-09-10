@@ -20,7 +20,7 @@ The repository consists of:
 
 - `backend/`: FastAPI, SQLAlchemy/PostgreSQL, JWT authentication, CRUD, scheduler, AI, and WebSocket services.
 - `frontend-web/`: Next.js 14 App Router with React/TypeScript, dashboard, administration, and API proxy.
-- `Lumo/Lumo-LuminosTech/`: ESP-IDF/C firmware for ESP32 (Wi-Fi captive portal, microphone/recording, OLED, I2S audio, buttons, and HTTP API).
+- `Lumo/Lumo-LuminosTech/`: ESP-IDF/C firmware for ESP32 (Wi-Fi captive portal, microphone/recording, I2S audio, button input, and HTTP API). **OLED display module đã được gỡ bỏ** (phiên bản v0.5.1-test-no-oled trở đi) — phần cứng hiện tại chỉ gồm: button (GPIO42), mạch giải mã loa (I2S GPIO 4/5/6), và microphone (I2S GPIO 15/16/17).
 
 Additional technical documentation is in `docs/`. The Vietnamese project proposal is stored externally as `LumoHub_LuminosTech_Mo Ta.pdf`. Use it for product intent, market positioning, pricing assumptions, and roadmap context. Treat the actual source code as authoritative for implemented behavior.
 
@@ -37,7 +37,7 @@ Additional technical documentation is in `docs/`. The Vietnamese project proposa
 
 The proposal describes the following target system. These are product requirements or roadmap goals unless corresponding implementation is verified in source:
 
-- Hub hardware with independent 4G connectivity, speaker, microphone, display, physical button, and Vietnamese voice interaction.
+- Hub hardware with independent 4G connectivity, speaker, microphone, physical button, and Vietnamese voice interaction. (OLED display was previously listed but has been removed from the active hardware configuration.)
 - A private AI service intended to run on Luminos Tech infrastructure, using a self-hosted Vietnamese language model where feasible.
 - A BM25 retrieval layer for common questions such as time, weather, alarms, and medication reminders, reducing latency and GPU usage before invoking an LLM.
 - An abnormal-silence workflow: if no physical check-in or voice interaction occurs within a configured period (for example, 12 hours), the Hub asks the user to respond and may then escalate an alert.
@@ -106,9 +106,9 @@ Frontend stack: Next.js 14, React 18, TypeScript, Tailwind, FullCalendar, Axios,
 
 ## ESP32 Firmware
 
-`Lumo/Lumo-LuminosTech` is an ESP-IDF project. Main code is in `main/Lumo-LuminosTech.c`, with modules under `main/{wifi,http_api,mic,record,audio,oled,button}`. The firmware handles Wi-Fi/provisioning, SNTP, recording, I2S playback, OLED output, buttons, and HTTP/WebSocket communication with the backend. `managed_components/` contains cJSON; avoid editing generated or dependency code unless necessary.
+`Lumo/Lumo-LuminosTech` is an ESP-IDF project. Main code is in `main/Lumo-LuminosTech.c`, with modules under `main/{wifi,http_api,mic,record,audio,button}`. **OLED module đã được gỡ bỏ** — không còn `main/oled/` và không có field `display` trong `lumo_feature_config_t`. The firmware handles Wi-Fi/provisioning, SNTP, recording, I2S playback, button input (GPIO42), and HTTP/WebSocket communication with the backend. `managed_components/` contains cJSON; avoid editing generated or dependency code unless necessary.
 
-Audio/OLED documentation and search notes are in `docs/` and the `*_library_docs.md` files in the firmware tree.
+Audio documentation and search notes are in `docs/` and the `*_library_docs.md` files in the firmware tree.
 
 ## Business Model and Positioning
 

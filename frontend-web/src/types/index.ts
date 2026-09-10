@@ -87,6 +87,9 @@ export interface Device {
   last_fall_at?: string | null;
   activity_minutes_today?: number;
   last_activity_at?: string | null;
+  /** Mốc điểm danh gần nhất (0.13.0) — thuộc về device, không thuộc user.
+   *  Cập nhật mỗi lần firmware POST /event-buttons. */
+  last_checkin_at?: string | null;
 }
 
 export interface EventButton {

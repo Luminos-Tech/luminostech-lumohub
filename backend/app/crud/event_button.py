@@ -2,6 +2,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy import select, func, and_
 from datetime import datetime, timezone
 from app.models.event_button import EventButton
+from app.models.device import Device
 
 
 def create_event_button(
@@ -16,6 +17,30 @@ def create_event_button(
     db.commit()
     db.refresh(event)
     return event
+
+
+def update_last_checkin(
+    db: Session, device_id: int, checked_in_at: datetime
+) -> None:
+    """Cập nhật mốc điểm danh gần nhất trên bảng devices.
+
+    Mỗi lần firmware POST lên (khi người dùng bấm nút vật lý), ta chỉ
+    ghi nhận timestamp — không đếm số lần. Dữ liệu này thuộc về device,
+    không phụ thuộc vào việc device đã có chủ hay chưa.
+    """
+    device = db.get(Device, device_id)
+    if not device:
+        return
+    device.last_checkin_at = checked_in_at
+    db.commit()
+
+
+def get_device_checkin(db: Session, device_id: int) -> dict:
+    """Trả về {last_checkin_at} của 1 device."""
+    device = db.get(Device, device_id)
+    if not device:
+        return {"last_checkin_at": None}
+    return {"last_checkin_at": device.last_checkin_at}
 
 
 def get_events_by_user(

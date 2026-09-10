@@ -17,6 +17,12 @@ typedef struct
 bool wifi_try_connect_saved(int timeout_ms);
 bool wifi_save_credentials(const char *ssid, const char *pass);
 bool wifi_load_credentials(char *ssid, int ssid_len, char *pass, int pass_len);
+
+/* Wipe the wifi_cfg NVS namespace and force the captive portal to come up
+ * cleanly on next boot. Safe to call while connected — caller is responsible
+ * for deciding when to reboot. */
+void wifi_factory_reset(void);
+
 void wifi_start_config_portal(void);
 void wifi_connect_new_credentials(const char *ssid, const char *pass);
 bool wifi_is_connected(void);

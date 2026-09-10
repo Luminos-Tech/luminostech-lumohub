@@ -12,6 +12,9 @@ esp_err_t button_init(button_t *btn, gpio_num_t pin, uint8_t active_level, uint3
     btn->active_level = active_level ? 1 : 0;
     btn->debounce_ms = debounce_ms;
     btn->clicked_event = false;
+    btn->long_press_event = false;
+    btn->long_press_ms = 0;
+    btn->press_start_ms = 0;
 
     gpio_config_t io_conf = {
         .pin_bit_mask = (1ULL << pin),
@@ -59,6 +62,21 @@ void button_update(button_t *btn, uint32_t now_ms)
             btn->last_stable_state = btn->stable_state;
             btn->stable_state = btn->last_raw_state;
 
+            // Detect down-edge: rising into "pressed"
+            if (btn->stable_state == btn->active_level)
+            {
+                btn->press_start_ms = now_ms;
+            }
+            // Detect up-edge: was pressed, now released
+            else if (btn->last_stable_state == btn->active_level)
+            {
+                if (btn->long_press_event)
+                {
+                    /* long press already consumed — reset */
+                    btn->long_press_event = false;
+                }
+            }
+
             // Phát hiện click:
             // click = có nhấn rồi nhả
             bool was_pressed = (btn->last_stable_state == btn->active_level);
@@ -67,6 +85,16 @@ void button_update(button_t *btn, uint32_t now_ms)
             if (was_pressed && now_released)
             {
                 btn->clicked_event = true;
+            }
+        }
+        else if (btn->stable_state == btn->active_level)
+        {
+            /* Still pressed — check if long-press threshold reached */
+            if (!btn->long_press_event &&
+                (now_ms - btn->press_start_ms) >= btn->long_press_ms &&
+                btn->long_press_ms > 0)
+            {
+                btn->long_press_event = true;
             }
         }
     }
@@ -95,5 +123,35 @@ bool button_is_clicked(button_t *btn)
         return true;
     }
 
+    return false;
+}
+
+uint32_t button_current_press_ms(button_t *btn, uint32_t now_ms)
+{
+    if (btn == NULL || btn->stable_state != btn->active_level)
+    {
+        return 0;
+    }
+    return now_ms - btn->press_start_ms;
+}
+
+bool button_is_long_pressed(button_t *btn, uint32_t long_press_ms)
+{
+    if (btn == NULL)
+    {
+        return false;
+    }
+
+    /* Lazy-set threshold whenever caller asks */
+    if (long_press_ms != btn->long_press_ms)
+    {
+        btn->long_press_ms = long_press_ms;
+    }
+
+    if (btn->long_press_event)
+    {
+        btn->long_press_event = false;
+        return true;
+    }
     return false;
 }

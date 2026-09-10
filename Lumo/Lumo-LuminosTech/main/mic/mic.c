@@ -273,14 +273,19 @@ esp_err_t mic_read_frame(int16_t *buffer, size_t samples_capacity, size_t *sampl
         const int64_t now_us = esp_timer_get_time();
         if (now_us - s_last_debug_log_us >= 500000)
         {
-            const double rms = sqrt((double)sum_squares / (double)out_count);
-            ESP_LOGI(TAG,
-                     "MIC_DEBUG samples=%u nonzero=%u min=%d max=%d rms=%.2f",
-                     (unsigned)out_count,
-                     (unsigned)nonzero_count,
-                     (int)min_value,
-                     (int)max_value,
-                     rms);
+            /* FIX: Tắt MIC_DEBUG log spam trên serial.
+             * Mic readings mỗi 100ms gây rối log và rất khó debug các sự kiện
+             * quan trọng (button, upload, error, WDT). Đặt vào comment để
+             * có thể bật lại bằng cách bỏ comment khi cần debug mic.
+             *
+             * Ghi chú: Voicel level/freq đã được log trong
+             * lumo_runtime.c::monitor_microphone_level() ở dạng thông
+             * tin VOICE condensed.
+             */
+            (void)min_value;
+            (void)max_value;
+            (void)out_count;
+            (void)nonzero_count;
             s_last_debug_log_us = now_us;
         }
     }

@@ -38,4 +38,8 @@ class DeviceResponse(BaseModel):
     last_activity_at: Optional[datetime] = None
     telemetry_updated_at: Optional[datetime] = None
 
+    # Device check-in timestamp (0.13.0) - device-owned, independent of user
+    # Thời điểm người dùng bấm nút vật lý trên Hub lần cuối cùng.
+    last_checkin_at: Optional[datetime] = None
+
     model_config = {"from_attributes": True}

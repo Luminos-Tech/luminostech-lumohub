@@ -2,12 +2,12 @@
 
 #include <stdbool.h>
 
+/* OLED đã TẮT trong bản v0.5.1-test-no-oled — struct không còn field display. */
 typedef struct
 {
     bool storage;
     bool button;
     bool audio;
-    bool display;
     bool network;
     bool server_events;
     bool microphone;

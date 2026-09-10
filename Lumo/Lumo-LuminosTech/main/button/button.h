@@ -20,9 +20,14 @@ extern "C"
         int last_raw_state;
         int stable_state;
         int last_stable_state;
-        uint32_t last_change_time_ms;
-        bool clicked_event;
-    } button_t;
+uint32_t last_change_time_ms;
+    bool clicked_event;
+
+    /* Press-duration tracking (for factory reset / long-press) */
+    uint32_t press_start_ms;
+    bool long_press_event;
+    uint32_t long_press_ms;
+} button_t;
 
     /**
      * @brief Khởi tạo button
@@ -50,6 +55,19 @@ extern "C"
      * Trả về true 1 lần duy nhất khi phát hiện click
      */
     bool button_is_clicked(button_t *btn);
+
+    /**
+     * @brief Có sự kiện NHẤN GIỮ >= long_press_ms hay không
+     *
+     * Trả về true 1 lần khi button được nhấn liên tục đủ lâu.
+     * Khi long_press_ms = 5000 và nhấn giữ 5 s sẽ trigger 1 lần.
+     */
+    bool button_is_long_pressed(button_t *btn, uint32_t long_press_ms);
+
+    /**
+     * @brief Số ms hiện tại button đang được nhấn liên tục (0 nếu không nhấn)
+     */
+    uint32_t button_current_press_ms(button_t *btn, uint32_t now_ms);
 
 #ifdef __cplusplus
 }

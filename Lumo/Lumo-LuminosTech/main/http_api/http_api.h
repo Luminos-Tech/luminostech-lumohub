@@ -39,7 +39,7 @@ extern "C"
      *        Server thực hiện: STT (Whisper) → TTT (version2) → TTS (Gemini).
      *        Nhận lại file WAV chứa giọng đọc phản hồi, lưu vào out_audio_path.
      *
-     * @param server_url     URL endpoint upload (vd: https://lumohub.luminostech.tech/audio/)
+     * @param server_url     URL endpoint upload (vd: https://api.luminostech.tech/audio/)
      * @param upload_path    Đường dẫn file WAV ghi âm trên SPIFFS (vd: /spiffs/record.wav)
      * @param out_audio_path Đường dẫn lưu file WAV phản hồi    (vd: /spiffs/response.wav)
      *

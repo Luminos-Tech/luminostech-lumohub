@@ -697,9 +697,14 @@ void web_portal_start(void)
     httpd_config_t config = HTTPD_DEFAULT_CONFIG();
     config.server_port = CAPTIVE_PORT_HTTP;
     config.max_open_sockets = 4;
+    config.max_uri_handlers = 16;  // captive portal cần 13 handlers (root, save, scan, gen204, hotspot, ncsi, success_lib, connecttest, success_txt, fwlink, fallback...)
     config.lru_purge_enable = true;
     config.recv_wait_timeout = 5;
     config.send_wait_timeout = 5;
+    /* Fix lỗi "Header fields are long" khi POST form WiFi credentials.
+     * Default chỉ 512 bytes; browser gửi thêm Referer/Cookie/Accept-Language
+     * dễ vượt giới hạn → ESP32 trả 431 Request Header Fields Too Large. */
+    config.max_req_hdr_len = 1024;
 
     if (httpd_start(&http_server, &config) != ESP_OK)
     {

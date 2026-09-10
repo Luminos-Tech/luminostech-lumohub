@@ -10,6 +10,8 @@ from app.crud.event_button import (
     create_event_button,
     get_events_by_user,
     get_today_status,
+    update_last_checkin,
+    get_device_checkin,
 )
 from app.crud.device import get_device_by_code
 from app.crud.log import log_action
@@ -26,6 +28,13 @@ def record_button_click(
     request: Request,
     db: Session = Depends(get_db),
 ):
+    """Ghi nhận 1 lần bấm nút vật lý trên Hub.
+
+    Mỗi lần firmware POST lên:
+    - Tạo 1 bản ghi trong bảng `event_buttons` (lịch sử chi tiết)
+    - Cập nhật `last_checkin_at` trên bảng `devices` (mốc gần nhất)
+    KHÔNG đếm số lần bấm — chỉ ghi nhận thời điểm.
+    """
     device = get_device_by_code(db, user_id=None, device_code=body.device_id)
     if not device:
         raise HTTPException(status_code=404, detail="Device not found")
@@ -38,6 +47,8 @@ def record_button_click(
         device_id=device.id,
         time_button_click=body.time_button_click,
     )
+    # Cập nhật mốc điểm danh trên device (không phụ thuộc user sở hữu)
+    update_last_checkin(db, device.id, body.time_button_click)
     log_action(
         db,
         action="button_click",
@@ -87,3 +98,25 @@ def today_status(
         last_click_at=last_click,
         total_today=total,
     )
+
+
+@router.get("/device/{device_code}/checkin")
+def device_checkin(
+    device_code: str,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_active_user),
+):
+    """Trả về mốc điểm danh gần nhất của 1 device (theo mã 4 số).
+
+    Bất kỳ user đăng nhập nào cũng có thể xem — dữ liệu này thuộc về device,
+    không phải user sở hữu.
+    """
+    device = get_device_by_code(db, user_id=None, device_code=device_code)
+    if not device:
+        raise HTTPException(status_code=404, detail="Device not found")
+    stats = get_device_checkin(db, device.id)
+    return {
+        "device_id": device.device_id,
+        "device_pk": device.id,
+        **stats,
+    }

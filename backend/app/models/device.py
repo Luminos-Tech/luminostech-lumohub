@@ -27,4 +27,9 @@ class Device(Base):
     last_activity_at: Mapped[object | None] = mapped_column(TIMESTAMP, nullable=True)
     telemetry_updated_at: Mapped[object | None] = mapped_column(TIMESTAMP, nullable=True)
 
+    # Device check-in timestamp (device-owned, independent of user) - added in 0.13.0
+    # Ghi nhận mốc thời gian người dùng nhấn nút vật lý trên Hub lần cuối cùng.
+    # Không đếm số lần bấm — chỉ lưu "lần cuối tương tác là khi nào".
+    last_checkin_at: Mapped[object | None] = mapped_column(TIMESTAMP(timezone=True), nullable=True)
+
     event_buttons: Mapped[list["EventButton"]] = relationship("EventButton", back_populates="device")
