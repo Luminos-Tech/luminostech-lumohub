@@ -1,0 +1,72 @@
+#ifndef HTTP_API_H
+#define HTTP_API_H
+
+#include "esp_err.h"
+#include "freertos/FreeRTOS.h"
+#include "freertos/task.h"
+
+#ifdef __cplusplus
+extern "C"
+{
+#endif
+
+    typedef struct
+    {
+        const char *base_url;       // Ví dụ: https://lumo.vanha2301.online/ota
+        const char *assistant_name; // Ví dụ: LUMO
+        int id_lumo;                // Ví dụ: 1
+        int timeout_ms;             // Ví dụ: 10000
+    } http_api_config_t;
+
+    /**
+     * @brief Gọi server với text truyền vào, parse JSON và trả về field "textRes" (deprecated)
+     * @deprecated Không còn được gọi từ firmware. Thay bằng http_api_upload_audio_get_audio.
+     */
+    esp_err_t http_api_get_text_response(const http_api_config_t *config,
+                                         const char *input_text,
+                                         char **out_text)
+        __attribute__((deprecated));
+
+    /**
+     * @brief Upload file WAV lên server, nhận lại text (deprecated — dùng http_api_upload_audio_get_audio)
+     * @deprecated Chỉ dùng trong quá trình phát triển. Không còn được gọi từ firmware.
+     */
+    esp_err_t http_api_upload_audio_get_text(const char *server_url,
+                                             const char *file_path,
+                                             char **out_text)
+        __attribute__((deprecated));
+
+    /**
+     * @brief Upload file WAV lên server.
+     *        Server thực hiện: STT (Whisper) → TTT (version2) → TTS (Gemini).
+     *        Nhận lại file WAV chứa giọng đọc phản hồi, lưu vào out_audio_path.
+     *
+     * @param server_url     URL endpoint upload (vd: https://api.luminostech.tech/audio/)
+     * @param upload_path    Đường dẫn file WAV ghi âm trên SPIFFS (vd: /spiffs/record.wav)
+     * @param out_audio_path Đường dẫn lưu file WAV phản hồi    (vd: /spiffs/response.wav)
+     *
+     * @return ESP_OK nếu thành công
+     */
+    esp_err_t http_api_upload_audio_get_audio(const char *server_url,
+                                              const char *upload_path,
+                                              const char *out_audio_path);
+
+    /**
+     * @brief Gửi push notification lên server.
+     *        Gọi 3 lần liên tục để đảm bảo client nhận được.
+     *
+     * @param user_id ID của user nhận thông báo
+     * @param title   Tiêu đề thông báo
+     * @param body    Nội dung thông báo
+     * @param tag     Tag để phân loại notification (vd: "lumohub-admin")
+     * @param notification_type Loại thông báo: "normal" hoặc "alert"
+     */
+    esp_err_t http_api_send_push_alert(int user_id, const char *title,
+                                        const char *body, const char *tag,
+                                        const char *notification_type);
+
+#ifdef __cplusplus
+}
+#endif
+
+#endif // HTTP_API_H

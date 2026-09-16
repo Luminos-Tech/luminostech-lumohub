@@ -1,0 +1,24 @@
+CONFIG_IDF_TARGET="esp32s3"
+
+# ── Main task stack ─────────────────────────────────────────────
+# Bump từ 8192 (mặc định) lên 16384 để chứa: SPIFFS list, audio_play()
+# (stereo_buf 1024 B + mono_buf 512 B + driver stack + locals),
+# button FSM, wifi diagnostics. Đã gây stack overflow ở bản
+# v0.5.5-test-fix-wdt-feed. 16 KB dư ~6 KB headroom.
+CONFIG_ESP_MAIN_TASK_STACK_SIZE=16384
+
+# ── Bluetooth (ESP32-C3 band scanning) ──────────────────────────
+CONFIG_BT_ENABLED=y
+CONFIG_BT_NIMBLE_ENABLED=y
+CONFIG_BT_BLUEDROID_ENABLED=n
+CONFIG_BT_NIMBLE_ROLE_CENTRAL=y
+CONFIG_BT_NIMBLE_ROLE_OBSERVER=y
+CONFIG_BT_NIMBLE_ROLE_PERIPHERAL=n
+CONFIG_BT_NIMBLE_ROLE_BROADCASTER=n
+CONFIG_BT_NIMBLE_MAX_CONNECTIONS=1
+
+# ── TLS ─────────────────────────────────────────────────────────
+# Lock CRT bundle ON: all HTTPS calls use the ESP-IDF root CA store.
+# This replaces the (wrong-domain) embedded server_cert.pem that was
+# previously dead code — it did not match lumohub.luminostech.tech.
+CONFIG_ESP_TLS_USE_CERT_BUNDLE=y

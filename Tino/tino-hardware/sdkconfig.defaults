@@ -1,0 +1,7 @@
+# sdkconfig defaults for the Tino hardware project.
+#
+# Keep this file intentionally minimal — Wi-Fi, OTA and other features will be
+# enabled here once the product description in `../docs/` is finalised.
+
+# Default target frequency stays at the ESP-IDF default (240 MHz).
+# (no overrides yet)

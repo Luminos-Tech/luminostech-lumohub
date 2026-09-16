@@ -1,0 +1,89 @@
+# ----------------------------------------------------------------------
+# Tino - local docker-compose
+#
+# Brings up the Tino product stack pointed entirely at ./backend and
+# ./frontend-web (relative to this file, i.e. Tino/).
+#
+# Hardware (./tino-hardware) is NOT included here — ESP-IDF devices flash
+# directly via `idf.py` and don't run in a container.
+#
+# Usage:
+#   docker compose -f docker-compose-tino.yml up -d --build
+#   docker compose -f docker-compose-tino.yml down
+#
+# Data is kept in the named volume `tino_pgdata` (managed by this file).
+# ----------------------------------------------------------------------
+
+services:
+
+  # ---------------- Postgres (Tino DB) ----------------
+  postgres:
+    image: postgres:16-alpine
+    container_name: tino_postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: lumohub
+      POSTGRES_PASSWORD: lumohub123
+      POSTGRES_DB: lumohub_db
+    volumes:
+      - tino_pgdata:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U lumohub -d lumohub_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ---------------- Tino backend (FastAPI) ----------------
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: tino_backend
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql://lumohub:lumohub123@postgres:5432/lumohub_db
+      SECRET_KEY: tino-super-secret-key-change-in-prod-32chars
+      ALGORITHM: HS256
+      ACCESS_TOKEN_EXPIRE_MINUTES: 30
+      REFRESH_TOKEN_EXPIRE_DAYS: 7
+      CORS_ORIGINS: http://localhost:3000,http://127.0.0.1:3000
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./backend:/app
+    # Omit --reload in deployed stacks: child restarts leave port 8000 briefly
+    # closed -> healthcheck fails. Use `docker compose run` for live reload.
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://127.0.0.1:8000/health >/dev/null || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 90s
+
+  # ---------------- Tino frontend-web (Next.js) ----------------
+  frontend-web:
+    build:
+      context: ./frontend-web
+      dockerfile: Dockerfile
+    container_name: tino_frontend
+    restart: unless-stopped
+    depends_on:
+      backend:
+        condition: service_healthy
+    environment:
+      # Read at RUNTIME (not just build-time) so the Next server can proxy
+      # /api/* through to the backend service.
+      INTERNAL_API_URL: http://backend:8000
+    ports:
+      - "3000:3000"
+
+volumes:
+  tino_pgdata:
+    name: tino_pgdata
+    # managed by this compose file (not external)

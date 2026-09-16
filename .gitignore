@@ -1,164 +1,74 @@
-# Environment variables
+# OS
+.DS_Store
+Thumbs.db
+
+# Env / secrets
 .env
 .env.local
 .env.*.local
-!.env.example
-!.env.local.example
-test_audio.py
+*.pem
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
 # Python
 __pycache__/
 *.py[cod]
 *$py.class
 *.so
-.Python
-env/
+.venv/
 venv/
-ENV/
-build/
-develop-eggs/
-dist/
-downloads/
-eggs/
-.eggs/
-lib/
-lib64/
-parts/
-sdist/
-var/
-wheels/
-pip-wheel-metadata/
-share/python-wheels/
+env/
 *.egg-info/
-.installed.cfg
-*.egg
-MANIFEST
-.pytest_cache/
-.coverage
-.coverage.*
-htmlcov/
-.tox/
-.nox/
-.hypothesis/
 
-# Backend specific
-backend/.venv
-backend/.venv/
-backend/.env
-backend/.env.local
-backend/db.sqlite3
-backend/logs/
-backend/*.log
+# Node / Next.js
+node_modules/
+.next/
+out/
+dist/
+build/
+.turbo/
+.parcel-cache/
 
-# Node.js / Frontend
-frontend-web/node_modules/
-frontend-web/.next/
-frontend-web/out/
-frontend-web/build/
-frontend-web/dist/
-frontend-web/.env.local
-frontend-web/.env.*.local
-frontend-web/npm-debug.log*
-frontend-web/yarn-debug.log*
-frontend-web/yarn-error.log*
-frontend-web/.pnpm-debug.log*
+# Build artifacts
+*.o
+*.a
+*.bin
+*.elf
+*.map
+build-*/
+.pio/
+.esp-idf/
 
-# IDEs
+# IDE
 .vscode/
 .idea/
 *.swp
 *.swo
 *~
-.DS_Store
-.iml
-
-# IDE specific
-*.sublime-workspace
-*.sublime-project
-.atom/
-.LSP*/
-
-# OS
-Thumbs.db
-.DS_Store
-.AppleDouble
-.LSOverride
 
 # Database
+*.db
 *.sqlite
 *.sqlite3
-*.db
-dump.sql.bak
-*.sql.backup
 
-# Logs
-logs/
-*.log
-npm-debug.log*
+# Coverage
+coverage/
+.nyc_output/
 
-# Optional
+# Misc
 .cache/
+.sass-cache/
+.mcp-memory/
 
-# Project-local MCP memory and runtime state
-.mcp-memory/*.jsonl
-.mcp-memory/*.sqlite
-
-# IoT / ESP32 / Arduino
-*.bin
-*.elf
-*.hex
-*.map
-build/
-.pio/
-.pioenvs/
-.piolibdeps/
-.vscode/c_cpp_properties.json
-.vscode/launch.json
-.vscode/ipch/
-.vscode/.browse.c_cpp.db*
-.vscode/settings.json
-*.code-workspace
-.clang_complete
-.gcc-flags.json
-*.o
-*.a
-*.d
-*.su
-*.lst
-
-# PlatformIO specific
-.pio
-.pioenvs
-.piolibdeps
-.clang_complete
-.gcc-flags.json
-
-# Arduino IDE
-*.ino.cpp
-*.ino.with_bootloader.bin
-*.ino.with_bootloader.hex
-
-# ESP-IDF
-sdkconfig
-sdkconfig.old
-build/
-dependencies.lock
-
-# Zephyr / west workspace generated files
-Lumo/.venv/
-Lumo/.west/
-Lumo/zephyr-source/
-Lumo/zephyr/
-Lumo/modules/
-Lumo/bootloader/
-Lumo/tools/
-Lumo/Lumo-Band/build*/
-Lumo/Lumo-LuminosTech/sdkconfig.ble-central
-
-# Test files
-test_*.py
-test_*.wav
-*_output.wav
-*.pcm
-
-!frontend-web/src/lib/
-!frontend-web/src/lib/**
+# Zephyr / ESP-IDF submodules & vendors (avoid recursive repos)
+zephyr-source/
+zephyr/
+modules/
+managed_components/
+bootloader/
+.west/
+.vscode/.west/
