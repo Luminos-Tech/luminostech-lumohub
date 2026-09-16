@@ -71,4 +71,6 @@ modules/
 managed_components/
 bootloader/
 .west/
-.vscode/.west/
+# Local junction
+frontend-web
+frontend-web/
