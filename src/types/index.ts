@@ -1,0 +1,109 @@
+export interface User {
+  id: number;
+  full_name: string;
+  email: string;
+  phone?: string;
+  address?: string;
+  neighbor_name?: string;
+  neighbor_phone?: string;
+  elderly_name?: string;
+  elderly_phone?: string;
+  elderly_name_2?: string;
+  elderly_phone_2?: string;
+  elderly_count?: 1 | 2;
+  avatar_url?: string;
+  role: "user" | "admin";
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface Reminder {
+  id: number;
+  event_id: number;
+  remind_before_minutes: number;
+  channel: "web" | "mobile" | "lumo";
+  is_sent: boolean;
+  sent_at?: string;
+  created_at: string;
+}
+
+export interface Event {
+  id: number;
+  user_id: number;
+  title: string;
+  description?: string;
+  location?: string;
+  start_time: string;
+  end_time: string;
+  status: "scheduled" | "completed" | "canceled";
+  priority: "low" | "normal" | "high";
+  color?: string;
+  created_at: string;
+  updated_at: string;
+  reminders: Reminder[];
+}
+
+export interface Notification {
+  id: number;
+  user_id: number;
+  event_id?: number;
+  title: string;
+  content: string;
+  channel: string;
+  notification_type: "normal" | "alert";
+  is_read: boolean;
+  created_at: string;
+  read_at?: string;
+}
+
+export interface SystemLog {
+  id: number;
+  user_id?: number;
+  action: string;
+  target_type?: string;
+  target_id?: number;
+  details?: string;
+  ip_address?: string;
+  created_at: string;
+}
+
+export interface TokenResponse {
+  access_token: string;
+  refresh_token: string;
+  token_type: string;
+}
+
+export interface Device {
+  id: number;
+  user_id: number;
+  device_id: string;  // 4-digit code
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+  /** Telemetry-ready field. Older backends omit it and the UI shows an empty state. */
+  battery_level?: number;
+  /** Optional wearable telemetry. The current backend may omit these fields. */
+  fall_detected?: boolean;
+  last_fall_at?: string | null;
+  activity_minutes_today?: number;
+  last_activity_at?: string | null;
+  /** Mốc điểm danh gần nhất (0.13.0) — thuộc về device, không thuộc user.
+   *  Cập nhật mỗi lần firmware POST /event-buttons. */
+  last_checkin_at?: string | null;
+}
+
+export interface EventButton {
+  id: number;
+  device_id: number;
+  device_code: string;
+  user_id: number;
+  time_button_click: string;
+  created_at: string;
+}
+
+export interface TodayButtonStatus {
+  clicked_today: boolean;
+  last_click_at: string | null;
+  total_today: number;
+}
