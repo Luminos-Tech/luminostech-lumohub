@@ -8,7 +8,7 @@ interface Props {
 }
 
 export default function NotificationItem({ notification: n, onClick }: Props) {
-  const isAlert = n.notification_type === "alert";
+  const isAlert = (n.notification_type ?? "normal") === "alert";
   const Icon = isAlert ? AlertTriangle : Bell;
   const iconBg = isAlert
     ? n.is_read ? "bg-orange-100 text-orange-400" : "bg-orange-500 text-white"

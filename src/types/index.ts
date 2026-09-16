@@ -51,7 +51,7 @@ export interface Notification {
   title: string;
   content: string;
   channel: string;
-  notification_type: "normal" | "alert";
+  notification_type?: "normal" | "alert";
   is_read: boolean;
   created_at: string;
   read_at?: string;
