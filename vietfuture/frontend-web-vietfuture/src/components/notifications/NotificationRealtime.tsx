@@ -17,7 +17,7 @@ interface NotificationEvent {
 }
 
 function showNotificationToast(notification: AppNotification) {
-  const isAlert = notification.notification_type === "alert";
+  const isAlert = (notification.notification_type ?? "normal") === "alert";
 
   if (isAlert) {
     toast.error(notification.title, {
