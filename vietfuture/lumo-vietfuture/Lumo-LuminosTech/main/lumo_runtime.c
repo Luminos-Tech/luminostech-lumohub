@@ -100,7 +100,7 @@ static int s_animation_frame = 0;
 static void push_alert_task(void *arg)
 {
     char **args = (char **)arg;
-    http_api_send_push_alert(2, args[0], args[1], "lumohub-admin", "alert");
+    http_api_send_push_alert(1, args[0], args[1], "lumohub-admin", "alert");
     free(args[0]);
     free(args[1]);
     free(args);
@@ -150,7 +150,7 @@ static void band_alert_audio(band_alert_type_t alert, band_severity_t severity)
                 args[1] = push_body;
                 xTaskCreate(
                     (TaskFunction_t)push_alert_task,
-                    "PushAlert", 4096, args, 3, NULL);
+                    "PushAlert", 12288, args, 3, NULL);
             } else {
                 free(push_title);
                 free(push_body);

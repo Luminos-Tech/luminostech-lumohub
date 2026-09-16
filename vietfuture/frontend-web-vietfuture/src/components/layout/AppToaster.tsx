@@ -24,7 +24,7 @@ export default function AppToaster() {
           description: "text-xs mt-0.5 opacity-90",
           info: `${baseToastClass} dark:bg-[#101b31] dark:border-blue-500/30`,
           success: `${baseToastClass} dark:bg-[#102a31] dark:border-emerald-500/30`,
-          error: `${baseToastClass} dark:bg-[#2a1010] dark:border-red-500/30`,
+          error: `${baseToastClass} bg-red-50 border-red-500 text-red-900 dark:bg-[#2a1010] dark:border-red-500/30 dark:text-red-100`,
           warning: `${baseToastClass} dark:bg-[#2a2010] dark:border-amber-500/30`,
         }
       }}

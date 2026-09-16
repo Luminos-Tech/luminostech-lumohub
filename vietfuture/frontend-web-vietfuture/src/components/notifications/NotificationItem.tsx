@@ -11,7 +11,7 @@ export default function NotificationItem({ notification: n, onClick }: Props) {
   const isAlert = (n.notification_type ?? "normal") === "alert";
   const Icon = isAlert ? AlertTriangle : Bell;
   const iconBg = isAlert
-    ? n.is_read ? "bg-orange-100 text-orange-400" : "bg-orange-500 text-white"
+    ? n.is_read ? "bg-red-100 text-red-400" : "bg-red-600 text-white"
     : n.is_read ? "bg-gray-100 text-gray-400" : "bg-primary-100 text-primary-600";
 
   return (
@@ -27,7 +27,7 @@ export default function NotificationItem({ notification: n, onClick }: Props) {
         <p className="text-xs text-gray-500 mt-0.5 line-clamp-2">{n.content}</p>
         <p className="text-xs text-gray-400 mt-1">{format(new Date(n.created_at), "HH:mm dd/MM/yyyy")}</p>
       </div>
-      {!n.is_read && <span className={`w-2 h-2 rounded-full mt-1.5 shrink-0 ${isAlert ? "bg-orange-500" : "bg-primary-500"}`} />}
+      {!n.is_read && <span className={`w-2 h-2 rounded-full mt-1.5 shrink-0 ${isAlert ? "bg-red-600" : "bg-primary-500"}`} />}
     </li>
   );
 }
