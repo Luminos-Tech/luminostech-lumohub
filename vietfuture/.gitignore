@@ -20,9 +20,8 @@ dist/
 downloads/
 eggs/
 .eggs/
-lib/
-lib64/
-parts/
+# Python - lib/ was commented out above to avoid blocking frontend/src/lib/
+__pycache__/
 sdist/
 var/
 wheels/
