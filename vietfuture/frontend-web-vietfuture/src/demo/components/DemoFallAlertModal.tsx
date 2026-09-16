@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, useRef } from "react";
-import { AlertTriangle, BellRing, Check, MapPin, PhoneCall, ShieldAlert, X } from "lucide-react";
+import { AlertTriangle, Check, MapPin, PhoneCall, ShieldAlert, Timer, X } from "lucide-react";
 import { useDemoStore } from "@/demo/store";
 import { usePreferenceStore } from "@/store/preferenceStore";
 
@@ -73,11 +73,10 @@ export default function DemoFallAlertModal() {
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-red-950/80 backdrop-blur-md animate-in fade-in duration-200">
       <div className="relative w-full max-w-lg overflow-hidden rounded-3xl bg-slate-900 border-2 border-red-500/80 shadow-2xl shadow-red-500/30 text-white p-6 sm:p-8 flex flex-col items-center text-center">
         
-        {/* Pulsing icon */}
+        {/* Emergency Alert Shield */}
         <div className="relative mb-4">
-          <div className="absolute -inset-3 rounded-full bg-red-500/40 animate-ping" />
           <div className="relative flex items-center justify-center w-20 h-20 rounded-full bg-red-600 border-4 border-red-400 shadow-lg text-white">
-            <ShieldAlert size={42} className="animate-bounce" />
+            <ShieldAlert size={42} />
           </div>
         </div>
 
@@ -148,7 +147,7 @@ export default function DemoFallAlertModal() {
         {/* Auto Escalation Timer */}
         <div className="w-full bg-red-950/40 border border-red-500/30 rounded-xl p-3 mb-5 flex items-center justify-between text-xs sm:text-sm">
           <div className="flex items-center gap-2 text-red-300 text-left">
-            <BellRing size={18} className="animate-spin text-red-400" />
+            <Timer size={18} className="text-red-400 shrink-0" />
             <span>{isEnglish ? "Auto-calling emergency 115 in:" : "Tự động kết nối trung tâm cứu hộ 115 sau:"}</span>
           </div>
           <span className="font-mono text-lg font-bold text-red-400 bg-red-900/60 px-2.5 py-0.5 rounded-lg border border-red-500/40">
