@@ -259,31 +259,32 @@ export default function DashboardPage() {
         </section>
       ) : (
         <>
-          {/* Profile Selector - Shown in Demo Mode */}
+          {/* Profile Selector - Segmented Control */}
           {isDemoMode && (() => {
             const displayProfiles = mockProfiles?.filter(p => p.type !== 'hub') || [];
-            const colsClass = displayProfiles.length === 2 ? "grid-cols-2" : "grid-cols-3";
             return (
-              <div className={`grid ${colsClass} gap-2 pb-4 pt-1.5 w-full`}>
-                {displayProfiles.map((p) => {
-                  const isActive = activeDashboardProfileId === p.id;
-                  return (
-                    <button
-                      key={p.id}
-                      onClick={() => setActiveDashboardProfileId(p.id)}
-                      className={`flex items-center justify-center gap-1.5 py-2.5 px-2 rounded-[14px] border transition-all duration-200 shadow-xs w-full text-center active:scale-[0.98] ${
-                        isActive 
-                          ? "bg-slate-900 dark:bg-[#102a31] border-slate-900 dark:border-sky-500/60 text-white shadow-md ring-1 ring-sky-500/30" 
-                          : "bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:border-sky-500/40 hover:bg-slate-50 dark:hover:bg-slate-750"
-                      }`}
-                    >
-                      <span className="text-base sm:text-lg shrink-0">{p.icon}</span>
-                      <span className="font-bold text-[13px] sm:text-[14px] tracking-wide truncate">
-                        {formatDisplayPersonName(p.name, isEnglish)}
-                      </span>
-                    </button>
-                  );
-                })}
+              <div className="w-full flex justify-center pb-2 pt-0.5">
+                <div className="flex items-center p-1.5 bg-slate-200/70 dark:bg-slate-800/80 backdrop-blur-md rounded-2xl w-full max-w-md gap-1.5 border border-slate-300/40 dark:border-slate-700/50 shadow-inner">
+                  {displayProfiles.map((p) => {
+                    const isActive = activeDashboardProfileId === p.id;
+                    return (
+                      <button
+                        key={p.id}
+                        onClick={() => setActiveDashboardProfileId(p.id)}
+                        className={`flex-1 flex items-center justify-center gap-2 py-2 px-3 rounded-xl font-bold text-xs sm:text-sm tracking-wide transition-all duration-200 active:scale-[0.98] select-none ${
+                          isActive 
+                            ? "bg-white dark:bg-[#102e33] text-teal-900 dark:text-teal-200 shadow-sm border border-slate-200/60 dark:border-teal-500/30" 
+                            : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-white/40 dark:hover:bg-slate-700/40 border border-transparent"
+                        }`}
+                      >
+                        <span className="text-base sm:text-lg leading-none shrink-0">{p.icon}</span>
+                        <span className="truncate">
+                          {formatDisplayPersonName(p.name, isEnglish)}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
             );
           })()}
@@ -324,19 +325,19 @@ export default function DashboardPage() {
             {bandProfiles.map(p => (
               <div 
                 key={`checkin-${p.id}`} 
-                className={`flex flex-col gap-1.5 p-3.5 rounded-2xl border shadow-xs transition-all ${
+                className={`flex flex-col gap-1.5 p-3.5 sm:p-4 rounded-2xl border shadow-xs transition-all ${
                   p.checkedInToday 
-                    ? "bg-gradient-to-br from-[#ecfdf5] via-[#f0fdf4] to-[#d1fae5]/50 border-[#a7f3d0] text-[#065f46] dark:bg-gradient-to-br dark:from-[#064e3b]/35 dark:to-[#062c22]/60 dark:border-[#047857]/50 dark:text-[#a7f3d0]" 
-                    : "bg-gradient-to-br from-[#fffbeb] via-[#fef3c7]/60 to-[#fde68a]/40 border-[#fcd34d] text-[#92400e] dark:bg-gradient-to-br dark:from-[#451a03]/35 dark:to-[#291003]/60 dark:border-[#b45309]/50 dark:text-[#fde68a]"
+                    ? "bg-emerald-50/70 border-emerald-200/80 text-emerald-900 dark:bg-emerald-950/30 dark:border-emerald-800/50 dark:text-emerald-200" 
+                    : "bg-amber-50/70 border-amber-200/80 text-amber-900 dark:bg-amber-950/30 dark:border-amber-800/50 dark:text-amber-200"
                 }`}
               >
                 <div className="flex items-center gap-2">
                   <span className="text-lg">{p.icon}</span>
-                  <span className="font-bold text-[15px]">{formatDisplayPersonName(p.name, isEnglish)}</span>
+                  <span className="font-bold text-[14px] sm:text-[15px]">{formatDisplayPersonName(p.name, isEnglish)}</span>
                 </div>
                 <div className="flex items-center gap-1.5">
                   {p.checkedInToday ? <CheckCircle2 size={16} className="text-emerald-600 dark:text-emerald-400" /> : <Clock3 size={16} className="text-amber-600 dark:text-amber-400" />}
-                  <strong className="text-[14px] font-bold">
+                  <strong className="text-[13.5px] sm:text-[14px] font-bold">
                     {p.checkedInToday ? (isEnglish ? "Checked in ✓" : "Đã chạm ✓") : (isEnglish ? "Not checked ⏳" : "Chưa chạm ⏳")}
                   </strong>
                 </div>
@@ -346,26 +347,26 @@ export default function DashboardPage() {
               </div>
             ))}
 
-            {/* Row 2: Activity — Sky / Ocean Blue theme 🌊 */}
+            {/* Row 2: Activity — Sky Blue */}
             {bandProfiles.map(p => (
               <div 
                 key={`activity-${p.id}`} 
-                className="flex flex-col gap-1.5 p-3.5 rounded-[18px] border border-sky-200/90 dark:border-sky-800/50 bg-gradient-to-br from-[#f0f9ff] via-[#e0f2fe]/70 to-[#bae6fd]/30 dark:bg-gradient-to-br dark:from-[#082f49]/60 dark:to-[#0c1e33] shadow-xs hover:border-sky-300 dark:hover:border-sky-700 transition-all"
+                className="flex flex-col gap-1.5 p-3.5 sm:p-4 rounded-2xl border border-sky-200/80 dark:border-sky-800/50 bg-sky-50/60 dark:bg-sky-950/25 shadow-xs hover:border-sky-300 dark:hover:border-sky-700 transition-all"
               >
-                <div className="flex items-center gap-1.5">
-                  <span className="shrink-0 w-6 h-6 rounded-full flex items-center justify-center bg-sky-500/15 text-sky-600 dark:bg-sky-400/20 dark:text-sky-300">
-                    <Timer size={13} />
+                <div className="flex items-center gap-2">
+                  <span className="shrink-0 w-7 h-7 rounded-lg flex items-center justify-center bg-sky-500/15 text-sky-600 dark:bg-sky-400/20 dark:text-sky-300">
+                    <Timer size={14} />
                   </span>
-                  <small className="text-[12px] text-[#0284c7] dark:text-[#7dd3fc] font-semibold">{isEnglish ? "Activity today" : "Vận động hôm nay"}</small>
+                  <small className="text-[12px] text-sky-800 dark:text-sky-300 font-bold truncate">{isEnglish ? "Activity today" : "Vận động hôm nay"}</small>
                 </div>
-                <strong className="text-[22px] font-extrabold text-[#0369a1] dark:text-[#38bdf8] tracking-tight">
-                  {p.activityMinutes ?? "--"} <span className="text-xs font-normal text-[#0284c7] dark:text-[#7dd3fc]">{copy.minutes}</span>
+                <strong className="text-[20px] sm:text-[22px] font-black text-sky-700 dark:text-sky-300 tracking-tight">
+                  {p.activityMinutes ?? "--"} <span className="text-xs font-semibold text-slate-500 dark:text-slate-400">{copy.minutes}</span>
                 </strong>
-                <span className="text-[11px] text-[#0284c7]/80 dark:text-[#7dd3fc]/70 font-medium">{isEnglish ? "Active movement tracking" : "Đang theo dõi vận động"}</span>
+                <span className="text-[11px] text-sky-600/80 dark:text-sky-400/70 font-medium">{isEnglish ? "Active tracking" : "Đang theo dõi"}</span>
               </div>
             ))}
 
-            {/* Row 3: Battery — Fresh Teal / Coral Amber theme 🔋 */}
+            {/* Row 3: Battery — Teal / Coral */}
             {bandProfiles.map(p => {
               const bData = getBatteryDisplay(p.batteryLevel);
               const isCrit = typeof p.batteryLevel === "number" && p.batteryLevel <= 20;
@@ -377,47 +378,47 @@ export default function DashboardPage() {
                     setSelectedBatteryProfile(p);
                     setIsBatteryModalOpen(true);
                   }} 
-                  className={`flex flex-col gap-1.5 p-3.5 rounded-[18px] border shadow-xs text-left active:scale-[0.98] transition-all ${
+                  className={`flex flex-col gap-1.5 p-3.5 sm:p-4 rounded-2xl border shadow-xs text-left active:scale-[0.98] transition-all ${
                     isCrit
-                      ? "border-red-200/90 dark:border-red-800/50 bg-gradient-to-br from-[#fff1f2] via-[#ffe4e6]/70 to-[#fecdd3]/40 dark:from-[#4c0519]/60 dark:to-[#2b030e]"
+                      ? "border-red-200/90 dark:border-red-800/50 bg-red-50/60 dark:bg-red-950/25 hover:border-red-300"
                       : isWarn
-                        ? "border-amber-200/90 dark:border-amber-800/50 bg-gradient-to-br from-[#fff7ed] via-[#ffedd5]/70 to-[#fed7aa]/40 dark:from-[#431407]/60 dark:to-[#270c04]"
-                        : "border-teal-200/90 dark:border-teal-800/50 bg-gradient-to-br from-[#f0fdfa] via-[#ccfbf1]/60 to-[#99f6e4]/30 dark:from-[#134e4a]/60 dark:to-[#042f2e]"
+                        ? "border-amber-200/90 dark:border-amber-800/50 bg-amber-50/60 dark:bg-amber-950/25 hover:border-amber-300"
+                        : "border-teal-200/80 dark:border-teal-800/50 bg-teal-50/60 dark:bg-teal-950/25 hover:border-teal-300"
                   }`}
                 >
-                  <div className="flex items-center gap-1.5">
-                    <span className={`shrink-0 w-6 h-6 rounded-full flex items-center justify-center ${
+                  <div className="flex items-center gap-2">
+                    <span className={`shrink-0 w-7 h-7 rounded-lg flex items-center justify-center ${
                       isCrit
                         ? "bg-red-500/15 text-red-600 dark:bg-red-400/20 dark:text-red-300"
                         : isWarn
                           ? "bg-amber-500/15 text-amber-600 dark:bg-amber-400/20 dark:text-amber-300"
                           : "bg-teal-500/15 text-teal-600 dark:bg-teal-400/20 dark:text-teal-300"
                     }`}>
-                      <LumoBandIcon size={13} />
+                      <LumoBandIcon size={14} />
                     </span>
-                    <small className={`text-[12px] font-semibold ${
+                    <small className={`text-[12px] font-bold truncate ${
                       isCrit
-                        ? "text-[#be123c] dark:text-[#fecdd3]"
+                        ? "text-red-700 dark:text-red-300"
                         : isWarn
-                          ? "text-[#c2410c] dark:text-[#fed7aa]"
-                          : "text-[#0d9488] dark:text-[#5eead4]"
+                          ? "text-amber-700 dark:text-amber-300"
+                          : "text-teal-800 dark:text-teal-300"
                     }`}>{isEnglish ? "Band battery" : "Pin LUMO Band"}</small>
                   </div>
-                  <strong className="text-[22px] font-extrabold flex items-center gap-1.5 tracking-tight">
+                  <strong className="text-[20px] sm:text-[22px] font-black flex items-center gap-1.5 tracking-tight">
                     {bData.icon} <span className={bData.color}>{bData.text}</span>
                   </strong>
-                  <span className={`text-[11px] font-medium ${
+                  <span className={`text-[11px] font-medium truncate ${
                     isCrit
-                      ? "text-[#be123c]/80 dark:text-[#fecdd3]/70"
+                      ? "text-red-600/80 dark:text-red-400/80"
                       : isWarn
-                        ? "text-[#c2410c]/80 dark:text-[#fed7aa]/70"
-                        : "text-[#0d9488]/80 dark:text-[#5eead4]/70"
+                        ? "text-amber-600/80 dark:text-amber-400/80"
+                        : "text-teal-700/80 dark:text-teal-400/80"
                   }`}>{getBatteryEstimateText(p.batteryLevel, isEnglish)}</span>
                 </button>
               );
             })}
 
-            {/* Row 4: Fall detection — Royal Purple / Red Alert theme 🛡️ */}
+            {/* Row 4: Fall detection — Purple / Red */}
             {bandProfiles.map(p => {
               const fall = p.fallDetected;
               return (
@@ -427,31 +428,31 @@ export default function DashboardPage() {
                     setSelectedSafetyProfile(p);
                     setIsSafetyModalOpen(true);
                   }} 
-                  className={`flex flex-col gap-1.5 p-3.5 rounded-[18px] border shadow-xs text-left active:scale-[0.98] transition-all ${
+                  className={`flex flex-col gap-1.5 p-3.5 sm:p-4 rounded-2xl border shadow-xs text-left active:scale-[0.98] transition-all ${
                     fall 
-                      ? "border-red-300 dark:border-red-600/60 bg-gradient-to-br from-[#fff1f2] via-[#ffe4e6] to-[#fecdd3] dark:bg-gradient-to-br dark:from-[#4c0519]/70 dark:to-[#2b030e] animate-pulse" 
-                      : "border-purple-200/90 dark:border-purple-800/50 bg-gradient-to-br from-[#faf5ff] via-[#f3e8ff]/70 to-[#e9d5ff]/40 dark:bg-gradient-to-br dark:from-[#3b0764]/50 dark:to-[#1e0836] hover:border-purple-300"
+                      ? "border-red-300 dark:border-red-600/60 bg-red-50/90 dark:bg-red-950/40 animate-pulse" 
+                      : "border-purple-200/80 dark:border-purple-800/50 bg-purple-50/60 dark:bg-purple-950/25 hover:border-purple-300"
                   }`}
                 >
-                  <div className="flex items-center gap-1.5">
-                    <span className={`shrink-0 w-6 h-6 rounded-full flex items-center justify-center ${
+                  <div className="flex items-center gap-2">
+                    <span className={`shrink-0 w-7 h-7 rounded-lg flex items-center justify-center ${
                       fall 
                         ? "bg-red-500/20 text-red-600 dark:text-red-400" 
                         : "bg-purple-500/15 text-purple-600 dark:bg-purple-400/20 dark:text-purple-300"
                     }`}>
-                      {fall ? <ShieldAlert size={13} /> : <ShieldCheck size={13} />}
+                      {fall ? <ShieldAlert size={14} /> : <ShieldCheck size={14} />}
                     </span>
-                    <small className={`text-[12px] font-semibold ${
-                      fall ? "text-red-700 dark:text-red-300" : "text-[#7e22ce] dark:text-[#c084fc]"
+                    <small className={`text-[12px] font-bold truncate ${
+                      fall ? "text-red-700 dark:text-red-300" : "text-purple-800 dark:text-purple-300"
                     }`}>{isEnglish ? "Fall detection" : "Cảm biến té ngã"}</small>
                   </div>
-                  <strong className={`text-[17px] font-extrabold tracking-tight ${
-                    fall ? "text-red-700 dark:text-red-300" : "text-[#581c87] dark:text-[#e9d5ff]"
+                  <strong className={`text-[16px] sm:text-[17px] font-black tracking-tight truncate ${
+                    fall ? "text-red-700 dark:text-red-300" : "text-purple-900 dark:text-purple-200"
                   }`}>
                     {fall === true ? copy.fall : fall === false ? (isEnglish ? `${formatDisplayPersonName(p.name, true)} is safe` : `${formatDisplayPersonName(p.name, false)} vẫn ổn`) : copy.noSafety}
                   </strong>
-                  <span className={`text-[11px] font-semibold ${
-                    fall ? "text-red-600 dark:text-red-400" : "text-[#15803d] dark:text-[#4ade80]"
+                  <span className={`text-[11px] font-semibold truncate ${
+                    fall ? "text-red-600 dark:text-red-400" : "text-emerald-600 dark:text-emerald-400"
                   }`}>
                     {fall ? copy.safetyAlert : copy.safetyActive}
                   </span>
@@ -481,16 +482,16 @@ export default function DashboardPage() {
 
             <div className="mt-3 flex flex-col gap-3">
               {/* Activity Card — Sky Blue */}
-              <div className="flex items-center gap-3.5 p-4 rounded-[20px] border border-sky-200/90 dark:border-sky-800/50 bg-gradient-to-br from-[#f0f9ff] via-[#e0f2fe]/70 to-[#bae6fd]/30 dark:bg-gradient-to-br dark:from-[#082f49]/60 dark:to-[#0c1e33] shadow-xs">
-                <span className="shrink-0 w-10 h-10 rounded-full flex items-center justify-center bg-sky-500/15 text-sky-600 dark:bg-sky-400/20 dark:text-sky-300">
+              <div className="flex items-center gap-3.5 p-4 rounded-2xl border border-sky-200/80 dark:border-sky-800/50 bg-sky-50/60 dark:bg-sky-950/25 shadow-xs hover:border-sky-300 dark:hover:border-sky-700 transition-all">
+                <span className="shrink-0 w-10 h-10 rounded-xl flex items-center justify-center bg-sky-500/15 text-sky-600 dark:bg-sky-400/20 dark:text-sky-300">
                   <Timer size={20} />
                 </span>
-                <div className="flex flex-col flex-1">
-                  <span className="text-[14px] text-[#0284c7] dark:text-[#7dd3fc] font-semibold leading-tight">{isEnglish ? "Activity today" : `Vận động của ${profileName} hôm nay`}</span>
-                  <span className="text-[12px] text-[#0284c7]/80 dark:text-[#7dd3fc]/70 mt-0.5 font-medium">{isEnglish ? "Daily movement tracking" : "Theo dõi thời gian vận động"}</span>
+                <div className="flex flex-col flex-1 min-w-0">
+                  <span className="text-[13.5px] sm:text-[14px] text-slate-800 dark:text-slate-200 font-bold leading-tight truncate">{isEnglish ? "Activity today" : `Vận động của ${profileName} hôm nay`}</span>
+                  <span className="text-[11.5px] sm:text-[12px] text-slate-500 dark:text-slate-400 mt-0.5 font-medium truncate">{isEnglish ? "Daily movement tracking" : "Theo dõi thời gian vận động"}</span>
                 </div>
-                <strong className="text-[26px] font-extrabold text-[#0369a1] dark:text-[#38bdf8]">
-                  {activityMinutes ?? "--"} <span className="text-xs font-normal text-[#0284c7] dark:text-[#7dd3fc]">{copy.minutes}</span>
+                <strong className="text-[24px] sm:text-[26px] font-black text-sky-700 dark:text-sky-400 tracking-tight shrink-0">
+                  {activityMinutes ?? "--"} <span className="text-xs font-semibold text-slate-500 dark:text-slate-400">{copy.minutes}</span>
                 </strong>
               </div>
 
@@ -506,16 +507,16 @@ export default function DashboardPage() {
                         setSelectedBatteryProfile(activeProfile || null);
                         setIsBatteryModalOpen(true);
                       }}
-                      className={`flex flex-col p-4 rounded-[20px] border shadow-xs text-left active:scale-[0.98] transition-all ${
+                      className={`flex flex-col p-4 rounded-2xl border shadow-xs text-left active:scale-[0.98] transition-all ${
                         isCrit
-                          ? "border-red-200/90 dark:border-red-800/50 bg-gradient-to-br from-[#fff1f2] via-[#ffe4e6]/70 to-[#fecdd3]/40 dark:bg-gradient-to-br dark:from-[#4c0519]/60 dark:to-[#2b030e]"
+                          ? "border-red-200/90 dark:border-red-800/50 bg-red-50/60 dark:bg-red-950/25 hover:border-red-300"
                           : isWarn
-                            ? "border-amber-200/90 dark:border-amber-800/50 bg-gradient-to-br from-[#fff7ed] via-[#ffedd5]/70 to-[#fed7aa]/40 dark:bg-gradient-to-br dark:from-[#431407]/60 dark:to-[#270c04]"
-                            : "border-teal-200/90 dark:border-teal-800/50 bg-gradient-to-br from-[#f0fdfa] via-[#ccfbf1]/60 to-[#99f6e4]/30 dark:bg-gradient-to-br dark:from-[#134e4a]/60 dark:to-[#042f2e]"
+                            ? "border-amber-200/90 dark:border-amber-800/50 bg-amber-50/60 dark:bg-amber-950/25 hover:border-amber-300"
+                            : "border-teal-200/80 dark:border-teal-800/50 bg-teal-50/60 dark:bg-teal-950/25 hover:border-teal-300"
                       }`}
                     >
-                      <div className="flex items-center gap-2.5 mb-3">
-                        <span className={`shrink-0 w-8 h-8 rounded-full flex items-center justify-center ${
+                      <div className="flex items-center gap-2 mb-2.5">
+                        <span className={`shrink-0 w-8 h-8 rounded-xl flex items-center justify-center ${
                           isCrit
                             ? "bg-red-500/15 text-red-600 dark:bg-red-400/20 dark:text-red-300"
                             : isWarn
@@ -524,44 +525,44 @@ export default function DashboardPage() {
                         }`}>
                           <LumoBandIcon size={16} />
                         </span>
-                        <span className={`text-[13.5px] sm:text-[14px] font-semibold leading-tight ${
+                        <span className={`text-[12.5px] sm:text-[13px] font-bold truncate ${
                           isCrit
-                            ? "text-[#be123c] dark:text-[#fecdd3]"
+                            ? "text-red-700 dark:text-red-300"
                             : isWarn
-                              ? "text-[#c2410c] dark:text-[#fed7aa]"
-                              : "text-[#0d9488] dark:text-[#5eead4]"
+                              ? "text-amber-700 dark:text-amber-300"
+                              : "text-teal-800 dark:text-teal-300"
                         }`}>{copy.battery}</span>
                       </div>
-                      <strong className="text-[24px] sm:text-[26px] font-extrabold flex items-center gap-2 mb-1.5 tracking-tight">
+                      <strong className="text-[22px] sm:text-[24px] font-black flex items-center gap-2 mb-1 tracking-tight">
                         {batteryData.icon} <span className={batteryData.color}>{batteryData.text}</span>
                       </strong>
-                      <span className={`text-[12px] sm:text-[12.5px] mt-auto leading-snug font-medium ${
+                      <span className={`text-[11px] sm:text-[11.5px] mt-auto leading-snug font-medium ${
                         isCrit
-                          ? "text-[#be123c]/80 dark:text-[#fecdd3]/70"
+                          ? "text-red-600/80 dark:text-red-400/80"
                           : isWarn
-                            ? "text-[#c2410c]/80 dark:text-[#fed7aa]/70"
-                            : "text-[#0d9488]/80 dark:text-[#5eead4]/70"
+                            ? "text-amber-600/80 dark:text-amber-400/80"
+                            : "text-teal-700/80 dark:text-teal-400/80"
                       }`}>
                         {getBatteryEstimateText(batteryLevel, isEnglish)}
                       </span>
                     </button>
                   );
                 })()}
-                {/* Fall detection — Purple / Red */}
+                {/* Fall detection */}
                 <button
                   onClick={() => {
                     setSelectedSafetyProfile(activeProfile || null);
                     setIsSafetyModalOpen(true);
                   }}
-                  className={`flex flex-col p-4 rounded-[20px] border shadow-xs text-left active:scale-[0.98] transition-all ${
+                  className={`flex flex-col p-4 rounded-2xl border shadow-xs text-left active:scale-[0.98] transition-all ${
                     fallDetected
-                      ? "border-red-300 dark:border-red-600/60 bg-gradient-to-br from-[#fff1f2] via-[#ffe4e6] to-[#fecdd3] dark:bg-gradient-to-br dark:from-[#4c0519]/70 dark:to-[#2b030e] animate-pulse"
-                      : "border-purple-200/90 dark:border-purple-800/50 bg-gradient-to-br from-[#faf5ff] via-[#f3e8ff]/70 to-[#e9d5ff]/40 dark:bg-gradient-to-br dark:from-[#3b0764]/50 dark:to-[#1e0836]"
+                      ? "border-red-300 dark:border-red-600/60 bg-red-50/90 dark:bg-red-950/40 animate-pulse"
+                      : "border-purple-200/80 dark:border-purple-800/50 bg-purple-50/60 dark:bg-purple-950/25 hover:border-purple-300"
                   }`}
                 >
-                  <div className="flex items-center gap-2.5 mb-3">
+                  <div className="flex items-center gap-2 mb-2.5">
                     <span
-                      className={`shrink-0 w-8 h-8 rounded-full flex items-center justify-center ${
+                      className={`shrink-0 w-8 h-8 rounded-xl flex items-center justify-center ${
                         fallDetected
                           ? "bg-red-500/20 text-red-600 dark:text-red-400"
                           : "bg-purple-500/15 text-purple-600 dark:bg-purple-400/20 dark:text-purple-300"
@@ -570,23 +571,23 @@ export default function DashboardPage() {
                       {fallDetected ? <ShieldAlert size={16} /> : <ShieldCheck size={16} />}
                     </span>
                     <span
-                      className={`text-[13.5px] sm:text-[14px] font-semibold leading-tight ${
-                        fallDetected ? "text-red-700 dark:text-red-300" : "text-[#7e22ce] dark:text-[#c084fc]"
+                      className={`text-[12.5px] sm:text-[13px] font-bold truncate ${
+                        fallDetected ? "text-red-700 dark:text-red-300" : "text-purple-800 dark:text-purple-300"
                       }`}
                     >
                       {fallDetected === undefined ? copy.safetyNoDataLabel : fallDetected ? copy.safetyAlertLabel : copy.safety}
                     </span>
                   </div>
                   <strong
-                    className={`text-[20px] sm:text-[22px] font-extrabold mb-1.5 tracking-tight leading-snug ${
-                      fallDetected ? "text-red-700 dark:text-red-300" : "text-[#581c87] dark:text-[#e9d5ff]"
+                    className={`text-[19px] sm:text-[21px] font-black mb-1 tracking-tight leading-snug truncate ${
+                      fallDetected ? "text-red-700 dark:text-red-300" : "text-purple-900 dark:text-purple-200"
                     }`}
                   >
                     {fallDetected === true ? copy.fall : fallDetected === false ? copy.noFall : copy.noSafety}
                   </strong>
                   <span
-                    className={`text-[12px] sm:text-[12.5px] mt-auto leading-snug font-semibold ${
-                      fallDetected ? "text-red-600 dark:text-red-400" : "text-[#15803d] dark:text-[#4ade80]"
+                    className={`text-[11px] sm:text-[11.5px] mt-auto leading-snug font-semibold ${
+                      fallDetected ? "text-red-600 dark:text-red-400" : "text-emerald-600 dark:text-emerald-400"
                     }`}
                   >
                     {fallDetected === undefined ? copy.safetyConnecting : fallDetected ? copy.safetyAlert : copy.safetyActive}
