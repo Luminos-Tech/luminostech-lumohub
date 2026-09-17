@@ -62,7 +62,7 @@ typedef enum {
 #define THRESHOLD_HR_LOW     45    /* < 45 bpm  → low  HR alert   */
 
 /* Impact / activity thresholds (×100 units, e.g. 600 = 6.00 g) */
-#define THRESHOLD_PEAK_FALL  800   /* >= 8.00 g → trigger beep (demo mode) */
+#define THRESHOLD_PEAK_FALL  500   /* >= 8.00 g → trigger beep (demo mode) */
 
 /* Hysteresis band for high-activity alerts — enter at PEAK_FALL,
  * exit at PEAK_REST. Prevents chattering around the threshold.

@@ -139,10 +139,10 @@ static void band_alert_audio(band_alert_type_t alert, band_severity_t severity)
         }
 
         // Gửi push notification 3 lần liên tục (chạy trong task riêng, non-blocking)
-        char *push_title = strdup("Canh bao va cham manh!");
+        char *push_title = strdup("Canh bao co chuyen dong manh!");
         char *push_body = malloc(128);
         if (push_title && push_body) {
-            snprintf(push_body, 128, "Phat hien peak=%.2fg tu LumoBand",
+            snprintf(push_body, 128, "Phat hien chuyen dong %.2fg",
                      (double)g_band_state.peak_x100 / 100.0);
             char **args = malloc(sizeof(char*) * 2);
             if (args) {
@@ -676,6 +676,8 @@ static void send_button_event_iso8601(void)
     esp_http_client_cleanup(client);
 }
 
+/* [LUMO-DEV] __attribute__((unused)) vì caller nằm trong comment (button disabled) */
+__attribute__((unused))
 static void send_button_event_task(void *arg)
 {
     (void)arg;
@@ -697,6 +699,8 @@ static void http_task(void *arg)
     }
 }
 
+/* [LUMO-DEV] __attribute__((unused)) vì caller nằm trong comment (button disabled) */
+__attribute__((unused))
 static esp_err_t init_server_events(void)
 {
     /* Queue size 32: enough to absorb bursts (e.g. multiple button presses
@@ -995,44 +999,8 @@ static esp_err_t run_microphone_record_test_in_task(void)
     return job.result;
 }
 
-static void queue_button_event(bool first_event)
-{
-    if (!FEATURES.server_events || s_http_queue == NULL)
-    {
-        (void)first_event;
-        return;
-    }
-
-    button_event_t event = {
-        .endpoint = "events/",
-        .device_code = DEVICE_CODE,
-        .event_type = "press",
-        .event_value = "None",
-        .user_id = 1,
-    };
-
-    snprintf(event.button_state,
-             sizeof(event.button_state),
-             "%s",
-             first_event ? "LUMO Start" : "turn button");
-
-    /* Drop oldest if queue is full — prevents blocking on button press.
-     * Older events are less urgent than the latest one. */
-    if (xQueueSend(s_http_queue, &event, 0) != pdTRUE)
-    {
-        button_event_t evicted;
-        /* Discard oldest to make room, then try once more */
-        if (xQueueReceive(s_http_queue, &evicted, 0) == pdTRUE)
-        {
-            ESP_LOGW(TAG, "Button event queue overflow — dropped old event");
-        }
-        if (xQueueSend(s_http_queue, &event, 0) != pdTRUE)
-        {
-            ESP_LOGE(TAG, "Button event queue send failed (FATAL)");
-        }
-    }
-}
-
+/* [LUMO-DEV] __attribute__((unused)) vì caller start_voice_interaction() đã disabled */
+__attribute__((unused))
 static void upload_audio_task(void *arg)
 {
     upload_task_args_t *args = (upload_task_args_t *)arg;
@@ -1092,8 +1060,17 @@ done:
     vTaskDelete(NULL);
 }
 
+/* [LUMO-DEV] __attribute__((unused)) vì start_voice_interaction() đã được vô hiệu hóa. */
+__attribute__((unused))
 static void start_voice_interaction(void)
 {
+    /* [LUMO-DEV] DISABLED: tắt luồng record 5s + gọi API audio lên server.
+     * Giữ hàm nhưng return ngay để không ghi âm, không upload, không gọi
+     * STT/LLM/TTS. Bỏ comment dưới đây để bật lại. */
+    ESP_LOGW(TAG, "start_voice_interaction() is DISABLED (button + voice flow turned off)");
+    return;
+
+#if 0  /* === original code, disabled === */
     if (!FEATURES.voice_assistant)
     {
         return;
@@ -1171,12 +1148,22 @@ static void start_voice_interaction(void)
          * được gọi, busy flag phải release thủ công. */
         s_voice_busy = false;
     }
+#endif /* === end original start_voice_interaction === */
 }
 
+/* [LUMO-DEV] __attribute__((unused)) vì caller nằm trong block #if 0 (button disabled) */
+__attribute__((unused))
 static void handle_button_press(bool first_event)
 {
     ESP_LOGI(TAG, "Button press detected");
 
+    /* [LUMO-DEV] DISABLED: button + voice flow đã tắt (xem start_voice_interaction).
+     * Không acknowledge fall, không gọi audio_play, không start voice interaction.
+     * Bỏ comment đoạn dưới để bật lại hành vi gốc. */
+    (void)first_event;
+    return;
+
+#if 0  /* === original code, disabled === */
     /* Silencing fall alert: first acknowledge, then queue button event */
     if (g_band_state.fall_alert_active && !g_band_state.fall_alert_acknowledged) {
         ESP_LOGI(TAG, "Button pressed — acknowledging active fall alert");
@@ -1186,16 +1173,20 @@ static void handle_button_press(bool first_event)
         }
     }
 
-    /* POST button event — run in isolated task so it doesn't block the loop */
-    xTaskCreate(
-        send_button_event_task,
-        "btn_event_iso",
-        4096,
-        NULL,
-        4,
-        NULL);
-
+    /* POST button event — DISABLED: tắt cơ chế button ấn gửi lên server.
+     * Đoạn code gốc được giữ dưới dạng comment để bật lại khi cần:
+     *
+     * xTaskCreate(
+     *     send_button_event_task,
+     *     "btn_event_iso",
+     *     4096,
+     *     NULL,
+     *     4,
+     *     NULL);
+     */
+    (void)first_event;
     start_voice_interaction();
+#endif /* === end original handle_button_press === */
 }
 
 static float estimate_frequency_hz(const int16_t *pcm, size_t samples,
@@ -1419,11 +1410,16 @@ static esp_err_t initialize_enabled_features(void)
 
     if (FEATURES.server_events)
     {
-        err = init_server_events();
-        if (err != ESP_OK)
-        {
-            return err;
-        }
+        /* [LUMO-DEV] DISABLED: button đã tắt nên không có event nào để gửi,
+         * khởi tạo queue/task sẽ tốn RAM vô ích.
+         *
+         * err = init_server_events();
+         * if (err != ESP_OK)
+         * {
+         *     return err;
+         * }
+         */
+        (void)err;
     }
 
     if (FEATURES.storage && FEATURES.audio)
@@ -1500,7 +1496,8 @@ void lumo_runtime_start(const lumo_feature_config_t *features)
         }
     }
 
-    bool first_button_event = true;
+    /* first_button_event: disabled cùng với button block (xem #if 0 dưới) */
+    bool first_button_event_unused __attribute__((unused)) = true;
     const bool idle_mode = !FEATURES.button && !FEATURES.microphone_level_log;
 
     if (idle_mode)
@@ -1520,6 +1517,15 @@ void lumo_runtime_start(const lumo_feature_config_t *features)
         //     }
         // }
 
+        /* [LUMO-DEV] DISABLED: tắt hoàn toàn nhận diện button (cả click ngắn
+         * lẫn long-press 5s factory reset). Tất cả logic button được giữ
+         * dưới dạng comment để bật lại dễ dàng.
+         *
+         * NOTE: Nếu muốn xóa Wi-Fi credentials, dùng `idf.py erase_flash`
+         * hoặc gọi wifi_factory_reset() từ code khác. Hoặc bật lại block
+         * dưới đây và chỉnh sửa theo nhu cầu.
+         */
+#if 0
         if (FEATURES.button)
         {
             /* FIX (MED-1): dùng button_is_clicked (edge-detect) thay vì
@@ -1530,7 +1536,7 @@ void lumo_runtime_start(const lumo_feature_config_t *features)
 
             if (button_is_clicked(&s_button))
             {
-                handle_button_press(first_button_event);
+                handle_button_press(false);
                 first_button_event = false;
 
             }
@@ -1591,6 +1597,7 @@ void lumo_runtime_start(const lumo_feature_config_t *features)
                 last_connected = currently_connected;
             }
         }
+#endif /* === end disabled button block === */
 
         if (FEATURES.microphone_level_log && pcm != NULL)
         {
