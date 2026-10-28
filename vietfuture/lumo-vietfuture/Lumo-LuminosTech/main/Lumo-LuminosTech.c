@@ -3,6 +3,7 @@
 
 #include "ble/lumo_band_central.h"
 #include "lumo_runtime.h"
+#include "lumo_version.h"
 
 /* v0.5.1-test-no-oled: OLED đã TẮT hoàn toàn (không có phần cứng OLED).
  * Chỉ giữ: button + audio (mạch giải mã loa) + microphone. */
@@ -15,7 +16,7 @@ static const lumo_feature_config_t FEATURES = {
     .audio = true,
     .network = true,
     .server_events = true,         /* BẬT button events lên server */
-    .voice_assistant = true,
+    .voice_assistant = false,      /* Button sends a notification only. */
 };
 
 /* ============================================================================
@@ -24,10 +25,9 @@ static const lumo_feature_config_t FEATURES = {
  * Khi thấy dòng "LUMO FW VERSION:" là biết firmware mới đã flash thành công.
  * Nếu KHÔNG thấy dòng này → flash thất bại / flash cũ / cache cũ.
  *
- * Nếu muốn tăng version: sửa LUMO_FW_VERSION_STRING bên dưới, build lại,
+ * Nếu muốn tăng version: sửa LUMO_FW_VERSION_STRING trong lumo_version.h, build lại,
  * flash lại. Mỗi lần thay đổi code quan trọng nên bump version lên 1.
  * ============================================================================ */
-#define LUMO_FW_VERSION_STRING  "v0.5.6-fix-stack-overflow"   /* Fix stack overflow in app_main: +main task stack 16 KB, audio_play buffers -> static, audio I2S0 -> I2S1 */
 #define LUMO_FW_BUILD_DATE      __DATE__
 #define LUMO_FW_BUILD_TIME      __TIME__
 
@@ -59,7 +59,7 @@ static void print_firmware_version(void)
     ESP_LOGI("LUMO", "    voice_assistant    = %d", (int)FEATURES.voice_assistant);
     ESP_LOGI("LUMO", "    BLE central        = %d", 1);
     ESP_LOGI("LUMO", "");
-    ESP_LOGW("LUMO", "  ! LONG PRESS BUTTON 5s to factory-reset WiFi credentials !");
+    ESP_LOGI("LUMO", "  Button click: send notification + check-in event");
     ESP_LOGI("LUMO", "=========================================================");
 }
 

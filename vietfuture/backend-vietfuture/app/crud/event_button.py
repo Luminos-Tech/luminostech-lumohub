@@ -1,6 +1,7 @@
 from sqlalchemy.orm import Session
 from sqlalchemy import select, func, and_
-from datetime import datetime, timezone
+from datetime import datetime
+from app.utils.timezone import as_local, as_utc, incoming_datetime, today_bounds
 from app.models.event_button import EventButton
 from app.models.device import Device
 
@@ -11,7 +12,7 @@ def create_event_button(
     event = EventButton(
         user_id=user_id,
         device_id=device_id,
-        time_button_click=time_button_click,
+        time_button_click=incoming_datetime(time_button_click),
     )
     db.add(event)
     db.commit()
@@ -31,7 +32,7 @@ def update_last_checkin(
     device = db.get(Device, device_id)
     if not device:
         return
-    device.last_checkin_at = checked_in_at
+    device.last_checkin_at = incoming_datetime(checked_in_at)
     db.commit()
 
 
@@ -40,7 +41,11 @@ def get_device_checkin(db: Session, device_id: int) -> dict:
     device = db.get(Device, device_id)
     if not device:
         return {"last_checkin_at": None}
-    return {"last_checkin_at": device.last_checkin_at}
+    return {
+        "last_checkin_at": (
+            as_local(device.last_checkin_at) if device.last_checkin_at is not None else None
+        )
+    }
 
 
 def get_events_by_user(
@@ -57,8 +62,8 @@ def get_events_by_user(
 
 
 def get_today_status(db: Session, user_id: int) -> tuple[bool, datetime | None, int]:
-    today_start = datetime.now(timezone.utc).replace(hour=0, minute=0, second=0, microsecond=0)
-    today_end = today_start.replace(hour=23, minute=59, second=59, microsecond=999999)
+    today_start, today_end = today_bounds()
+    today_start, today_end = as_utc(today_start), as_utc(today_end)
 
     events = list(
         db.execute(
@@ -67,7 +72,7 @@ def get_today_status(db: Session, user_id: int) -> tuple[bool, datetime | None, 
                 and_(
                     EventButton.user_id == user_id,
                     EventButton.time_button_click >= today_start,
-                    EventButton.time_button_click <= today_end,
+                    EventButton.time_button_click < today_end,
                 )
             )
             .order_by(EventButton.time_button_click.desc())

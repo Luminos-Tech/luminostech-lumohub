@@ -1,0 +1,8 @@
+menu "LUMO device control"
+    config LUMO_CONTROL_WS_URL
+        string "Device command WebSocket URL (without query string)"
+        default "wss://api.luminostech.tech/ws/lumo"
+        help
+            The firmware adds device_id to this URL. Use wss:// for public
+            servers. A ws:// LAN address may be used for local development.
+endmenu

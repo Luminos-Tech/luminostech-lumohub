@@ -4,6 +4,7 @@ from app.models.event import Event
 from app.models.reminder import Reminder
 from typing import Optional, List
 from datetime import datetime
+from app.utils.timezone import database_datetime
 
 
 def get_event(db: Session, event_id: int) -> Optional[Event]:
@@ -22,9 +23,9 @@ def get_events_by_user(
 ) -> List[Event]:
     q = select(Event).options(selectinload(Event.reminders)).where(Event.user_id == user_id)
     if start:
-        q = q.where(Event.end_time >= start)
+        q = q.where(Event.end_time >= database_datetime(start))
     if end:
-        q = q.where(Event.start_time <= end)
+        q = q.where(Event.start_time <= database_datetime(end))
     q = q.order_by(Event.start_time).offset(skip).limit(limit)
     return list(db.execute(q).scalars().all())
 
@@ -46,8 +47,8 @@ def create_event(
         title=title,
         description=description,
         location=location,
-        start_time=start_time,
-        end_time=end_time,
+        start_time=database_datetime(start_time),
+        end_time=database_datetime(end_time),
         priority=priority,
         color=color,
     )
@@ -71,6 +72,8 @@ def create_event(
 def update_event(db: Session, event: Event, **kwargs) -> Event:
     for key, value in kwargs.items():
         if value is not None and hasattr(event, key):
+            if key in {"start_time", "end_time"}:
+                value = database_datetime(value)
             setattr(event, key, value)
     db.commit()
     db.refresh(event)

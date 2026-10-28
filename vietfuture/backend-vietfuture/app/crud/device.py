@@ -1,6 +1,8 @@
 from sqlalchemy.orm import Session
-from sqlalchemy import select
+from sqlalchemy import func, select
 from typing import Optional
+from datetime import datetime
+from app.utils.timezone import database_datetime
 from app.models.device import Device
 
 
@@ -9,6 +11,15 @@ def normalize_device_code(code: str) -> str:
     if s.isdigit() and len(s) <= 4:
         return s.zfill(4)
     return s
+
+
+def get_device_log_targets(db: Session) -> list[dict]:
+    rows = db.execute(
+        select(func.min(Device.id).label("id"), Device.device_id)
+        .group_by(Device.device_id)
+        .order_by(Device.device_id)
+    ).all()
+    return [{"id": row.id, "device_id": row.device_id} for row in rows]
 
 
 def get_device_by_id(db: Session, device_id: int) -> Device | None:
@@ -22,7 +33,7 @@ def get_device_by_code(db: Session, user_id: Optional[int], device_code: str) ->
             select(Device).where(Device.user_id == user_id, Device.device_id == code)
         ).scalar_one_or_none()
     return db.execute(
-        select(Device).where(Device.device_id == code).limit(1)
+        select(Device).where(Device.device_id == code).order_by(Device.id).limit(1)
     ).scalar_one_or_none()
 
 
@@ -57,6 +68,8 @@ def upsert_device(db: Session, user_id: int, device_id: str) -> Device:
 def update_device(db: Session, device: Device, **kwargs) -> Device:
     for key, value in kwargs.items():
         if value is not None and hasattr(device, key):
+            if isinstance(value, datetime):
+                value = database_datetime(value)
             setattr(device, key, value)
     db.commit()
     db.refresh(device)

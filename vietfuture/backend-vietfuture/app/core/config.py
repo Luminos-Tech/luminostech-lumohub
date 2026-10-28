@@ -54,6 +54,7 @@ class Settings(BaseSettings):
     CORS_ORIGINS: str = "https://lumohub.luminostech.tech, https://api.luminostech.tech"
     APP_ENV: str = ""
     APP_VERSION: str = "0.12.0"
+    DEVICE_LOGS_ENABLED: bool = True
 
     GEMINI_API_KEY: str = ""
     PERPLEXITY_API_KEY: str = ""

@@ -1,9 +1,10 @@
 FROM python:3.12-slim
+ENV TZ=Asia/Ho_Chi_Minh
 
 WORKDIR /app
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    gcc libpq-dev curl && rm -rf /var/lib/apt/lists/*
+    gcc libpq-dev curl tzdata && rm -rf /var/lib/apt/lists/*
 
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt

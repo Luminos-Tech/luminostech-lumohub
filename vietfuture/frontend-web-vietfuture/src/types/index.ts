@@ -102,6 +102,42 @@ export interface EventButton {
   created_at: string;
 }
 
+export interface DeviceControlStatus {
+  connected: boolean;
+  audio_control: boolean;
+  firmware_version: string | null;
+  logs_enabled?: boolean;
+}
+
+export interface DeviceCommandResult {
+  request_id: string;
+  status: "completed" | "stopped";
+}
+
+export type DeviceSound = "beep" | "greeting" | "checkin";
+
+export interface DeviceLogEntry {
+  sequence: number;
+  received_at: string;
+  level: "I" | "W" | "E";
+  tag: string;
+  message: string;
+  uptime_ms: number | null;
+}
+
+export interface DeviceLogsResponse {
+  stream_id: string;
+  cursor: number;
+  connected: boolean;
+  supported: boolean;
+  entries: DeviceLogEntry[];
+}
+
+export interface DeviceLogTarget {
+  id: number;
+  device_id: string;
+}
+
 export interface TodayButtonStatus {
   clicked_today: boolean;
   last_click_at: string | null;

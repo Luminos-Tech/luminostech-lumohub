@@ -7,6 +7,7 @@
 
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
+#include "freertos/semphr.h"
 #include "driver/i2s_std.h"
 #include "esp_log.h"
 #include "esp_err.h"
@@ -15,6 +16,7 @@
 static const char *TAG = "AUDIO";
 static volatile bool s_stop_requested = false;
 static volatile bool s_is_playing = false;
+static SemaphoreHandle_t s_playback_mutex;
 
 static i2s_chan_handle_t s_tx_handle = NULL;
 static int s_bclk_gpio = -1;
@@ -284,6 +286,10 @@ esp_err_t audio_init(int bclk_gpio, int lrck_gpio, int dout_gpio)
     {
         return ESP_ERR_INVALID_ARG;
     }
+    if (s_playback_mutex == NULL) {
+        s_playback_mutex = xSemaphoreCreateMutex();
+        if (s_playback_mutex == NULL) return ESP_ERR_NO_MEM;
+    }
 
     s_bclk_gpio = bclk_gpio;
     s_lrck_gpio = lrck_gpio;
@@ -294,7 +300,7 @@ esp_err_t audio_init(int bclk_gpio, int lrck_gpio, int dout_gpio)
     return ESP_OK;
 }
 
-esp_err_t audio_play(const char *filepath)
+static esp_err_t audio_play_file(const char *filepath)
 {
     if (filepath == NULL)
     {
@@ -523,6 +529,18 @@ esp_err_t audio_play(const char *filepath)
     ESP_LOGI(TAG, "Done: %s (wrote %u bytes)", filepath, (unsigned)total_written);
     s_is_playing = false;
     return ESP_OK;
+}
+
+esp_err_t audio_play(const char *filepath)
+{
+    /* Static buffers and the I2S channel have exactly one playback owner. */
+    if (s_playback_mutex == NULL) return ESP_ERR_INVALID_STATE;
+    if (xSemaphoreTake(s_playback_mutex, 0) != pdTRUE) return ESP_ERR_INVALID_STATE;
+    esp_err_t err = audio_play_file(filepath);
+    s_is_playing = false;
+    s_stop_requested = false;
+    xSemaphoreGive(s_playback_mutex);
+    return err;
 }
 
 esp_err_t audio_stop(void)

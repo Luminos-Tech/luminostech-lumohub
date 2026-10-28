@@ -1,4 +1,5 @@
 from datetime import datetime, timezone
+from app.utils.timezone import as_local
 
 
 def utcnow() -> datetime:
@@ -7,7 +8,7 @@ def utcnow() -> datetime:
 
 def format_vn_datetime(dt: datetime) -> str:
     """Format datetime in Vietnamese style."""
-    return dt.strftime("%H:%M ngày %d/%m/%Y")
+    return as_local(dt).strftime("%H:%M ngày %d/%m/%Y")
 
 
 def safe_int(val, default: int = 0) -> int:

@@ -51,6 +51,11 @@ extern "C"
                                               const char *upload_path,
                                               const char *out_audio_path);
 
+    /** Send one push notification. Returns an error for transport or HTTP failures. */
+    esp_err_t http_api_send_push_notification(int user_id, const char *title,
+                                              const char *body, const char *tag,
+                                              const char *notification_type);
+
     /**
      * @brief Gửi push notification lên server.
      *        Gọi 3 lần liên tục để đảm bảo client nhận được.

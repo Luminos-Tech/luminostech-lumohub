@@ -1,18 +1,20 @@
 "use client";
 
 import Image from "next/image";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Info, Activity, BatteryMedium, Bell, Clock3, Plus, Power, QrCode, Trash2, Wifi, WifiOff, X, Zap } from "lucide-react";
 import { format, formatDistanceToNow, parseISO, addYears } from "date-fns";
 import { enUS, vi } from "date-fns/locale";
 import { toast } from "sonner";
 import { AddDeviceModal } from "@/components/devices/AddDeviceModal";
+import { DeviceAudioControl } from "@/components/devices/DeviceAudioControl";
+import { DeviceLogsViewer } from "@/components/devices/DeviceLogsViewer";
 import Modal from "@/components/common/Modal";
 import { adminApi } from "@/features/admin/api";
 import { useDeviceStore } from "@/store/deviceStore";
 import { usePreferenceStore } from "@/store/preferenceStore";
 import { useDemoStore, formatDisplayPersonName } from "@/demo/store";
-import type { Device } from "@/types";
+import type { Device, DeviceControlStatus } from "@/types";
 
 const BAND_TYPICAL_BATTERY_DAYS = 730;
 
@@ -127,19 +129,22 @@ function NotifyModal({
 
 function DeviceInfoModal({
   device,
+  controlStatus,
   profile,
   type,
   onClose,
   isEnglish,
 }: {
   device?: Device;
+  controlStatus?: DeviceControlStatus;
   profile?: { id: string; name: string; type: string; icon?: string; device_id?: string; batteryLevel?: number; hubOnline?: boolean };
   type: "hub" | "band";
   onClose: () => void;
   isEnglish: boolean;
 }) {
   const deviceId = profile?.device_id || device?.device_id || (type === "hub" ? "LB-100" : "LH-8821");
-  const isOnline = profile ? (type === "hub" ? (profile.hubOnline ?? true) : true) : (device?.is_active ?? true);
+  const isOnline = profile ? (type === "hub" ? (profile.hubOnline ?? true) : true)
+    : type === "hub" ? controlStatus?.connected === true : (device?.is_active ?? false);
   
   const purchaseDateStr = device?.created_at || (deviceId === "LH-8822" ? "2025-06-10T08:00:00Z" : deviceId === "LB-101" ? "2025-07-01T10:00:00Z" : "2025-05-15T08:00:00Z");
   const purchaseDate = parseISO(purchaseDateStr);
@@ -148,7 +153,8 @@ function DeviceInfoModal({
   
   const macSuffix = String(deviceId).replace(/[^0-9A-Z]/gi, "").padEnd(4, "0").slice(0, 4);
   const mac = `00:1A:2B:4C:${macSuffix.substring(0, 2)}:${macSuffix.substring(2, 4)}`;
-  const firmware = type === "hub" ? "v2.1.0-lumo" : "v1.2.4-ble";
+  const firmware = profile ? (type === "hub" ? "v2.1.0-lumo" : "v1.2.4-ble")
+    : type === "hub" ? (controlStatus?.firmware_version || "--") : "--";
   const batteryLevel = profile?.batteryLevel ?? device?.battery_level ?? 88;
 
   const title = type === "hub" ? "LUMO Hub" : "LUMO Band";
@@ -175,7 +181,7 @@ function DeviceInfoModal({
           <div className="flex-1 min-w-0">
             <div className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200 dark:bg-emerald-500/20 dark:text-emerald-300 dark:border-emerald-500/30 mb-1">
               <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 dark:bg-emerald-400 animate-pulse" />
-              {isOnline ? (isEnglish ? "Connected 24/7" : "Đang kết nối 24/7") : (isEnglish ? "Offline" : "Mất kết nối")}
+              {isOnline ? (isEnglish ? "Connected" : "Đang kết nối") : (isEnglish ? "Offline" : "Mất kết nối")}
             </div>
             <h3 className="text-lg font-bold text-slate-900 dark:text-white tracking-tight leading-none">
               {title}
@@ -205,9 +211,9 @@ function DeviceInfoModal({
             </span>
             <div className="flex items-center gap-1.5">
               <span className="font-mono font-semibold text-slate-800 dark:text-slate-200">{firmware}</span>
-              <span className="text-[10px] font-bold text-emerald-700 dark:text-emerald-400 bg-emerald-100 dark:bg-emerald-950/60 px-1.5 py-0.5 rounded-md border border-emerald-300 dark:border-emerald-800/60">
+              {profile && <span className="text-[10px] font-bold text-emerald-700 dark:text-emerald-400 bg-emerald-100 dark:bg-emerald-950/60 px-1.5 py-0.5 rounded-md border border-emerald-300 dark:border-emerald-800/60">
                 {isEnglish ? "Latest ✓" : "Mới nhất ✓"}
-              </span>
+              </span>}
             </div>
           </div>
 
@@ -265,6 +271,7 @@ function DeviceInfoModal({
 
 function DevicePair({
   device,
+  controlStatus,
   isEnglish,
   deleting,
   onDelete,
@@ -273,6 +280,7 @@ function DevicePair({
   onShowInfo,
 }: {
   device: Device;
+  controlStatus?: DeviceControlStatus;
   isEnglish: boolean;
   deleting: boolean;
   onDelete: () => void;
@@ -285,6 +293,11 @@ function DevicePair({
   const connectedText = isOnline
     ? (isEnglish ? "Connected" : "Đã kết nối")
     : (isEnglish ? "Disconnected" : "Mất kết nối");
+  const hubOnline = controlStatus?.connected === true;
+  const hubConnectionText = controlStatus === undefined
+    ? (isEnglish ? "Checking..." : "Đang kiểm tra...")
+    : hubOnline ? (isEnglish ? "Connected" : "Đã kết nối")
+    : (isEnglish ? "Offline" : "Mất kết nối");
 
   return (
     <section className="device-pair" aria-label={isEnglish ? `Device set ${device.device_id}` : `Bộ thiết bị ${device.device_id}`}>
@@ -294,17 +307,21 @@ function DevicePair({
             <Image src="/products/lumo-hub-studio.webp" alt="Lumo Hub" width={800} height={800} priority sizes="132px" />
           </div>
           <div className="device-product-copy">
-            <div className={`device-connection ${isOnline ? "online" : "offline"}`}><i />{connectedText}</div>
+            <div className={`device-connection ${hubOnline ? "online" : "offline"}`}><i />{hubConnectionText}</div>
             <p className="lumo-kicker">LUMO HUB</p>
             <h2>Lumo Hub</h2>
             <span className="device-code">ID {device.device_id}</span>
             <div className="device-detail-line">
-              {isOnline ? <Wifi size={17} /> : <WifiOff size={17} />}
-              <span>{isEnglish ? "Home connection" : "Kết nối tại nhà"}</span>
+              {hubOnline ? <Wifi size={17} /> : <WifiOff size={17} />}
+              <span>{hubOnline
+                ? (isEnglish ? "Server connected" : "Đã kết nối máy chủ")
+                : (isEnglish ? "Waiting for the Hub" : "Đang chờ Hub kết nối")}</span>
             </div>
             <div className="device-detail-line">
               <Power size={17} />
-              <span>{isEnglish ? "Power connected" : "Đang được cấp nguồn"}</span>
+              <span>{hubOnline
+                ? (isEnglish ? "Device is active" : "Thiết bị đang hoạt động")
+                : (isEnglish ? "Check power and Wi-Fi" : "Kiểm tra nguồn và Wi-Fi")}</span>
             </div>
             <small>{isEnglish ? "Added" : "Đã thêm"} {getDeviceUptime(device.created_at, isEnglish)}</small>
           </div>
@@ -365,6 +382,15 @@ export default function DevicesPage() {
   const [qrTarget, setQrTarget] = useState<Device | null>(null);
   const [infoTarget, setInfoTarget] = useState<{ device?: Device; profile?: typeof mockProfiles[0]; type: "hub" | "band" } | null>(null);
   const [deletingId, setDeletingId] = useState<number | null>(null);
+  const [controlStatuses, setControlStatuses] = useState<Record<number, DeviceControlStatus>>({});
+  const updateControlStatus = useCallback((id: number, status: DeviceControlStatus) => {
+    setControlStatuses((previous) => {
+      const current = previous[id];
+      if (current?.connected === status.connected && current?.audio_control === status.audio_control &&
+        current?.firmware_version === status.firmware_version) return previous;
+      return { ...previous, [id]: status };
+    });
+  }, []);
   const isEnglish = usePreferenceStore((state) => state.language === "en");
 
   useEffect(() => {
@@ -411,6 +437,16 @@ export default function DevicesPage() {
           <button type="button" onClick={() => setShowAdd(true)}><Plus size={18} />{copy.add}</button>
         )}
       </header>
+
+      <DeviceLogsViewer isEnglish={isEnglish} />
+
+      {devices.length > 0 && (
+        <div className="mb-4 space-y-3">
+          {devices.map((device) => (
+            <DeviceAudioControl key={device.id} device={device} isEnglish={isEnglish} onStatusChange={updateControlStatus} />
+          ))}
+        </div>
+      )}
 
       {loading ? (
         <div className="devices-loading"><i /><span>{copy.loading}</span></div>
@@ -489,6 +525,7 @@ export default function DevicesPage() {
             <DevicePair
               key={device.id}
               device={device}
+              controlStatus={controlStatuses[device.id]}
               isEnglish={isEnglish}
               deleting={deletingId === device.id}
               onDelete={() => void handleDelete(device.id)}
@@ -503,7 +540,9 @@ export default function DevicesPage() {
       <AddDeviceModal open={showAdd} onClose={() => setShowAdd(false)} onAdded={fetchDevices} />
       {qrTarget && <DeviceQRModal device={qrTarget} onClose={() => setQrTarget(null)} isEnglish={isEnglish} />}
       {notifyTarget && <NotifyModal device={notifyTarget} onClose={() => setNotifyTarget(null)} isEnglish={isEnglish} />}
-      {infoTarget && <DeviceInfoModal profile={infoTarget.profile} device={infoTarget.device} type={infoTarget.type} onClose={() => setInfoTarget(null)} isEnglish={isEnglish} />}
+      {infoTarget && <DeviceInfoModal profile={infoTarget.profile} device={infoTarget.device}
+        controlStatus={infoTarget.device ? controlStatuses[infoTarget.device.id] : undefined}
+        type={infoTarget.type} onClose={() => setInfoTarget(null)} isEnglish={isEnglish} />}
     </main>
   );
 }

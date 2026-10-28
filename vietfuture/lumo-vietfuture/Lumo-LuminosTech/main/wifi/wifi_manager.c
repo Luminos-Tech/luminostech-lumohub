@@ -17,6 +17,7 @@
 #include "esp_system.h"
 
 #include "wifi_manager.h"
+#include "device_control/device_control.h"
 #include "web_portal.h"
 
 static const char *TAG = "WIFI_MGR";
@@ -132,6 +133,7 @@ static void IRAM_ATTR wifi_event_handler(void *arg,
     }
     else if (event_base == WIFI_EVENT && event_id == WIFI_EVENT_STA_DISCONNECTED)
     {
+        device_control_log('W', "WIFI", "WiFi disconnected");
         xEventGroupClearBits(s_wifi_event_group, WIFI_CONNECTED_BIT);
 
         /* FIX: chỉ stop portal khi STA thật sự đang connected mà bị mất.
@@ -155,6 +157,7 @@ static void IRAM_ATTR wifi_event_handler(void *arg,
         if (!s_have_credentials)
         {
             ESP_LOGW(TAG, "No WiFi credentials stored — not reconnecting");
+            device_control_log('W', "WIFI", "WiFi has no saved configuration");
             return;
         }
 
@@ -198,6 +201,7 @@ static void IRAM_ATTR ip_event_handler(void *arg,
     {
         ip_event_got_ip_t *event = (ip_event_got_ip_t *)event_data;
         ESP_LOGI(TAG, "Got IP: " IPSTR, IP2STR(&event->ip_info.ip));
+        device_control_log('I', "WIFI", "WiFi connected and received an IP address");
 
         /* Successful connection — reset backoff state */
         disarm_backoff();
@@ -211,6 +215,7 @@ static void IRAM_ATTR ip_event_handler(void *arg,
     else if (event_base == IP_EVENT && event_id == IP_EVENT_STA_LOST_IP)
     {
         ESP_LOGW(TAG, "Lost IP — attempting reconnect");
+        device_control_log('W', "WIFI", "WiFi lost IP; attempting reconnect");
         xEventGroupClearBits(s_wifi_event_group, WIFI_CONNECTED_BIT);
 
         /* Reset backoff so the next reconnect is fast */
@@ -306,12 +311,26 @@ void wifi_factory_reset(void)
 
 bool wifi_try_connect_saved(int timeout_ms)
 {
+    wifi_init_common();
     if (!wifi_load_credentials(s_saved_ssid, sizeof(s_saved_ssid),
                               s_saved_pass, sizeof(s_saved_pass)))
     {
-        ESP_LOGW(TAG, "No saved WiFi credentials");
-        s_have_credentials = false;
-        return false;
+        /* Earlier firmware may have saved station credentials in ESP-IDF's
+         * own WiFi NVS namespace instead of wifi_cfg. Reuse that configuration
+         * without printing or replacing the saved password. */
+        wifi_config_t previous = {0};
+        if (esp_wifi_get_config(WIFI_IF_STA, &previous) != ESP_OK ||
+            previous.sta.ssid[0] == '\0')
+        {
+            ESP_LOGW(TAG, "No saved WiFi credentials");
+            s_have_credentials = false;
+            return false;
+        }
+        memcpy(s_saved_ssid, previous.sta.ssid, sizeof(previous.sta.ssid));
+        s_saved_ssid[sizeof(s_saved_ssid) - 1] = '\0';
+        memcpy(s_saved_pass, previous.sta.password, sizeof(previous.sta.password));
+        s_saved_pass[sizeof(s_saved_pass) - 1] = '\0';
+        ESP_LOGI(TAG, "Reusing the existing ESP-IDF station WiFi configuration");
     }
 
     /* DEBUG: log SSID/PASS thực sự lưu trong NVS (length + hex for whitespace) */
@@ -319,8 +338,6 @@ bool wifi_try_connect_saved(int timeout_ms)
     ESP_LOGI(TAG, "  PASS length = %u", (unsigned)strlen(s_saved_pass));
 
     s_have_credentials = true;
-
-    wifi_init_common();
 
     wifi_config_t wifi_config = {0};
     strncpy((char *)wifi_config.sta.ssid, s_saved_ssid, sizeof(wifi_config.sta.ssid));

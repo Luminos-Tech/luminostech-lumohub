@@ -1,4 +1,4 @@
-from pydantic import BaseModel
+from app.schemas.base import APIModel as BaseModel
 from typing import Optional
 from datetime import datetime
 

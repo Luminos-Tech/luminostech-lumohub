@@ -2,6 +2,7 @@ from collections import defaultdict
 from datetime import datetime
 
 from fastapi import WebSocket
+from app.utils.timezone import as_local
 
 
 NOTIFICATION_EVENT_VERSION = 1
@@ -57,7 +58,7 @@ class NotificationConnectionManager:
 
     @staticmethod
     def _serialize_datetime(value) -> str | None:
-        return value.isoformat() if isinstance(value, datetime) else None
+        return as_local(value).isoformat() if isinstance(value, datetime) else None
 
 
 notification_manager = NotificationConnectionManager()

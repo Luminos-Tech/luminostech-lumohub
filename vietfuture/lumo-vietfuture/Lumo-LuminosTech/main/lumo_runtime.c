@@ -30,6 +30,8 @@
 #include "record/record.h"
 #include "wifi/wifi_manager.h"
 #include "lumo_runtime.h"
+#include "lumo_version.h"
+#include "device_control/device_control.h"
 
 /* OLED đã được TẮT trong bản v0.5.1-test-no-oled — phần cứng không có OLED,
  * chỉ gồm: button (nút nhấn), mạch giải mã loa, MIC. */
@@ -57,12 +59,7 @@ static lumo_feature_config_t s_features;
 
 typedef struct
 {
-    char endpoint[32];
-    char device_code[16];
-    char button_state[16];
-    char event_type[16];
-    char event_value[64];
-    int user_id;
+    int64_t clicked_at_us;
 } button_event_t;
 
 typedef struct
@@ -73,8 +70,6 @@ typedef struct
 
 static button_t s_button;
 static QueueHandle_t s_http_queue = NULL;
-static esp_http_client_handle_t s_http_client = NULL;
-static SemaphoreHandle_t s_http_mutex = NULL;
 static volatile bool s_voice_busy = false;   /* prevents overlapping upload tasks */
 static int s_animation_frame = 0;
 
@@ -406,9 +401,6 @@ static bool s_ntp_done = false;
 /* Maximum time we are willing to wait for the first SNTP sync. */
 #define NTP_MAX_WAIT_MS 10000
 
-/* Hold button 5 s to wipe WiFi credentials + reboot into config portal. */
-#define FACTORY_RESET_HOLD_MS 5000
-
 static void obtain_time(void)
 {
     /* FIX (HIGH-4): Cấu hình SNTP đúng 3 servers. Code cũ gọi
@@ -477,136 +469,31 @@ static esp_err_t wait_for_ntp_sync(uint32_t timeout_ms)
     return ESP_ERR_TIMEOUT;
 }
 
-static esp_err_t init_event_http_client(void)
-{
-    /* keep_alive_idle=30 s: NAT timeout thường 30-120 s, 30 s an toàn.
-     * keep_alive_interval=10 s, keep_alive_count=3: probe 3 lần mỗi 10 s
-     * trước khi drop connection.                          */
-    const esp_http_client_config_t config = {
-        .url = "https://api.luminostech.tech/",
-        .method = HTTP_METHOD_POST,
-        .timeout_ms = 8000,
-        .crt_bundle_attach = esp_crt_bundle_attach,
-        .keep_alive_enable = true,
-        .keep_alive_idle = 30,
-        .keep_alive_interval = 10,
-        .keep_alive_count = 3,
-    };
-
-    s_http_client = esp_http_client_init(&config);
-    return s_http_client == NULL ? ESP_ERR_NO_MEM : ESP_OK;
-}
-
-static void send_button_event_to_server(const button_event_t *event)
-{
-    if (!wifi_is_connected())
-    {
-        ESP_LOGW(TAG, "Button event skipped: WiFi is not connected");
-        return;
-    }
-
-    /* FIX (HIGH-5): đợi NTP trước HTTPS — TLS cần system clock hợp lệ. */
-    (void)wait_for_ntp_sync(NTP_MAX_WAIT_MS);
-
-    /* Retry loop với exponential backoff: lỗi "Connection reset by peer" thường
-     * là transient — server đang restart hoặc connection pool đầy. Backoff
-     * tránh spam server khi nó đang có vấn đề. */
-    for (int attempt = 0; attempt < 3; attempt++)
-    {
-        /* On retries after the first, close and re-init the client to clear
-         * any corrupted connection state from the previous attempt. */
-        if (attempt > 0)
-        {
-            if (s_http_client != NULL)
-            {
-                esp_http_client_cleanup(s_http_client);
-                s_http_client = NULL;
-            }
-            esp_err_t init_err = init_event_http_client();
-            if (init_err != ESP_OK)
-            {
-                ESP_LOGE(TAG, "HTTP client re-init failed on attempt %d: %s",
-                         attempt, esp_err_to_name(init_err));
-                /* Exponential backoff: 500ms, 1000ms, 2000ms */
-                vTaskDelay(pdMS_TO_TICKS(500 << (attempt - 1)));
-                continue;
-            }
-        }
-
-        if (s_http_client == NULL)
-        {
-            esp_err_t err = init_event_http_client();
-            if (err != ESP_OK)
-            {
-                ESP_LOGE(TAG, "HTTP client initialization failed: %s",
-                         esp_err_to_name(err));
-                return;
-            }
-        }
-
-        /* Serialize access to the shared HTTP client */
-        if (s_http_mutex != NULL)
-            xSemaphoreTake(s_http_mutex, portMAX_DELAY);
-
-        char url[160];
-        snprintf(url, sizeof(url), "https://api.luminostech.tech/%s",
-                 event->endpoint);
-
-        char post_data[256];
-        snprintf(post_data, sizeof(post_data),
-                 "{"
-                 "\"device_code\":\"%s\","
-                 "\"button_state\":\"%s\","
-                 "\"event_type\":\"%s\","
-                 "\"event_value\":\"%s\","
-                 "\"user_id\":%d"
-                 "}",
-                 event->device_code,
-                 event->button_state,
-                 event->event_type,
-                 event->event_value,
-                 event->user_id);
-
-        esp_http_client_set_url(s_http_client, url);
-        esp_http_client_set_header(s_http_client, "Content-Type", "application/json");
-        esp_http_client_set_header(s_http_client, "Accept", "application/json");
-        esp_http_client_set_post_field(s_http_client, post_data, strlen(post_data));
-
-        esp_err_t err = esp_http_client_perform(s_http_client);
-        if (err == ESP_OK)
-        {
-            ESP_LOGI(TAG, "Button event HTTP status=%d (attempt %d)",
-                     esp_http_client_get_status_code(s_http_client), attempt + 1);
-
-            if (s_http_mutex != NULL)
-                xSemaphoreGive(s_http_mutex);
-            return; /* Success */
-        }
-
-        ESP_LOGW(TAG, "Button event HTTP failed: %s (attempt %d/%d) — retrying...",
-                 esp_err_to_name(err), attempt + 1, 3);
-
-        if (s_http_mutex != NULL)
-            xSemaphoreGive(s_http_mutex);
-
-        /* Exponential backoff: 500ms, 1000ms, 2000ms */
-        vTaskDelay(pdMS_TO_TICKS(500 << attempt));
-    }
-
-    ESP_LOGE(TAG, "Button event failed after 3 attempts");
-}
-
 /* === MỚI: POST /api/v1/event-buttons (B2, chạy task riêng) === */
-static void send_button_event_iso8601(void)
+static void send_button_event_iso8601(const button_event_t *event)
 {
     if (!wifi_is_connected())
     {
         ESP_LOGW(TAG, "[event-buttons] skip: WiFi not connected");
+        device_control_log('W', "BUTTON", "Check-in skipped: WiFi is offline");
         return;
     }
 
     /* Đợi NTP — TLS cần clock hợp lệ */
-    (void)wait_for_ntp_sync(NTP_MAX_WAIT_MS);
+    if (wait_for_ntp_sync(NTP_MAX_WAIT_MS) != ESP_OK)
+    {
+        ESP_LOGW(TAG, "[event-buttons] skip: clock is not synchronized");
+        device_control_log('W', "BUTTON", "Check-in skipped: clock is not synchronized");
+        return;
+    }
+
+    /* Use the same notification function and alert settings as band warnings. */
+    esp_err_t push_err = http_api_send_push_alert(
+        1, "LUMO Hub", "người dùng ấn nút", "lumohub-admin", "alert");
+    if (push_err != ESP_OK)
+    {
+        ESP_LOGW(TAG, "[button] notification failed: %s", esp_err_to_name(push_err));
+    }
 
     /* Lấy giờ UTC, format ISO-8601 với 'Z' (chuẩn Pydantic datetime) */
     time_t now = 0;
@@ -614,6 +501,7 @@ static void send_button_event_iso8601(void)
     char iso[32] = {0};
 
     time(&now);
+    now -= (time_t)((esp_timer_get_time() - event->clicked_at_us) / 1000000LL);
     gmtime_r(&now, &timeinfo); /* UTC */
     strftime(iso, sizeof(iso), "%Y-%m-%dT%H:%M:%SZ", &timeinfo);
 
@@ -651,6 +539,9 @@ static void send_button_event_iso8601(void)
         if (err == ESP_OK)
         {
             int status = esp_http_client_get_status_code(client);
+            char line[64];
+            snprintf(line, sizeof(line), "Check-in API returned HTTP %d", status);
+            device_control_log(status >= 200 && status < 300 ? 'I' : 'E', "HTTP", line);
             if (status >= 200 && status < 300)
             {
                 ESP_LOGI(TAG,
@@ -673,16 +564,8 @@ static void send_button_event_iso8601(void)
     }
 
     ESP_LOGE(TAG, "[event-buttons] POST failed after 3 attempts");
+    device_control_log('E', "HTTP", "Check-in API failed after 3 attempts");
     esp_http_client_cleanup(client);
-}
-
-/* [LUMO-DEV] __attribute__((unused)) vì caller nằm trong comment (button disabled) */
-__attribute__((unused))
-static void send_button_event_task(void *arg)
-{
-    (void)arg;
-    send_button_event_iso8601();
-    vTaskDelete(NULL);
 }
 
 static void http_task(void *arg)
@@ -694,38 +577,23 @@ static void http_task(void *arg)
     {
         if (xQueueReceive(s_http_queue, &event, portMAX_DELAY) == pdTRUE)
         {
-            send_button_event_to_server(&event);
+            send_button_event_iso8601(&event);
         }
     }
 }
 
-/* [LUMO-DEV] __attribute__((unused)) vì caller nằm trong comment (button disabled) */
-__attribute__((unused))
 static esp_err_t init_server_events(void)
 {
-    /* Queue size 32: enough to absorb bursts (e.g. multiple button presses
-     * during WiFi flap) without losing events.  Older events are dropped
-     * (xQueueSend with 0 timeout) so the queue never blocks the sender. */
+    /* A single HTTP worker handles clicks without blocking button polling. */
     s_http_queue = xQueueCreate(32, sizeof(button_event_t));
     if (s_http_queue == NULL)
     {
         return ESP_ERR_NO_MEM;
     }
 
-    /* Mutex to protect the shared HTTP client singleton */
-    s_http_mutex = xSemaphoreCreateMutex();
-    if (s_http_mutex == NULL)
-    {
-        vQueueDelete(s_http_queue);
-        s_http_queue = NULL;
-        return ESP_ERR_NO_MEM;
-    }
-
     if (xTaskCreate(http_task, "http_task", 16384, NULL, 5, NULL) != pdPASS)
     {
-        vSemaphoreDelete(s_http_mutex);
         vQueueDelete(s_http_queue);
-        s_http_mutex = NULL;
         s_http_queue = NULL;
         return ESP_ERR_NO_MEM;
     }
@@ -1067,7 +935,7 @@ static void start_voice_interaction(void)
     /* [LUMO-DEV] DISABLED: tắt luồng record 5s + gọi API audio lên server.
      * Giữ hàm nhưng return ngay để không ghi âm, không upload, không gọi
      * STT/LLM/TTS. Bỏ comment dưới đây để bật lại. */
-    ESP_LOGW(TAG, "start_voice_interaction() is DISABLED (button + voice flow turned off)");
+    ESP_LOGW(TAG, "start_voice_interaction() is DISABLED");
     return;
 
 #if 0  /* === original code, disabled === */
@@ -1151,42 +1019,35 @@ static void start_voice_interaction(void)
 #endif /* === end original start_voice_interaction === */
 }
 
-/* [LUMO-DEV] __attribute__((unused)) vì caller nằm trong block #if 0 (button disabled) */
-__attribute__((unused))
-static void handle_button_press(bool first_event)
+static void handle_button_press(void)
 {
     ESP_LOGI(TAG, "Button press detected");
+    device_control_log('I', "BUTTON", "Physical button pressed");
 
-    /* [LUMO-DEV] DISABLED: button + voice flow đã tắt (xem start_voice_interaction).
-     * Không acknowledge fall, không gọi audio_play, không start voice interaction.
-     * Bỏ comment đoạn dưới để bật lại hành vi gốc. */
-    (void)first_event;
-    return;
-
-#if 0  /* === original code, disabled === */
-    /* Silencing fall alert: first acknowledge, then queue button event */
-    if (g_band_state.fall_alert_active && !g_band_state.fall_alert_acknowledged) {
-        ESP_LOGI(TAG, "Button pressed — acknowledging active fall alert");
-        band_acknowledge_fall();
-        if (FEATURES.storage && FEATURES.audio) {
-            audio_play("/spiffs/fall_cancelled.wav");
-        }
+    if (!FEATURES.server_events || s_http_queue == NULL)
+    {
+        return;
     }
 
-    /* POST button event — DISABLED: tắt cơ chế button ấn gửi lên server.
-     * Đoạn code gốc được giữ dưới dạng comment để bật lại khi cần:
-     *
-     * xTaskCreate(
-     *     send_button_event_task,
-     *     "btn_event_iso",
-     *     4096,
-     *     NULL,
-     *     4,
-     *     NULL);
-     */
-    (void)first_event;
-    start_voice_interaction();
-#endif /* === end original handle_button_press === */
+    const button_event_t event = {.clicked_at_us = esp_timer_get_time()};
+    if (xQueueSend(s_http_queue, &event, 0) != pdTRUE)
+    {
+        ESP_LOGE(TAG, "Button event queue full; click was not sent");
+    }
+}
+
+static void button_poll_task(void *arg)
+{
+    (void)arg;
+    for (;;)
+    {
+        button_update(&s_button, (uint32_t)(esp_timer_get_time() / 1000ULL));
+        if (button_is_clicked(&s_button))
+        {
+            handle_button_press();
+        }
+        vTaskDelay(pdMS_TO_TICKS(10));
+    }
 }
 
 static float estimate_frequency_hz(const int16_t *pcm, size_t samples,
@@ -1375,7 +1236,6 @@ static esp_err_t initialize_enabled_features(void)
         {
             ESP_LOGI(TAG, "WiFi connected");
             /* Non-blocking — NTP runs in background */
-            obtain_time();
         }
         else
         {
@@ -1383,6 +1243,8 @@ static esp_err_t initialize_enabled_features(void)
             display_wifi_setup();
             wifi_start_config_portal();
         }
+        /* Start SNTP for both saved Wi-Fi and late captive-portal connections. */
+        obtain_time();
     }
 
     if (FEATURES.microphone)
@@ -1410,16 +1272,17 @@ static esp_err_t initialize_enabled_features(void)
 
     if (FEATURES.server_events)
     {
-        /* [LUMO-DEV] DISABLED: button đã tắt nên không có event nào để gửi,
-         * khởi tạo queue/task sẽ tốn RAM vô ích.
-         *
-         * err = init_server_events();
-         * if (err != ESP_OK)
-         * {
-         *     return err;
-         * }
-         */
-        (void)err;
+        err = init_server_events();
+        if (err != ESP_OK)
+        {
+            return err;
+        }
+    }
+
+    if (FEATURES.button &&
+        xTaskCreate(button_poll_task, "button_poll", 3072, NULL, 5, NULL) != pdPASS)
+    {
+        return ESP_ERR_NO_MEM;
     }
 
     if (FEATURES.storage && FEATURES.audio)
@@ -1474,6 +1337,15 @@ void lumo_runtime_start(const lumo_feature_config_t *features)
         }
     }
 
+    if (FEATURES.network && FEATURES.storage && FEATURES.audio)
+    {
+        err = device_control_start(DEVICE_CODE, LUMO_FW_VERSION_STRING);
+        if (err != ESP_OK)
+        {
+            ESP_LOGE(TAG, "Web control startup failed: %s", esp_err_to_name(err));
+        }
+    }
+
     if (FEATURES.microphone_record_test)
     {
         err = run_microphone_record_test_in_task();
@@ -1496,8 +1368,6 @@ void lumo_runtime_start(const lumo_feature_config_t *features)
         }
     }
 
-    /* first_button_event: disabled cùng với button block (xem #if 0 dưới) */
-    bool first_button_event_unused __attribute__((unused)) = true;
     const bool idle_mode = !FEATURES.button && !FEATURES.microphone_level_log;
 
     if (idle_mode)
@@ -1517,87 +1387,7 @@ void lumo_runtime_start(const lumo_feature_config_t *features)
         //     }
         // }
 
-        /* [LUMO-DEV] DISABLED: tắt hoàn toàn nhận diện button (cả click ngắn
-         * lẫn long-press 5s factory reset). Tất cả logic button được giữ
-         * dưới dạng comment để bật lại dễ dàng.
-         *
-         * NOTE: Nếu muốn xóa Wi-Fi credentials, dùng `idf.py erase_flash`
-         * hoặc gọi wifi_factory_reset() từ code khác. Hoặc bật lại block
-         * dưới đây và chỉnh sửa theo nhu cầu.
-         */
-#if 0
-        if (FEATURES.button)
-        {
-            /* FIX (MED-1): dùng button_is_clicked (edge-detect) thay vì
-             * button_is_pressed (level). Code cũ trigger khi nhấn xuống nhưng
-             * debounce logic ở button.c chỉ set stable_state → bấm ngắn có
-             * thể bị miss hoặc bấm dài trigger nhiều lần. */
-            button_update(&s_button, (uint32_t)(esp_timer_get_time() / 1000ULL));
-
-            if (button_is_clicked(&s_button))
-            {
-                handle_button_press(false);
-                first_button_event = false;
-
-            }
-
-
-            /* Long-press 5 s = factory reset (xóa WiFi cũ + vào captive portal) */
-            uint32_t hold_ms = button_current_press_ms(
-                &s_button, (uint32_t)(esp_timer_get_time() / 1000ULL));
-            if (hold_ms > 0 && (hold_ms % 1000) < 250)
-            {
-                ESP_LOGI(TAG, "Button held %lu ms — hold 5000 ms to FACTORY RESET",
-                         (unsigned long)hold_ms);
-            }
-            if (button_is_long_pressed(&s_button, FACTORY_RESET_HOLD_MS))
-            {
-                ESP_LOGW(TAG, ">>> FACTORY RESET: wiping WiFi credentials and rebooting <<<");
-                display_message("FACTORY RESET...");
-                wifi_factory_reset();
-                /* Restart cleanly so the new boot sees no credentials
-                 * and the captive portal comes up immediately. */
-                esp_restart();
-            }
-
-            /* DEBUG: log WiFi status mỗi ~30s khi connected (không spam).
-             * Chỉ log ngay khi state CHUYỂN từ disconnected → connected
-             * hoặc ngược lại, cộng thêm status mỗi 30s để xác nhận vẫn alive. */
-            static uint32_t last_wifi_log_ms = 0;
-            static bool last_connected = false;
-            uint32_t now_ms = (uint32_t)(esp_timer_get_time() / 1000ULL);
-            bool currently_connected = wifi_is_connected();
-            bool state_changed = (currently_connected != last_connected);
-            bool periodic_log = (now_ms - last_wifi_log_ms > 30000);
-
-            if (state_changed || periodic_log)
-            {
-                last_wifi_log_ms = now_ms;
-                if (!currently_connected)
-                {
-                    ESP_LOGW(TAG, "STATUS: WiFi NOT connected. Saved creds in NVS: checking...");
-                    char dbg_ssid[33] = {0};
-                    char dbg_pass[65] = {0};
-                    if (wifi_load_credentials(dbg_ssid, sizeof(dbg_ssid),
-                                              dbg_pass, sizeof(dbg_pass)))
-                    {
-                        ESP_LOGW(TAG, "  SSID='%s' len=%u, PASS len=%u",
-                                 dbg_ssid, (unsigned)strlen(dbg_ssid),
-                                 (unsigned)strlen(dbg_pass));
-                    }
-                    else
-                    {
-                        ESP_LOGW(TAG, "  No credentials stored (will open captive portal)");
-                    }
-                }
-                else
-                {
-                    ESP_LOGI(TAG, "STATUS: WiFi CONNECTED (alive check)");
-                }
-                last_connected = currently_connected;
-            }
-        }
-#endif /* === end disabled button block === */
+        /* Button polling runs independently so audio playback cannot miss clicks. */
 
         if (FEATURES.microphone_level_log && pcm != NULL)
         {
@@ -1606,7 +1396,6 @@ void lumo_runtime_start(const lumo_feature_config_t *features)
 
         /* LumoBand BLE alert evaluation — checks thresholds, fires audio */
         band_alert_tick();
-        audio_stop();
         vTaskDelay(pdMS_TO_TICKS(200));
     }
 }

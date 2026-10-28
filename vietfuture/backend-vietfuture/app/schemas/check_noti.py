@@ -1,5 +1,6 @@
 from datetime import datetime
-from pydantic import BaseModel, Field
+from pydantic import Field
+from app.schemas.base import APIModel as BaseModel
 
 
 class CheckNotiCreateRequest(BaseModel):

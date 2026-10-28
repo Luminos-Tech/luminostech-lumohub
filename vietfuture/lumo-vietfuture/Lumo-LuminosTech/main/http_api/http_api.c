@@ -1,4 +1,5 @@
 #include "http_api.h"
+#include "device_control/device_control.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -672,13 +673,10 @@ cleanup:
 }
 
 // ============================================================
-// Send push notification (gửi 3 lần liên tục khi phát hiện va chạm mạnh)
+// Send one push notification; band alerts use the three-send wrapper below.
 // ============================================================
-esp_err_t http_api_send_push_alert(int user_id, const char *title, const char *body, const char *tag, const char *notification_type)
+esp_err_t http_api_send_push_notification(int user_id, const char *title, const char *body, const char *tag, const char *notification_type)
 {
-    esp_err_t err = ESP_FAIL;
-    esp_http_client_handle_t client = NULL;
-
     const char *server_url = "https://api.luminostech.tech/api/v1/push/send";
 
     // JSON payload
@@ -687,7 +685,7 @@ esp_err_t http_api_send_push_alert(int user_id, const char *title, const char *b
              "{\"user_id\":%d,\"title\":\"%s\",\"body\":\"%s\",\"tag\":\"%s\",\"notification_type\":\"%s\"}",
              user_id, title, body, tag, notification_type);
 
-    ESP_LOGI(TAG, "Sending push alert: %s", post_data);
+    ESP_LOGI(TAG, "Sending push notification: %s", post_data);
 
     esp_http_client_config_t config = {
         .url = server_url,
@@ -696,31 +694,39 @@ esp_err_t http_api_send_push_alert(int user_id, const char *title, const char *b
         .crt_bundle_attach = esp_crt_bundle_attach,
     };
 
-    // Gửi 3 lần liên tục
+    esp_http_client_handle_t client = esp_http_client_init(&config);
+    if (!client) {
+        ESP_LOGE(TAG, "esp_http_client_init failed");
+        return ESP_ERR_NO_MEM;
+    }
+
+    esp_http_client_set_header(client, "Content-Type", "application/json");
+    esp_http_client_set_post_field(client, post_data, strlen(post_data));
+
+    esp_err_t err = esp_http_client_perform(client);
+    int status = esp_http_client_get_status_code(client);
+
+    if (err == ESP_OK && status >= 200 && status < 300) {
+        ESP_LOGI(TAG, "Push sent successfully");
+        device_control_log('I', "HTTP", "Notification API request succeeded");
+    } else {
+        ESP_LOGW(TAG, "Push failed: err=%s, status=%d",
+                 esp_err_to_name(err), status);
+        device_control_log('E', "HTTP", "Notification API request failed");
+        if (err == ESP_OK) {
+            err = ESP_FAIL;
+        }
+    }
+
+    esp_http_client_cleanup(client);
+    return err;
+}
+
+esp_err_t http_api_send_push_alert(int user_id, const char *title, const char *body, const char *tag, const char *notification_type)
+{
+    /* Preserve the existing three-send behavior for band alerts. */
     for (int attempt = 1; attempt <= 3; attempt++) {
-        client = esp_http_client_init(&config);
-        if (!client) {
-            ESP_LOGE(TAG, "esp_http_client_init failed (attempt %d)", attempt);
-            return ESP_FAIL;
-        }
-
-        esp_http_client_set_header(client, "Content-Type", "application/json");
-        esp_http_client_set_post_field(client, post_data, strlen(post_data));
-
-        err = esp_http_client_perform(client);
-        int status = esp_http_client_get_status_code(client);
-
-        if (err == ESP_OK && status == 200) {
-            ESP_LOGI(TAG, "Push sent successfully (attempt %d/3)", attempt);
-        } else {
-            ESP_LOGW(TAG, "Push failed (attempt %d/3): err=%s, status=%d",
-                     attempt, esp_err_to_name(err), status);
-        }
-
-        esp_http_client_cleanup(client);
-        client = NULL;
-
-        // Delay 200ms giữa các lần gửi
+        http_api_send_push_notification(user_id, title, body, tag, notification_type);
         vTaskDelay(pdMS_TO_TICKS(200));
     }
 

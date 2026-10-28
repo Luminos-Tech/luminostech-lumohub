@@ -5,7 +5,6 @@ import logging
 import os
 import wave
 from concurrent.futures import ThreadPoolExecutor
-from datetime import datetime
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, UploadFile, File
 from fastapi.responses import Response
@@ -17,6 +16,7 @@ import requests
 from app.core.config import settings
 from app.services.deps import get_current_active_user
 from app.models.user import User
+from app.utils.timezone import local_now
 
 router = APIRouter(prefix="/lumo", tags=["LUMO"])
 
@@ -97,7 +97,7 @@ def _search_web_text(query: str) -> str:
 
 
 def _build_lumo_prompt(text: str, search_result: str | None = None) -> str:
-    now = datetime.now().astimezone()
+    now = local_now()
     date_now = f"thời gian ngày {now.day} tháng {now.month} năm {now.year}"
     history = get_lumo_history_string(settings.LUMO_LOG_PATH, limit=40)
     context = f"- {search_result}\n" if search_result else ""

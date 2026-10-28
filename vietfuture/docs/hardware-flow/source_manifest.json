@@ -1,0 +1,139 @@
+{
+  "source_date": "2026-10-29",
+  "timezone": "Asia/Saigon",
+  "image_pixels": [
+    4400,
+    3400
+  ],
+  "files": {
+    "lumo-vietfuture/Lumo-Band/main/CMakeLists.txt": "bfe7a7014511459eb6f870ac0d927c9cd715f876e4960c1a2fd1c4b81a1a29d0",
+    "lumo-vietfuture/Lumo-Band/src/main.c": "ee02656d8b308e7b6c7d7656d223848b13c2975a4604ad0b035fffeda97e52f4",
+    "lumo-vietfuture/Lumo-Band/src/mpu6050.c": "156c06d204b205889fc00e242d7ef83a16a51cbd8894e919cae61301e14b03de",
+    "lumo-vietfuture/Lumo-LuminosTech/main/CMakeLists.txt": "81ec9066bf09f22200a9e06d907487d0b821c088979ae238296be62674b6faed",
+    "lumo-vietfuture/Lumo-LuminosTech/main/Lumo-LuminosTech.c": "896d50cdd1425aacc325b2ea0cf6fd362aa80cb6f6b0e9af403d7eb4b2c1311f",
+    "lumo-vietfuture/Lumo-LuminosTech/main/lumo_runtime.c": "59a69d5fb7b29f2c1be8a59f9f997e7b5253a57aaa0ed1d9a0e1df79feb4c5d6",
+    "lumo-vietfuture/Lumo-LuminosTech/main/ble/lumo_band_central.c": "a9475e2457933c3feefa6534aeb1a6bc780a3d6ef725fc9b665a2e38751ff13d",
+    "lumo-vietfuture/Lumo-LuminosTech/main/ble/lumo_band_state.c": "de29de9338d2141f395e1f6b56df409ae817310f7eab89470e4fe632db3961c5",
+    "lumo-vietfuture/Lumo-LuminosTech/main/ble/lumo_band_state.h": "7e4dce0bd9a1f4d9269adde02af8147a52f7a3a69d580c0a1c5947cdf822b220",
+    "lumo-vietfuture/Lumo-LuminosTech/main/device_control/device_control.c": "5f99b23eb152316bb9dcf0a0b16139d4eb079d4ff32fe8b0ef6ad8e31e25360c",
+    "lumo-vietfuture/Lumo-LuminosTech/main/http_api/http_api.c": "49f06f5cb317e9acc51722b1d7af63d447e3ae967d72289039535082cb96305f",
+    "lumo-vietfuture/Lumo-LuminosTech/main/lumo_version.h": "db9ab87dc2bf201f4d03a81d9e798b03306f0d284716974f5aa7349a8ff41799",
+    "lumo-vietfuture/Lumo-LuminosTech/main/button/button.c": "d104a90806a79d3c83c83c9218d066e58c8b55a99d24b261b1ff678eb5a6de17",
+    "lumo-vietfuture/Lumo-LuminosTech/sdkconfig": "05023a56cbeb86aeee1619f1800dc04aeffb1a3932b48c214192cc1bcfaaa223",
+    "lumo-vietfuture/Lumo-Band/sdkconfig": "c39ffd9080f07405b96aa21e4041c76313a6fdfac57daa9be42943fba2c04cfb",
+    "backend-vietfuture/app/routes/push.py": "ede778bc0db69d2bca00603731ed369304f4a255cf0f8936ebc46c0243564e09",
+    "backend-vietfuture/app/routes/event_buttons.py": "f5958614dd3e13f2bdb2bd2ba3271da4af7c049df05dc6fae7e2a55ec33d93b5",
+    "backend-vietfuture/app/routes/devices.py": "55549c8f343c3d5c9c73d316689cbf4a70940756a56ee10f27cf7e5005238956",
+    "backend-vietfuture/app/websocket/routes.py": "f86de0db7d6de41b41c5da337d076cc37c4e7b95c7becfe228ba114082428299",
+    "backend-vietfuture/app/crud/event_button.py": "1ec0362ec85dca61ec9b0ee1f2f232f704720238854b4d603a116c9d007163cd",
+    "backend-vietfuture/app/websocket/manager.py": "f01d32d52b4e1623d359902faa10fba1fa43d08b0f41e12080f2c484ba044b7e",
+    "frontend-web-vietfuture/src/components/devices/DeviceAudioControl.tsx": "ee5fab303c03a97be26deb098e5348e599d5ce9c738e5cb26ef3b89ebb7f581e"
+  },
+  "layout_checks": [
+    {
+      "card": "NGƯỜI ĐEO",
+      "bottom": 721,
+      "limit": 755
+    },
+    {
+      "card": "CẢM BIẾN MPU6050",
+      "bottom": 721,
+      "limit": 755
+    },
+    {
+      "card": "LUMO BAND • ESP32-C3",
+      "bottom": 721,
+      "limit": 755
+    },
+    {
+      "card": "LUMO HUB • ESP32-S3",
+      "bottom": 721,
+      "limit": 755
+    },
+    {
+      "card": "BACKEND → WEB / TRÌNH DUYỆT",
+      "bottom": 721,
+      "limit": 755
+    },
+    {
+      "card": "IDLE",
+      "bottom": 1466,
+      "limit": 1500
+    },
+    {
+      "card": "IMPACT_WAIT",
+      "bottom": 1466,
+      "limit": 1500
+    },
+    {
+      "card": "FALL_CONFIRMED",
+      "bottom": 1466,
+      "limit": 1500
+    },
+    {
+      "card": "CÓ CHUYỂN ĐỘNG TRỞ LẠI",
+      "bottom": 1756,
+      "limit": 1820
+    },
+    {
+      "card": "HẾT CỬA SỔ THEO DÕI",
+      "bottom": 1756,
+      "limit": 1820
+    },
+    {
+      "card": "XÓA TRẠNG THÁI NGÃ",
+      "bottom": 1756,
+      "limit": 1820
+    },
+    {
+      "card": "NHÁNH CÓ PHÁT LOA + GỬI PUSH",
+      "bottom": 1525,
+      "limit": 1525
+    },
+    {
+      "card": "NHÁNH NGÃ HIỆN CHỈ XỬ LÝ / GHI LOG",
+      "bottom": 1785,
+      "limit": 1785
+    },
+    {
+      "card": "01 • NHẤN RỒI THẢ NÚT",
+      "bottom": 2423,
+      "limit": 2450
+    },
+    {
+      "card": "02 • HTTP WORKER",
+      "bottom": 2423,
+      "limit": 2450
+    },
+    {
+      "card": "03 • HTTPS → FASTAPI",
+      "bottom": 2423,
+      "limit": 2450
+    },
+    {
+      "card": "04 • LƯU / HIỂN THỊ",
+      "bottom": 2423,
+      "limit": 2450
+    },
+    {
+      "card": "01 • WEB CHỌN ÂM THANH",
+      "bottom": 2718,
+      "limit": 2745
+    },
+    {
+      "card": "02 • REST API + QUYỀN",
+      "bottom": 2713,
+      "limit": 2745
+    },
+    {
+      "card": "03 • WEBSOCKET TỚI HUB",
+      "bottom": 2718,
+      "limit": 2745
+    },
+    {
+      "card": "04 • SPIFFS → I²S → LOA",
+      "bottom": 2718,
+      "limit": 2745
+    }
+  ]
+}

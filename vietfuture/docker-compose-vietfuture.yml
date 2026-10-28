@@ -30,6 +30,7 @@ services:
       DATABASE_URL: postgresql://lumohub:lumohub123@postgres:5432/lumohub_db
       SECRET_KEY: lumohub-super-secret-key-change-in-prod-32chars
       ALGORITHM: HS256
+      TZ: Asia/Ho_Chi_Minh
       ACCESS_TOKEN_EXPIRE_MINUTES: 30
       REFRESH_TOKEN_EXPIRE_DAYS: 7
       CORS_ORIGINS: http://localhost:3000,http://127.0.0.1:3000

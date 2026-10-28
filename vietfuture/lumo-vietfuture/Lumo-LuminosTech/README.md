@@ -23,14 +23,32 @@
 - Dùng font 5x7 pixel tùy chỉnh
 
 ### 🔘 Nút nhấn (Button)
-- Kết nối GPIO 7, xử lý debounce phần mềm
-- Phát hiện sự kiện **nhấn xuống** và **thả ra**
-- Khi nhấn: gửi event `press` lên server, cập nhật màn hình OLED ngay lập tức
+- Bản `v0.5.8-button-alert-notification`: GPIO42, active LOW, debounce 5 ms; tác vụ riêng đọc nút mỗi 10 ms.
+- Mỗi lần nhấn rồi thả: gọi chính hàm `http_api_send_push_alert()` đang dùng cho cảnh báo LumoBand, gửi `POST /api/v1/push/send` với `title="LUMO Hub"`, `body="người dùng ấn nút"`, `tag="lumohub-admin"`, `notification_type="alert"` và người nhận demo `user_id=1`.
+- Hàm cảnh báo gửi 3 lần liên tiếp, cách nhau 200 ms; thao tác bấm nút cũng dùng cơ chế này.
+- Đồng thời gửi `POST /api/v1/event-buttons` với mã thiết bị `0001` và thời điểm bấm UTC để ghi nhận check-in.
+- Gửi HTTP qua hàng đợi tối đa 32 sự kiện; khi mất Wi-Fi hoặc chưa đồng bộ NTP, sự kiện được bỏ qua kèm log. Chưa có lưu hàng đợi bền vững khi offline.
+- Nút chỉ gửi thông báo/check-in; thu âm giọng nói và giữ nút để reset Wi-Fi đang tắt.
 
 ### 🎤 Microphone (I2S)
 - Giao thức I2S: BCK GPIO 15, WS GPIO 16, DATA GPIO 17
 - Sample rate 16.000 Hz, chu kỳ đọc 100ms mỗi frame
 - Thu âm PCM 16-bit liên tục trong vòng lặp chính
+
+### Điều khiển loa từ web (v0.5.9)
+- Trong **Cài đặt → Thiết bị** (`/settings/devices`) hoặc **Điều khiển LUMO Hub** (`/admin/websocket`), chọn tiếng bíp, lời chào LUMO hoặc âm thanh điểm danh, rồi bấm **Phát trên Hub** / **Dừng**.
+- Hub kết nối WebSocket tới `wss://api.luminostech.tech/ws/lumo?device_id=0001`, gửi handshake, nhận lệnh JSON và xác nhận kết quả. Web chỉ báo phát xong khi nhận xác nhận từ firmware.
+- Âm thanh lấy từ các file có sẵn trong SPIFFS. Đây là điều khiển loa Hub, không phát trên loa điện thoại và chưa phải TTS tùy ý từ web.
+- Cập nhật cả backend, frontend và firmware trước khi dùng. Máy chủ phải có `GET /api/v1/devices/{id}/control` và `POST /api/v1/devices/{id}/commands`.
+- Địa chỉ WebSocket có thể đổi qua `idf.py menuconfig` → **LUMO device control**. Khi thử bằng địa chỉ LAN, máy tính và ESP32 phải liên lạc được với nhau.
+- Xem giao thức và cách kiểm tra trong `backend-vietfuture/DEVICE_CONTROL.md`.
+
+Bản `v0.5.10-registration-reconnect` gửi handshake trước heartbeat và chỉ xác nhận
+online khi backend trả `ready` cho đúng mã Hub. Client tự kết nối lại cả khi server
+đóng WebSocket bình thường; nếu chưa được xác nhận trong 15 giây, nó kết nối lại
+để đăng ký lại. Log in rõ kết quả đăng ký và mã đóng socket.
+Khi namespace `wifi_cfg` chưa có dữ liệu, firmware thử dùng lại cấu hình Wi-Fi
+đã lưu của ESP-IDF, không thay đổi hay in mật khẩu.
 
 ### 🔊 Audio Player
 - Phát âm thanh qua I2S (GPIO 5, 4, 6)
@@ -43,7 +61,7 @@
   - Mật khẩu: `12345678`
   - Web portal cấu hình WiFi tại `192.168.4.1`
 
-- Endpoint: `POST https://lumo.vanha2301.online/events/`
+- API hiện tại: `https://api.luminostech.tech/api/v1/push/send` và `/api/v1/event-buttons`.
 - HTTP task chạy ngầm độc lập, nhận lệnh qua **FreeRTOS Queue** (không block luồng chính)
 
 ### 🕐 Đồng bộ thời gian (SNTP)

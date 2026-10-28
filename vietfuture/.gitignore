@@ -154,7 +154,10 @@ Lumo/Lumo-Band/build*/
 Lumo/Lumo-LuminosTech/sdkconfig.ble-central
 
 # Test files
+.playwright-cli/
+frontend-web-vietfuture/output/playwright/
 test_*.py
+!backend-vietfuture/tests/test_*.py
 test_*.wav
 *_output.wav
 *.pcm

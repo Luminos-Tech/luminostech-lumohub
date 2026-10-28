@@ -8,12 +8,13 @@ from app.crud.reminder import mark_reminder_sent
 from app.crud.notification import create_notification
 from app.websocket.manager import manager
 from app.websocket.notification_manager import notification_manager
+from app.utils.timezone import VIETNAM_TIMEZONE, as_local, as_utc
 from datetime import datetime, timezone
 from sqlalchemy import select
 import json
 
 
-scheduler = AsyncIOScheduler()
+scheduler = AsyncIOScheduler(timezone=VIETNAM_TIMEZONE)
 
 
 async def check_reminders():
@@ -31,7 +32,7 @@ async def check_reminders():
         triggered = []
         for reminder in rows:
             event = reminder.event
-            remind_at = event.start_time.replace(tzinfo=timezone.utc) - timedelta(minutes=reminder.remind_before_minutes)
+            remind_at = as_utc(event.start_time) - timedelta(minutes=reminder.remind_before_minutes)
             if now >= remind_at:
                 triggered.append(reminder)
 
@@ -43,7 +44,7 @@ async def check_reminders():
             title = f"⏰ Nhắc lịch: {event.title}"
             content = (
                 f"Sự kiện '{event.title}' sẽ bắt đầu lúc "
-                f"{event.start_time.strftime('%H:%M %d/%m/%Y')}."
+                f"{as_local(event.start_time).strftime('%H:%M %d/%m/%Y')}."
             )
             notification = create_notification(
                 db,
@@ -62,7 +63,7 @@ async def check_reminders():
                     "event_id": event.id,
                     "title": event.title,
                     "message": content,
-                    "start_time": event.start_time.isoformat(),
+                    "start_time": as_local(event.start_time).isoformat(),
                 })
 
             mark_reminder_sent(db, reminder)
@@ -93,9 +94,14 @@ async def cleanup_expired_sessions():
         db.close()
 
 
+async def cleanup_device_logs():
+    manager.logs.expire()
+
+
 def start_scheduler():
-    scheduler.add_job(check_reminders, IntervalTrigger(minutes=1), id="check_reminders", replace_existing=True)
-    scheduler.add_job(cleanup_expired_sessions, IntervalTrigger(hours=1), id="cleanup_sessions", replace_existing=True)
+    scheduler.add_job(check_reminders, IntervalTrigger(minutes=1, timezone=VIETNAM_TIMEZONE), id="check_reminders", replace_existing=True)
+    scheduler.add_job(cleanup_expired_sessions, IntervalTrigger(hours=1, timezone=VIETNAM_TIMEZONE), id="cleanup_sessions", replace_existing=True)
+    scheduler.add_job(cleanup_device_logs, IntervalTrigger(seconds=30, timezone=VIETNAM_TIMEZONE), id="cleanup_device_logs", replace_existing=True)
     scheduler.start()
     print("Scheduler started.")
 

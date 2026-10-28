@@ -1,6 +1,7 @@
 #pragma once
 
 #include <stdbool.h>
+#include <stdint.h>
 
 #include "esp_err.h"
 
@@ -20,6 +21,10 @@ typedef struct {
     float peak1s_g;
     bool moving;
     bool sensor_online;
+    int16_t accel_raw[3];
+    int16_t gyro_raw[3];
+    uint32_t sample_sequence;
+    int64_t sampled_at_ms;
 } mpu6050_snapshot_t;
 
 esp_err_t mpu6050_start(void);

@@ -1,4 +1,6 @@
-from pydantic import BaseModel, model_validator
+from pydantic import field_validator, model_validator
+from app.schemas.base import APIModel as BaseModel
+from app.utils.timezone import incoming_datetime
 from typing import Optional, List
 from datetime import datetime
 
@@ -18,6 +20,11 @@ class EventCreateRequest(BaseModel):
     color: Optional[str] = "#3B82F6"
     reminders: Optional[List[ReminderInEvent]] = []
 
+    @field_validator("start_time", "end_time")
+    @classmethod
+    def normalize_datetime(cls, value: datetime) -> datetime:
+        return incoming_datetime(value)
+
     @model_validator(mode="after")
     def check_times(self):
         if self.end_time <= self.start_time:
@@ -34,6 +41,11 @@ class EventUpdateRequest(BaseModel):
     status: Optional[str] = None
     priority: Optional[str] = None
     color: Optional[str] = None
+
+    @field_validator("start_time", "end_time")
+    @classmethod
+    def normalize_datetime(cls, value: Optional[datetime]) -> Optional[datetime]:
+        return incoming_datetime(value) if value is not None else None
 
 
 class ReminderResponse(BaseModel):

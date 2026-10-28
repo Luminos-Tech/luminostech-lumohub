@@ -52,6 +52,10 @@ static float s_magnitude_g;
 static float s_peak1s_g;
 static bool s_moving;
 static bool s_sensor_online;
+static int16_t s_accel_raw[3];
+static int16_t s_gyro_raw[3];
+static uint32_t s_sample_sequence;
+static int64_t s_sampled_at_ms;
 static float s_accel_window[MPU6050_PEAK_WINDOW_SAMPLES];
 static uint8_t s_accel_window_index;
 static uint8_t s_accel_window_count;
@@ -94,13 +98,22 @@ static void reset_fall_tracking(void)
 }
 
 static void publish_snapshot(float magnitude_g, float peak1s_g,
-                             bool moving, bool sensor_online)
+                             bool moving, bool sensor_online,
+                             const int16_t *accel_raw, const int16_t *gyro_raw)
 {
     portENTER_CRITICAL(&s_state_lock);
     s_magnitude_g = magnitude_g;
     s_peak1s_g = peak1s_g;
     s_moving = moving;
     s_sensor_online = sensor_online;
+    if (sensor_online && accel_raw != NULL && gyro_raw != NULL) {
+        for (int i = 0; i < 3; i++) {
+            s_accel_raw[i] = accel_raw[i];
+            s_gyro_raw[i] = gyro_raw[i];
+        }
+        s_sample_sequence++;
+        s_sampled_at_ms = esp_timer_get_time() / 1000LL;
+    }
     portEXIT_CRITICAL(&s_state_lock);
 }
 
@@ -112,7 +125,7 @@ static void mark_sensor_offline(void)
     s_accel_window_index = 0;
     s_accel_window_count = 0;
     portEXIT_CRITICAL(&s_state_lock);
-    publish_snapshot(0.0f, 0.0f, false, false);
+    publish_snapshot(0.0f, 0.0f, false, false, NULL, NULL);
 }
 
 void mpu6050_get_snapshot(mpu6050_snapshot_t *snapshot)
@@ -127,6 +140,12 @@ void mpu6050_get_snapshot(mpu6050_snapshot_t *snapshot)
     snapshot->peak1s_g = s_peak1s_g;
     snapshot->moving = s_moving;
     snapshot->sensor_online = s_sensor_online;
+    for (int i = 0; i < 3; i++) {
+        snapshot->accel_raw[i] = s_accel_raw[i];
+        snapshot->gyro_raw[i] = s_gyro_raw[i];
+    }
+    snapshot->sample_sequence = s_sample_sequence;
+    snapshot->sampled_at_ms = s_sampled_at_ms;
     portEXIT_CRITICAL(&s_state_lock);
 }
 
@@ -358,7 +377,9 @@ static void mpu6050_task(void *param)
 
             update_fall_state(accel_magnitude, gyro_magnitude,
                               (int64_t)timestamp_ms);
-            publish_snapshot(accel_magnitude, peak1s_g, moving, true);
+            const int16_t accel_raw[3] = {accel_x_raw, accel_y_raw, accel_z_raw};
+            const int16_t gyro_raw[3] = {gyro_x_raw, gyro_y_raw, gyro_z_raw};
+            publish_snapshot(accel_magnitude, peak1s_g, moving, true, accel_raw, gyro_raw);
 
             ESP_LOGI(TAG,
                      "MPU ax=%6.2fg ay=%6.2fg az=%6.2fg "

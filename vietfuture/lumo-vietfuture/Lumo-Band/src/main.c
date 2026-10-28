@@ -26,6 +26,9 @@
 #define BLE_PAYLOAD_VERSION 0x02U
 #define BLE_SAMPLE_PERIOD_MS 1000
 #define BLE_FALL_NOTIFY_PERIOD_MS 5000
+#define MPU_DIAGNOSTIC_PERIOD_MS 2000
+#define MPU_DIAGNOSTIC_VERSION 0x03U
+#define BAND_FW_VERSION "v0.3.0-mpu-diagnostics"
 
 static const char *TAG = "lumo_c3_band";
 
@@ -283,6 +286,7 @@ static void sample_task(void *param)
     int64_t next_regular_ms = 0;
     int64_t last_fall_notify_ms = -BLE_FALL_NOTIFY_PERIOD_MS;
     bool was_fall_confirmed = false;
+    int64_t next_diagnostic_ms = 0;
 
     (void)param;
 
@@ -351,6 +355,43 @@ static void sample_task(void *param)
             next_regular_ms = now_ms + BLE_SAMPLE_PERIOD_MS;
         }
 
+        /* An additional 20-byte notify fits the default ATT MTU. The existing
+         * v2 sample and fall notification cadence remain unchanged. */
+        if (now_ms >= next_diagnostic_ms) {
+            uint8_t diagnostic[20] = {MPU_DIAGNOSTIC_VERSION, state};
+            int64_t sample_age = now_ms - snapshot.sampled_at_ms;
+            uint32_t age_ms = snapshot.sample_sequence == 0 ? UINT16_MAX :
+                sample_age < 0 ? 0 : sample_age > UINT16_MAX ? UINT16_MAX : (uint32_t)sample_age;
+            const uint16_t words[9] = {
+                (uint16_t)snapshot.sample_sequence, (uint16_t)age_ms,
+                (uint16_t)snapshot.accel_raw[0], (uint16_t)snapshot.accel_raw[1],
+                (uint16_t)snapshot.accel_raw[2], (uint16_t)snapshot.gyro_raw[0],
+                (uint16_t)snapshot.gyro_raw[1], (uint16_t)snapshot.gyro_raw[2],
+                float_to_x100(snapshot.magnitude_g),
+            };
+            for (int i = 0; i < 9; i++) {
+                diagnostic[2 + i * 2] = words[i] & 0xFF;
+                diagnostic[3 + i * 2] = words[i] >> 8;
+            }
+            portENTER_CRITICAL(&state_lock);
+            conn = connection_handle;
+            subscribed = notify_enabled;
+            portEXIT_CRITICAL(&state_lock);
+            if (conn != BLE_HS_CONN_HANDLE_NONE && subscribed) {
+                struct os_mbuf *packet = ble_hs_mbuf_from_flat(diagnostic, sizeof(diagnostic));
+                int rc = packet == NULL ? BLE_HS_ENOMEM :
+                    ble_gatts_notify_custom(conn, sample_handle, packet);
+                if (rc == 0) {
+                    ESP_LOGI(TAG, "MPU diagnostic sent: seq=%u age=%lums online=%d",
+                             (unsigned)(uint16_t)snapshot.sample_sequence,
+                             (unsigned long)age_ms, snapshot.sensor_online);
+                } else {
+                    ESP_LOGW(TAG, "MPU diagnostic notify failed: %d", rc);
+                }
+            }
+            next_diagnostic_ms = now_ms + MPU_DIAGNOSTIC_PERIOD_MS;
+        }
+
         was_fall_confirmed = fall_confirmed;
 
         vTaskDelay(pdMS_TO_TICKS(100));
@@ -361,6 +402,7 @@ void app_main(void)
 {
     esp_err_t err = nvs_flash_init();
     int rc;
+    ESP_LOGI(TAG, "LUMO BAND FW: %s (MPU diagnostics every 2s)", BAND_FW_VERSION);
 
     log_ble_mac();
 

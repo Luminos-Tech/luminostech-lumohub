@@ -1,0 +1,217 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="4400" height="3400" viewBox="0 0 4400 3400">
+<rect width="100%" height="100%" fill="#F3F6FA"/>
+<text x="80" y="65" dominant-baseline="text-before-edge" font-family="Arial, sans-serif" font-size="40" font-weight="700" fill="#087E83">LUMO HUB</text>
+<text x="80" y="130" dominant-baseline="text-before-edge" font-family="Arial, sans-serif" font-size="78" font-weight="700" fill="#152C44">SƠ ĐỒ LUỒNG HOẠT ĐỘNG PHẦN CỨNG</text>
+<text x="83" y="235" dominant-baseline="text-before-edge" font-family="Arial, sans-serif" font-size="36" font-weight="400" fill="#4E647A">Chuyển động → cảm biến → xử lý tại vòng tay → BLE → Hub → thông báo và điều khiển</text>
+<rect x="3350" y="54" width="970" height="66" rx="33" fill="#E2F2ED" stroke="#E2F2ED" stroke-width="2"/>
+<text x="3380" y="71" dominant-baseline="text-before-edge" font-family="Arial, sans-serif" font-size="31" font-weight="700" fill="#087E83">ĐỐI CHIẾU SOURCE • 29/10/2026</text>
+<text x="83" y="295" dominant-baseline="text-before-edge" font-family="Arial, sans-serif" font-size="29" font-weight="400" fill="#4E647A">Phạm vi: vietfuture/ • Hub: ESP32-S3, MODE=full • Band: ESP32-C3 • Firmware Hub: v0.5.10</text>
+<rect x="80" y="365" width="4240" height="86" rx="15" fill="#E8EFF7" stroke="#E8EFF7" stroke-width="2"/>
+<rect x="100" y="380" width="54" height="54" rx="12" fill="#1565A8" stroke="#1565A8" stroke-width="2"/>
+<text x="115" y="388" dominant-baseline="text-before-edge" font-family="Arial, sans-serif" font-size="35" font-weight="700" fill="white">A</text>
+<text x="178" y="384" dominant-baseline="text-before-edge" font-family="Arial, sans-serif" font-size="41" font-weight="700" fill="#152C44">ĐƯỜNG ĐI CỦA CHUYỂN ĐỘNG VÀ DỮ LIỆU</text>
+<text x="178" y="426" dominant-baseline="text-before-edge" font-family="Arial, sans-serif" font-size="21" font-weight="400" fill="#4E647A">Mũi tên biểu diễn tín hiệu / dữ liệu / lệnh; không biểu diễn chuyển động cơ khí của robot.</text>
+<rect x="80" y="490" width="500" height="275" rx="22" fill="white" stroke="#D4DFE9" stroke-width="2"/>
+<rect x="81" y="510" width="7" height="235" rx="3" fill="#087E83" stroke="#087E83" stroke-width="2"/>
+<text x="107" y="515" dominant-baseline="text-before-edge" font-family="Arial, sans-serif" font-size="35" font-weight="700" fill="#087E83">NGƯỜI ĐEO</text>
+<text x="107" y="570" dominant-baseline="text-before-edge" font-family="Arial, sans-serif" font-size="31" font-weight="400" fill="#4E647A">Đi lại, xoay tay,</text>
+<text x="107" y="610" dominant-baseline="text-before-edge" font-family="Arial, sans-serif" font-size="31" font-weight="400" fill="#4E647A">va chạm hoặc ngã.</text>
+<text x="107" y="650" dominant-baseline="text-before-edge" font-family="Arial, sans-serif" font-size="31" font-weight="400" fill="#4E647A">Vòng tay đi theo</text>
+<text x="107" y="690" dominant-baseline="text-before-edge" font-family="Arial, sans-serif" font-size="31" font-weight="400" fill="#4E647A">chuyển động cơ thể.</text>
+<rect x="665" y="490" width="725" height="275" rx="22" fill="white" stroke="#D4DFE9" stroke-width="2"/>
+<rect x="666" y="510" width="7" height="235" rx="3" fill="#087E83" stroke="#087E83" stroke-width="2"/>
+<text x="692" y="515" dominant-baseline="text-before-edge" font-family="Arial, sans-serif" font-size="35" font-weight="700" fill="#087E83">CẢM BIẾN MPU6050</text>
+<text x="692" y="570" dominant-baseline="text-before-edge" font-family="Arial, sans-serif" font-size="31" font-weight="400" fill="#4E647A">Gia tốc 3 trục + gyro 3 trục.</text>
+<text x="692" y="610" dominant-baseline="text-before-edge" font-family="Arial, sans-serif" font-size="31" font-weight="400" fill="#4E647A">I²C: SDA=GPIO3, SCL=GPIO4</text>
+<text x="692" y="650" dominant-baseline="text-before-edge" font-family="Arial, sans-serif" font-size="31" font-weight="400" fill="#4E647A">Địa chỉ 0x68 • 400 kHz</text>
+<text x="692" y="690" dominant-baseline="text-before-edge" font-family="Arial, sans-serif" font-size="31" font-weight="400" fill="#4E647A">Lấy mẫu mỗi 100 ms (10 Hz).</text>
+<rect x="1475" y="490" width="805" height="275" rx="22" fill="white" stroke="#D4DFE9" stroke-width="2"/>
+<rect x="1476" y="510" width="7" height="235" rx="3" fill="#1565A8" stroke="#1565A8" stroke-width="2"/>
+<text x="1502" y="515" dominant-baseline="text-before-edge" font-family="Arial, sans-serif" font-size="35" font-weight="700" fill="#1565A8">LUMO BAND • ESP32-C3</text>
+<text x="1502" y="570" dominant-baseline="text-before-edge" font-family="Arial, sans-serif" font-size="31" font-weight="400" fill="#4E647A">Tính |a|, |gyro| và peak 1 giây.</text>
+<text x="1502" y="610" dominant-baseline="text-before-edge" font-family="Arial, sans-serif" font-size="31" font-weight="400" fill="#4E647A">Máy trạng thái phát hiện ngã.</text>
+<text x="1502" y="650" dominant-baseline="text-before-edge" font-family="Arial, sans-serif" font-size="31" font-weight="400" fill="#4E647A">Đóng gói payload 12 byte, v0x02.</text>
+<text x="1502" y="690" dominant-baseline="text-before-edge" font-family="Arial, sans-serif" font-size="31" font-weight="400" fill="#4E647A">BLE peripheral: LUMO-TEST-C3.</text>
+<rect x="2365" y="490" width="825" height="275" rx="22" fill="white" stroke="#D4DFE9" stroke-width="2"/>
+<rect x="2366" y="510" width="7" height="235" rx="3" fill="#1565A8" stroke="#1565A8" stroke-width="2"/>
+<text x="2392" y="515" dominant-baseline="text-before-edge" font-family="Arial, sans-serif" font-size="35" font-weight="700" fill="#1565A8">LUMO HUB • ESP32-S3</text>
+<text x="2392" y="570" dominant-baseline="text-before-edge" font-family="Arial, sans-serif" font-size="31" font-weight="400" fill="#4E647A">BLE central: scan → connect</text>
+<text x="2392" y="610" dominant-baseline="text-before-edge" font-family="Arial, sans-serif" font-size="31" font-weight="400" fill="#4E647A">→ tìm service/characteristic</text>
+<text x="2392" y="650" dominant-baseline="text-before-edge" font-family="Arial, sans-serif" font-size="31" font-weight="400" fill="#4E647A">→ bật Notify → cập nhật state.</text>
+<text x="2392" y="690" dominant-baseline="text-before-edge" font-family="Arial, sans-serif" font-size="31" font-weight="400" fill="#4E647A">Đánh giá cảnh báo tại Hub.</text>
+<rect x="3275" y="490" width="1045" height="275" rx="22" fill="white" stroke="#D4DFE9" stroke-width="2"/>
+<rect x="3276" y="510" width="7" height="235" rx="3" fill="#1565A8" stroke="#1565A8" stroke-width="2"/>
+<text x="3302" y="515" dominant-baseline="text-before-edge" font-family="Arial, sans-serif" font-size="33" font-weight="700" fill="#1565A8">BACKEND → WEB / TRÌNH DUYỆT</text>
+<text x="3302" y="570" dominant-baseline="text-before-edge" font-family="Arial, sans-serif" font-size="31" font-weight="400" fill="#4E647A">Hub gửi cảnh báo qua HTTPS / Wi-Fi.</text>
+<text x="3302" y="610" dominant-baseline="text-before-edge" font-family="Arial, sans-serif" font-size="31" font-weight="400" fill="#4E647A">FastAPI lưu thông báo vào PostgreSQL;</text>
+<text x="3302" y="650" dominant-baseline="text-before-edge" font-family="Arial, sans-serif" font-size="31" font-weight="400" fill="#4E647A">phát realtime và Web Push nếu đủ điều kiện.</text>
+<text x="3302" y="690" dominant-baseline="text-before-edge" font-family="Arial, sans-serif" font-size="31" font-weight="400" fill="#4E647A">Web cũng gửi lệnh điều khiển loa về Hub.</text>
+<polyline points="580,625 665,625" fill="none" stroke="#1565A8" stroke-width="5"/>
+<polygon points="665,625 649.6923992600045,632.3944140798909 649.6923992600045,617.6055859201091" fill="#1565A8"/>
+<polyline points="1390,625 1475,625" fill="none" stroke="#1565A8" stroke-width="5"/>
+<polygon points="1475,625 1459.6923992600045,632.3944140798909 1459.6923992600045,617.6055859201091" fill="#1565A8"/>
+<polyline points="2280,625 2365,625" fill="none" stroke="#1565A8" stroke-width="5"/>
+<polygon points="2365,625 2349.6923992600045,632.3944140798909 2349.6923992600045,617.6055859201091" fill="#1565A8"/>
+<polyline points="3190,625 3275,625" fill="none" stroke="#1565A8" stroke-width="5"/>
+<polygon points="3275,625 3259.6923992600045,632.3944140798909 3259.6923992600045,617.6055859201091" fill="#1565A8"/>
+<text x="90" y="800" dominant-baseline="text-before-edge" font-family="Arial, sans-serif" font-size="30" font-weight="700" fill="#087E83">DỮ LIỆU BLE THỰC TẾ</text>
+<text x="90" y="847" dominant-baseline="text-before-edge" font-family="Arial, sans-serif" font-size="30" font-weight="400" fill="#4E647A">Gửi thường: mỗi 1 giây. Khi FALL_CONFIRMED: gửi ngay khi chuyển trạng thái, sau đó mỗi 5 giây; chỉ Notify khi Hub đã kết nối và đăng ký.</text>
+<text x="90" y="950" dominant-baseline="text-before-edge" font-family="Arial, sans-serif" font-size="29" font-weight="400" fill="#4E647A">12 byte: version(1) | state(1) | |a|×100(2) | peak×100(2) | HR(1) | steps(2) | battery(1) | reserved(2). Các trường 2 byte dùng little-endian.</text>
+<text x="2245" y="800" dominant-baseline="text-before-edge" font-family="Arial, sans-serif" font-size="30" font-weight="700" fill="#087E83">CÁC NGOẠI VI TẠI HUB</text>
+<text x="2245" y="847" dominant-baseline="text-before-edge" font-family="Arial, sans-serif" font-size="30" font-weight="400" fill="#4E647A">Nút nhấn: GPIO42, active LOW. Loa: I²S BCLK=5 / LRCK=4 / DATA=6, qua mạch âm thanh. Mic: I²S BCLK=15 / WS=16 / DATA=17, 16 kHz.</text>
+<text x="2245" y="950" dominant-baseline="text-before-edge" font-family="Arial, sans-serif" font-size="29" font-weight="400" fill="#4E647A">BLE mất kết nối: Band quảng bá lại, Hub quét lại. Dữ liệu cảm biến chuyển động được xử lý tại Band/Hub; chưa có luồng tự đẩy telemetry này lên web.</text>
+<rect x="80" y="1085" width="4240" height="86" rx="15" fill="#E8EFF7" stroke="#E8EFF7" stroke-width="2"/>
+<rect x="100" y="1100" width="54" height="54" rx="12" fill="#1565A8" stroke="#1565A8" stroke-width="2"/>
+<text x="115" y="1108" dominant-baseline="text-before-edge" font-family="Arial, sans-serif" font-size="35" font-weight="700" fill="white">B</text>
+<text x="178" y="1104" dominant-baseline="text-before-edge" font-family="Arial, sans-serif" font-size="41" font-weight="700" fill="#152C44">PHÁT HIỆN CHUYỂN ĐỘNG / NGÃ VÀ HÀNH ĐỘNG THỰC TẾ</text>
+<text x="178" y="1146" dominant-baseline="text-before-edge" font-family="Arial, sans-serif" font-size="21" font-weight="400" fill="#4E647A">Hai lớp xử lý độc lập: máy trạng thái trên Band và bộ đánh giá cảnh báo trên Hub.</text>
+<rect x="80" y="1195" width="2760" height="855" rx="22" fill="white" stroke="#D4DFE9" stroke-width="2"/>
+<text x="115" y="1225" dominant-baseline="text-before-edge" font-family="Arial, sans-serif" font-size="35" font-weight="700" fill="#087E83">MÁY TRẠNG THÁI TRÊN BAND  [1]</text>
+<rect x="120" y="1320" width="460" height="190" rx="22" fill="white" stroke="#D4DFE9" stroke-width="2"/>
+<rect x="121" y="1340" width="7" height="150" rx="3" fill="#087E83" stroke="#087E83" stroke-width="2"/>
+<text x="147" y="1345" dominant-baseline="text-before-edge" font-family="Arial, sans-serif" font-size="33" font-weight="700" fill="#087E83">IDLE</text>
+<text x="147" y="1400" dominant-baseline="text-before-edge" font-family="Arial, sans-serif" font-size="29" font-weight="400" fill="#4E647A">Theo dõi cảm biến.</text>
+<text x="147" y="1437" dominant-baseline="text-before-edge" font-family="Arial, sans-serif" font-size="29" font-weight="400" fill="#4E647A">BLE: IDLE hoặc MOVE.</text>
+<rect x="860" y="1320" width="655" height="190" rx="22" fill="#FFF9F0" stroke="#D4DFE9" stroke-width="2"/>
+<rect x="861" y="1340" width="7" height="150" rx="3" fill="#A45B0C" stroke="#A45B0C" stroke-width="2"/>
+<text x="887" y="1345" dominant-baseline="text-before-edge" font-family="Arial, sans-serif" font-size="33" font-weight="700" fill="#A45B0C">IMPACT_WAIT</text>
+<text x="887" y="1400" dominant-baseline="text-before-edge" font-family="Arial, sans-serif" font-size="29" font-weight="400" fill="#4E647A">Theo dõi hồi phục / đứng yên.</text>
+<text x="887" y="1437" dominant-baseline="text-before-edge" font-family="Arial, sans-serif" font-size="29" font-weight="400" fill="#4E647A">Cửa sổ tối đa: 10 giây.</text>
+<rect x="1905" y="1320" width="875" height="190" rx="22" fill="#FFF3F3" stroke="#D4DFE9" stroke-width="2"/>
+<rect x="1906" y="1340" width="7" height="150" rx="3" fill="#AA3542" stroke="#AA3542" stroke-width="2"/>
+<text x="1932" y="1345" dominant-baseline="text-before-edge" font-family="Arial, sans-serif" font-size="33" font-weight="700" fill="#AA3542">FALL_CONFIRMED</text>
+<text x="1932" y="1400" dominant-baseline="text-before-edge" font-family="Arial, sans-serif" font-size="29" font-weight="400" fill="#4E647A">Đủ điều kiện đứng yên 5 giây liên tục.</text>
+<text x="1932" y="1437" dominant-baseline="text-before-edge" font-family="Arial, sans-serif" font-size="29" font-weight="400" fill="#4E647A">Gửi trạng thái ngã qua BLE.</text>
+<polyline points="580,1415 860,1415" fill="none" stroke="#087E83" stroke-width="5"/>
+<polygon points="860,1415 844.6923992600045,1422.394414079891 844.6923992600045,1407.605585920109" fill="#087E83"/>
+<text x="612" y="1360" dominant-baseline="text-before-edge" font-family="Arial, sans-serif" font-size="31" font-weight="700" fill="#087E83">|a| ≥ 4 g</text>
+<polyline points="1515,1415 1905,1415" fill="none" stroke="#A45B0C" stroke-width="5"/>
+<polygon points="1905,1415 1889.6923992600045,1422.394414079891 1889.6923992600045,1407.605585920109" fill="#A45B0C"/>
+<text x="1540" y="1350" dominant-baseline="text-before-edge" font-family="Arial, sans-serif" font-size="29" font-weight="700" fill="#A45B0C">Đứng yên liên tục</text>
+<text x="1615" y="1386" dominant-baseline="text-before-edge" font-family="Arial, sans-serif" font-size="29" font-weight="700" fill="#A45B0C">≥ 5 giây</text>
+<polyline points="1030,1510 1030,1560 510,1560 510,1610" fill="none" stroke="#087E83" stroke-width="5"/>
+<polygon points="510,1610 502.6055859201091,1594.6923992600045 517.3944140798909,1594.6923992600045" fill="#087E83"/>
+<polyline points="1240,1510 1240,1610" fill="none" stroke="#A45B0C" stroke-width="5"/>
+<polygon points="1240,1610 1232.605585920109,1594.6923992600045 1247.394414079891,1594.6923992600045" fill="#A45B0C"/>
+<polyline points="2330,1510 2330,1610" fill="none" stroke="#AA3542" stroke-width="5"/>
+<polygon points="2330,1610 2322.605585920109,1594.6923992600045 2337.394414079891,1594.6923992600045" fill="#AA3542"/>
+<rect x="120" y="1610" width="790" height="220" rx="22" fill="white" stroke="#D4DFE9" stroke-width="2"/>
+<rect x="121" y="1630" width="7" height="180" rx="3" fill="#087E83" stroke="#087E83" stroke-width="2"/>
+<text x="147" y="1635" dominant-baseline="text-before-edge" font-family="Arial, sans-serif" font-size="31" font-weight="700" fill="#087E83">CÓ CHUYỂN ĐỘNG TRỞ LẠI</text>
+<text x="147" y="1690" dominant-baseline="text-before-edge" font-family="Arial, sans-serif" font-size="29" font-weight="400" fill="#4E647A">3 mẫu moving liên tiếp (≈300 ms)</text>
+<text x="147" y="1727" dominant-baseline="text-before-edge" font-family="Arial, sans-serif" font-size="29" font-weight="400" fill="#4E647A">→ RECOVERED → IDLE ở mẫu kế tiếp.</text>
+<rect x="955" y="1610" width="770" height="220" rx="22" fill="white" stroke="#D4DFE9" stroke-width="2"/>
+<rect x="956" y="1630" width="7" height="180" rx="3" fill="#A45B0C" stroke="#A45B0C" stroke-width="2"/>
+<text x="982" y="1635" dominant-baseline="text-before-edge" font-family="Arial, sans-serif" font-size="31" font-weight="700" fill="#A45B0C">HẾT CỬA SỔ THEO DÕI</text>
+<text x="982" y="1690" dominant-baseline="text-before-edge" font-family="Arial, sans-serif" font-size="29" font-weight="400" fill="#4E647A">Sau 10 giây vẫn ở IMPACT_WAIT</text>
+<text x="982" y="1727" dominant-baseline="text-before-edge" font-family="Arial, sans-serif" font-size="29" font-weight="400" fill="#4E647A">→ về IDLE, xóa bộ đếm theo dõi.</text>
+<rect x="1770" y="1610" width="1010" height="220" rx="22" fill="white" stroke="#D4DFE9" stroke-width="2"/>
+<rect x="1771" y="1630" width="7" height="180" rx="3" fill="#AA3542" stroke="#AA3542" stroke-width="2"/>
+<text x="1797" y="1635" dominant-baseline="text-before-edge" font-family="Arial, sans-serif" font-size="31" font-weight="700" fill="#AA3542">XÓA TRẠNG THÁI NGÃ</text>
+<text x="1797" y="1690" dominant-baseline="text-before-edge" font-family="Arial, sans-serif" font-size="29" font-weight="400" fill="#4E647A">5 mẫu moving liên tiếp (≈500 ms)</text>
+<text x="1797" y="1727" dominant-baseline="text-before-edge" font-family="Arial, sans-serif" font-size="29" font-weight="400" fill="#4E647A">→ FALL_CONFIRMED trở về IDLE.</text>
+<text x="120" y="1875" dominant-baseline="text-before-edge" font-family="Arial, sans-serif" font-size="30" font-weight="700" fill="#152C44">moving: |a| &gt; 1,5 g HOẶC |gyro| &gt; 50°/s.</text>
+<text x="120" y="1928" dominant-baseline="text-before-edge" font-family="Arial, sans-serif" font-size="30" font-weight="700" fill="#152C44">still: 0,85 g ≤ |a| ≤ 1,15 g VÀ |gyro| &lt; 10°/s.</text>
+<text x="120" y="1980" dominant-baseline="text-before-edge" font-family="Arial, sans-serif" font-size="29" font-weight="400" fill="#4E647A">Đọc cảm biến lỗi → SENSOR_OFFLINE. |a| = √(ax² + ay² + az²).</text>
+<rect x="2890" y="1195" width="1430" height="855" rx="22" fill="white" stroke="#D4DFE9" stroke-width="2"/>
+<text x="2925" y="1225" dominant-baseline="text-before-edge" font-family="Arial, sans-serif" font-size="35" font-weight="700" fill="#1565A8">BỘ ĐÁNH GIÁ TRÊN HUB  [2]</text>
+<rect x="2930" y="1305" width="1350" height="230" rx="22" fill="#FFF9F0" stroke="#D4DFE9" stroke-width="2"/>
+<rect x="2931" y="1325" width="7" height="190" rx="3" fill="#A45B0C" stroke="#A45B0C" stroke-width="2"/>
+<text x="2957" y="1330" dominant-baseline="text-before-edge" font-family="Arial, sans-serif" font-size="31" font-weight="700" fill="#A45B0C">NHÁNH CÓ PHÁT LOA + GỬI PUSH</text>
+<text x="2957" y="1385" dominant-baseline="text-before-edge" font-family="Arial, sans-serif" font-size="29" font-weight="400" fill="#4E647A">Khi evaluator trả HIGH_ACTIVITY (peak ≥ 5 g):</text>
+<text x="2957" y="1422" dominant-baseline="text-before-edge" font-family="Arial, sans-serif" font-size="29" font-weight="400" fill="#4E647A">phát /spiffs/risk.wav 2 lần → chạy task gửi</text>
+<text x="2957" y="1459" dominant-baseline="text-before-edge" font-family="Arial, sans-serif" font-size="29" font-weight="400" fill="#4E647A">POST /api/v1/push/send 3 lần tới user_id=1.</text>
+<text x="2957" y="1496" dominant-baseline="text-before-edge" font-family="Arial, sans-serif" font-size="29" font-weight="400" fill="#4E647A">Phụ thuộc ưu tiên cảnh báo và trạng thái evaluator.</text>
+<rect x="2930" y="1565" width="1350" height="230" rx="22" fill="#FFF3F3" stroke="#D4DFE9" stroke-width="2"/>
+<rect x="2931" y="1585" width="7" height="190" rx="3" fill="#AA3542" stroke="#AA3542" stroke-width="2"/>
+<text x="2957" y="1590" dominant-baseline="text-before-edge" font-family="Arial, sans-serif" font-size="30" font-weight="700" fill="#AA3542">NHÁNH NGÃ HIỆN CHỈ XỬ LÝ / GHI LOG</text>
+<text x="2957" y="1645" dominant-baseline="text-before-edge" font-family="Arial, sans-serif" font-size="29" font-weight="400" fill="#4E647A">Hub nhận IMPACT_WAIT / FALL_CONFIRMED.</text>
+<text x="2957" y="1682" dominant-baseline="text-before-edge" font-family="Arial, sans-serif" font-size="29" font-weight="400" fill="#4E647A">Có thêm classifier: peak ≥ 5 g, |a| &lt; 1,05 g</text>
+<text x="2957" y="1719" dominant-baseline="text-before-edge" font-family="Arial, sans-serif" font-size="29" font-weight="400" fill="#4E647A">liên tục 3 giây trong cửa sổ 6 giây.</text>
+<text x="2957" y="1756" dominant-baseline="text-before-edge" font-family="Arial, sans-serif" font-size="29" font-weight="400" fill="#4E647A">Handler âm thanh của 2 cảnh báo ngã đang return.</text>
+<text x="2930" y="1835" dominant-baseline="text-before-edge" font-family="Arial, sans-serif" font-size="31" font-weight="700" fill="#AA3542">Vì vậy, trạng thái ngã không tự dẫn tới loa hoặc push trong runtime này. Không thể mô tả</text>
+<text x="2930" y="1875" dominant-baseline="text-before-edge" font-family="Arial, sans-serif" font-size="31" font-weight="700" fill="#AA3542">luồng cảnh báo ngã hoàn chỉnh chỉ từ tên state.</text>
+<text x="2930" y="1970" dominant-baseline="text-before-edge" font-family="Arial, sans-serif" font-size="28" font-weight="400" fill="#4E647A">5 g là giá trị macro hiện tại (500/100), dù nhiều chú thích cũ ghi 8 g.</text>
+<rect x="80" y="2100" width="4240" height="86" rx="15" fill="#E8EFF7" stroke="#E8EFF7" stroke-width="2"/>
+<rect x="100" y="2115" width="54" height="54" rx="12" fill="#1565A8" stroke="#1565A8" stroke-width="2"/>
+<text x="115" y="2123" dominant-baseline="text-before-edge" font-family="Arial, sans-serif" font-size="35" font-weight="700" fill="white">C</text>
+<text x="178" y="2119" dominant-baseline="text-before-edge" font-family="Arial, sans-serif" font-size="41" font-weight="700" fill="#152C44">HAI LUỒNG TƯƠNG TÁC ĐANG BẬT</text>
+<text x="178" y="2161" dominant-baseline="text-before-edge" font-family="Arial, sans-serif" font-size="21" font-weight="400" fill="#4E647A">Nút nhấn gửi thông báo / check-in; web điều khiển phát các file âm thanh có sẵn trên Hub.</text>
+<rect x="80" y="2235" width="840" height="225" rx="22" fill="white" stroke="#D4DFE9" stroke-width="2"/>
+<rect x="81" y="2255" width="7" height="185" rx="3" fill="#087E83" stroke="#087E83" stroke-width="2"/>
+<text x="107" y="2260" dominant-baseline="text-before-edge" font-family="Arial, sans-serif" font-size="32" font-weight="700" fill="#087E83">01 • NHẤN RỒI THẢ NÚT</text>
+<text x="107" y="2315" dominant-baseline="text-before-edge" font-family="Arial, sans-serif" font-size="30" font-weight="400" fill="#4E647A">GPIO42 → debounce 5 ms.</text>
+<text x="107" y="2354" dominant-baseline="text-before-edge" font-family="Arial, sans-serif" font-size="30" font-weight="400" fill="#4E647A">Task đọc nút mỗi 10 ms.</text>
+<text x="107" y="2393" dominant-baseline="text-before-edge" font-family="Arial, sans-serif" font-size="30" font-weight="400" fill="#4E647A">Đưa thời điểm bấm vào queue.</text>
+<rect x="1020" y="2235" width="1020" height="225" rx="22" fill="white" stroke="#D4DFE9" stroke-width="2"/>
+<rect x="1021" y="2255" width="7" height="185" rx="3" fill="#087E83" stroke="#087E83" stroke-width="2"/>
+<text x="1047" y="2260" dominant-baseline="text-before-edge" font-family="Arial, sans-serif" font-size="32" font-weight="700" fill="#087E83">02 • HTTP WORKER</text>
+<text x="1047" y="2315" dominant-baseline="text-before-edge" font-family="Arial, sans-serif" font-size="30" font-weight="400" fill="#4E647A">Queue RAM: tối đa 32 sự kiện.</text>
+<text x="1047" y="2354" dominant-baseline="text-before-edge" font-family="Arial, sans-serif" font-size="30" font-weight="400" fill="#4E647A">Kiểm tra Wi-Fi + đồng hồ NTP.</text>
+<text x="1047" y="2393" dominant-baseline="text-before-edge" font-family="Arial, sans-serif" font-size="30" font-weight="400" fill="#4E647A">Mã Hub hiện tại: 0001.</text>
+<rect x="2140" y="2235" width="1060" height="225" rx="22" fill="white" stroke="#D4DFE9" stroke-width="2"/>
+<rect x="2141" y="2255" width="7" height="185" rx="3" fill="#087E83" stroke="#087E83" stroke-width="2"/>
+<text x="2167" y="2260" dominant-baseline="text-before-edge" font-family="Arial, sans-serif" font-size="32" font-weight="700" fill="#087E83">03 • HTTPS → FASTAPI</text>
+<text x="2167" y="2315" dominant-baseline="text-before-edge" font-family="Arial, sans-serif" font-size="30" font-weight="400" fill="#4E647A">POST /api/v1/push/send ×3.</text>
+<text x="2167" y="2354" dominant-baseline="text-before-edge" font-family="Arial, sans-serif" font-size="30" font-weight="400" fill="#4E647A">Sau đó POST /api/v1/event-buttons</text>
+<text x="2167" y="2393" dominant-baseline="text-before-edge" font-family="Arial, sans-serif" font-size="30" font-weight="400" fill="#4E647A">với device_id + thời điểm UTC.</text>
+<rect x="3300" y="2235" width="1020" height="225" rx="22" fill="white" stroke="#D4DFE9" stroke-width="2"/>
+<rect x="3301" y="2255" width="7" height="185" rx="3" fill="#087E83" stroke="#087E83" stroke-width="2"/>
+<text x="3327" y="2260" dominant-baseline="text-before-edge" font-family="Arial, sans-serif" font-size="32" font-weight="700" fill="#087E83">04 • LƯU / HIỂN THỊ</text>
+<text x="3327" y="2315" dominant-baseline="text-before-edge" font-family="Arial, sans-serif" font-size="30" font-weight="400" fill="#4E647A">Push: thông báo tới user_id=1.</text>
+<text x="3327" y="2354" dominant-baseline="text-before-edge" font-family="Arial, sans-serif" font-size="30" font-weight="400" fill="#4E647A">Check-in: theo chủ sở hữu Hub;</text>
+<text x="3327" y="2393" dominant-baseline="text-before-edge" font-family="Arial, sans-serif" font-size="30" font-weight="400" fill="#4E647A">lưu event + last_checkin_at.</text>
+<polyline points="920,2350 1020,2350" fill="none" stroke="#087E83" stroke-width="5"/>
+<polygon points="1020,2350 1004.6923992600045,2357.394414079891 1004.6923992600045,2342.605585920109" fill="#087E83"/>
+<polyline points="2040,2350 2140,2350" fill="none" stroke="#087E83" stroke-width="5"/>
+<polygon points="2140,2350 2124.6923992600045,2357.394414079891 2124.6923992600045,2342.605585920109" fill="#087E83"/>
+<polyline points="3200,2350 3300,2350" fill="none" stroke="#087E83" stroke-width="5"/>
+<polygon points="3300,2350 3284.6923992600045,2357.394414079891 3284.6923992600045,2342.605585920109" fill="#087E83"/>
+<rect x="80" y="2530" width="840" height="225" rx="22" fill="white" stroke="#D4DFE9" stroke-width="2"/>
+<rect x="81" y="2550" width="7" height="185" rx="3" fill="#1565A8" stroke="#1565A8" stroke-width="2"/>
+<text x="107" y="2555" dominant-baseline="text-before-edge" font-family="Arial, sans-serif" font-size="31" font-weight="700" fill="#1565A8">01 • WEB CHỌN ÂM THANH</text>
+<text x="107" y="2610" dominant-baseline="text-before-edge" font-family="Arial, sans-serif" font-size="30" font-weight="400" fill="#4E647A">beep / greeting / checkin</text>
+<text x="107" y="2649" dominant-baseline="text-before-edge" font-family="Arial, sans-serif" font-size="30" font-weight="400" fill="#4E647A">hoặc lệnh stop_audio.</text>
+<text x="107" y="2688" dominant-baseline="text-before-edge" font-family="Arial, sans-serif" font-size="30" font-weight="400" fill="#4E647A">Người dùng đã đăng nhập.</text>
+<rect x="1020" y="2530" width="1020" height="225" rx="22" fill="white" stroke="#D4DFE9" stroke-width="2"/>
+<rect x="1021" y="2550" width="7" height="185" rx="3" fill="#1565A8" stroke="#1565A8" stroke-width="2"/>
+<text x="1047" y="2555" dominant-baseline="text-before-edge" font-family="Arial, sans-serif" font-size="31" font-weight="700" fill="#1565A8">02 • REST API + QUYỀN</text>
+<text x="1047" y="2610" dominant-baseline="text-before-edge" font-family="Arial, sans-serif" font-size="29" font-weight="400" fill="#4E647A">POST /api/v1/devices/{id}/commands</text>
+<text x="1047" y="2647" dominant-baseline="text-before-edge" font-family="Arial, sans-serif" font-size="29" font-weight="400" fill="#4E647A">Kiểm tra JWT, chủ sở hữu / admin.</text>
+<text x="1047" y="2684" dominant-baseline="text-before-edge" font-family="Arial, sans-serif" font-size="29" font-weight="400" fill="#4E647A">Backend chuyển lệnh tới Hub.</text>
+<rect x="2140" y="2530" width="1060" height="225" rx="22" fill="white" stroke="#D4DFE9" stroke-width="2"/>
+<rect x="2141" y="2550" width="7" height="185" rx="3" fill="#1565A8" stroke="#1565A8" stroke-width="2"/>
+<text x="2167" y="2555" dominant-baseline="text-before-edge" font-family="Arial, sans-serif" font-size="31" font-weight="700" fill="#1565A8">03 • WEBSOCKET TỚI HUB</text>
+<text x="2167" y="2610" dominant-baseline="text-before-edge" font-family="Arial, sans-serif" font-size="30" font-weight="400" fill="#4E647A">/ws/lumo?device_id=0001</text>
+<text x="2167" y="2649" dominant-baseline="text-before-edge" font-family="Arial, sans-serif" font-size="30" font-weight="400" fill="#4E647A">Đăng ký: hello → ready.</text>
+<text x="2167" y="2688" dominant-baseline="text-before-edge" font-family="Arial, sans-serif" font-size="30" font-weight="400" fill="#4E647A">Nhận command có request_id.</text>
+<rect x="3300" y="2530" width="1020" height="225" rx="22" fill="white" stroke="#D4DFE9" stroke-width="2"/>
+<rect x="3301" y="2550" width="7" height="185" rx="3" fill="#1565A8" stroke="#1565A8" stroke-width="2"/>
+<text x="3327" y="2555" dominant-baseline="text-before-edge" font-family="Arial, sans-serif" font-size="31" font-weight="700" fill="#1565A8">04 • SPIFFS → I²S → LOA</text>
+<text x="3327" y="2610" dominant-baseline="text-before-edge" font-family="Arial, sans-serif" font-size="30" font-weight="400" fill="#4E647A">Hub phát WAV hoặc dừng loa.</text>
+<text x="3327" y="2649" dominant-baseline="text-before-edge" font-family="Arial, sans-serif" font-size="30" font-weight="400" fill="#4E647A">Trả command_result về backend;</text>
+<text x="3327" y="2688" dominant-baseline="text-before-edge" font-family="Arial, sans-serif" font-size="30" font-weight="400" fill="#4E647A">web cập nhật kết quả theo ACK.</text>
+<polyline points="920,2640 1020,2640" fill="none" stroke="#1565A8" stroke-width="5"/>
+<polygon points="1020,2640 1004.6923992600045,2647.394414079891 1004.6923992600045,2632.605585920109" fill="#1565A8"/>
+<polyline points="2040,2640 2140,2640" fill="none" stroke="#1565A8" stroke-width="5"/>
+<polygon points="2140,2640 2124.6923992600045,2647.394414079891 2124.6923992600045,2632.605585920109" fill="#1565A8"/>
+<polyline points="3200,2640 3300,2640" fill="none" stroke="#1565A8" stroke-width="5"/>
+<polygon points="3300,2640 3284.6923992600045,2647.394414079891 3284.6923992600045,2632.605585920109" fill="#1565A8"/>
+<polyline points="3800,2755 3800,2805 490,2805 490,2755" fill="none" stroke="#1565A8" stroke-width="5"/>
+<polygon points="490,2755 497.3944140798909,2770.3076007399955 482.6055859201091,2770.3076007399955" fill="#1565A8"/>
+<rect x="1560" y="2781" width="1510" height="48" rx="4" fill="#F3F6FA" stroke="#F3F6FA" stroke-width="2"/>
+<text x="1580" y="2788" dominant-baseline="text-before-edge" font-family="Arial, sans-serif" font-size="27" font-weight="400" fill="#1565A8">Đường phản hồi: command_result → API → giao diện web</text>
+<rect x="80" y="2875" width="4240" height="355" rx="22" fill="#E9EEF4" stroke="#E9EEF4" stroke-width="2"/>
+<text x="115" y="2900" dominant-baseline="text-before-edge" font-family="Arial, sans-serif" font-size="35" font-weight="700" fill="#152C44">LƯU Ý ĐỂ SỬ DỤNG ĐÚNG TRONG BÁO CÁO</text>
+<text x="115" y="2970" dominant-baseline="text-before-edge" font-family="Arial, sans-serif" font-size="29" font-weight="400" fill="#4E647A">DỮ LIỆU GIẢ LẬP</text>
+<text x="115" y="3007" dominant-baseline="text-before-edge" font-family="Arial, sans-serif" font-size="29" font-weight="400" fill="#4E647A">Nhịp tim 60–100 bpm, số bước 1.000–9.999 và pin 50–100% do esp_random() tạo. Gia tốc / gyro</text>
+<text x="115" y="3044" dominant-baseline="text-before-edge" font-family="Arial, sans-serif" font-size="29" font-weight="400" fill="#4E647A">đọc từ MPU6050. Không dùng các số giả lập để kết luận sức khỏe.</text>
+<text x="1550" y="2970" dominant-baseline="text-before-edge" font-family="Arial, sans-serif" font-size="29" font-weight="400" fill="#4E647A">CẤU HÌNH ĐANG TẮT / CHƯA NỐI</text>
+<text x="1550" y="3007" dominant-baseline="text-before-edge" font-family="Arial, sans-serif" font-size="29" font-weight="400" fill="#4E647A">voice_assistant=false; hàm ghi âm/upload giọng nói đã vô hiệu hóa. Mic chỉ đọc/xử lý mức âm cục</text>
+<text x="1550" y="3044" dominant-baseline="text-before-edge" font-family="Arial, sans-serif" font-size="29" font-weight="400" fill="#4E647A">bộ. OLED đã gỡ. API telemetry có trong backend nhưng firmware hiện chưa gọi.</text>
+<text x="2980" y="2970" dominant-baseline="text-before-edge" font-family="Arial, sans-serif" font-size="29" font-weight="400" fill="#4E647A">ĐIỀU KIỆN VẬN HÀNH</text>
+<text x="2980" y="3007" dominant-baseline="text-before-edge" font-family="Arial, sans-serif" font-size="29" font-weight="400" fill="#4E647A">Sự kiện nút bị bỏ qua nếu mất Wi-Fi hoặc chưa có giờ hợp lệ; queue không lưu bền vững. Web</text>
+<text x="2980" y="3044" dominant-baseline="text-before-edge" font-family="Arial, sans-serif" font-size="29" font-weight="400" fill="#4E647A">Push cần subscription/VAPID. Đây là sơ đồ code prototype, chưa phải kết quả thử phần cứng.</text>
+<text x="85" y="3270" dominant-baseline="text-before-edge" font-family="Arial, sans-serif" font-size="27" font-weight="400" fill="#4E647A">[1] Band: src/main.c, src/mpu6050.c  •  [2] Hub: main/ble/lumo_band_state.{c,h}, main/lumo_runtime.c</text>
+<text x="85" y="3315" dominant-baseline="text-before-edge" font-family="Arial, sans-serif" font-size="27" font-weight="400" fill="#4E647A">Nguồn và vị trí dòng chi tiết: SOURCES.md cùng thư mục  •  Source snapshot: working tree ngày 29/10/2026 (Asia/Saigon)</text>
+</svg>

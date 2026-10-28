@@ -73,6 +73,7 @@ elseif(MODE STREQUAL "full")
         SRCS
             "Lumo-LuminosTech.c"
             "lumo_runtime.c"
+            "device_control/device_control.c"
             "ble/lumo_band_central.c"
             "ble/lumo_band_state.c"
             "audio/audio_player.c"
@@ -102,6 +103,7 @@ elseif(MODE STREQUAL "full")
             spiffs
             bt
     )
+    target_compile_definitions(${COMPONENT_LIB} PRIVATE LUMO_DEVICE_CONTROL_ENABLED=1)
 
 else()
     message(FATAL_ERROR "Unknown MODE='${MODE}'. Use 'full', 'button_test', 'debug_wifi_only', or 'audio_test'.")

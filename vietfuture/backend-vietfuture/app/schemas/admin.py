@@ -1,4 +1,5 @@
-from pydantic import BaseModel, EmailStr
+from pydantic import EmailStr
+from app.schemas.base import APIModel as BaseModel
 from datetime import datetime
 
 

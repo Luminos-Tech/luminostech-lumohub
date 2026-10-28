@@ -27,7 +27,7 @@ export const useDeviceStore = create<DeviceState>((set) => ({
 
   registerDevice: async (device_id) => {
     const res = await devicesApi.register(device_id);
-    set((s) => ({ devices: [res.data, ...s.devices] }));
+    set((s) => ({ devices: [res.data, ...s.devices.filter((device) => device.id !== res.data.id)] }));
     return res.data;
   },
 

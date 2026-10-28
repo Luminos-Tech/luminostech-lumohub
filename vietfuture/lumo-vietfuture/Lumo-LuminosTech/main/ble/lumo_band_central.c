@@ -4,6 +4,7 @@
 
 #include "esp_err.h"
 #include "esp_log.h"
+#include "freertos/FreeRTOS.h"
 #include "host/ble_gap.h"
 #include "host/ble_gatt.h"
 #include "host/ble_hs.h"
@@ -22,8 +23,20 @@
 #define TARGET_NAME "LUMO-TEST-C3"
 #define SAMPLE_SIZE 12U
 #define BLE_PAYLOAD_VERSION 0x02U
+#define MPU_DIAGNOSTIC_VERSION 0x03U
+#define MPU_DIAGNOSTIC_SIZE 20U
 
 static const char *TAG = "BAND_BLE";
+static portMUX_TYPE s_diagnostic_lock = portMUX_INITIALIZER_UNLOCKED;
+static lumo_band_diagnostic_t s_diagnostic;
+
+void lumo_band_get_diagnostic(lumo_band_diagnostic_t *snapshot)
+{
+    if (snapshot == NULL) return;
+    portENTER_CRITICAL(&s_diagnostic_lock);
+    *snapshot = s_diagnostic;
+    portEXIT_CRITICAL(&s_diagnostic_lock);
+}
 
 /* NimBLE stores UUID bytes least-significant first. */
 static const ble_uuid128_t target_service_uuid = BLE_UUID128_INIT(
@@ -276,7 +289,7 @@ static void restart_scan(void)
 static int gap_event(struct ble_gap_event *event, void *arg)
 {
     struct ble_hs_adv_fields fields = {0};
-    uint8_t payload[SAMPLE_SIZE];
+    uint8_t payload[MPU_DIAGNOSTIC_SIZE];
     uint16_t length;
     int rc;
 
@@ -330,6 +343,10 @@ static int gap_event(struct ble_gap_event *event, void *arg)
         }
 
         connection_handle = event->connect.conn_handle;
+        portENTER_CRITICAL(&s_diagnostic_lock);
+        memset(&s_diagnostic, 0, sizeof(s_diagnostic));
+        s_diagnostic.connected = true;
+        portEXIT_CRITICAL(&s_diagnostic_lock);
         service_found = false;
         characteristic_found = false;
         cccd_found = false;
@@ -346,6 +363,9 @@ static int gap_event(struct ble_gap_event *event, void *arg)
     case BLE_GAP_EVENT_DISCONNECT:
         ESP_LOGI(TAG, "Disconnected, rescanning...");
         connection_handle = BLE_HS_CONN_HANDLE_NONE;
+        portENTER_CRITICAL(&s_diagnostic_lock);
+        s_diagnostic.connected = false;
+        portEXIT_CRITICAL(&s_diagnostic_lock);
         connecting = false;
         service_found = false;
         characteristic_found = false;
@@ -354,21 +374,44 @@ static int gap_event(struct ble_gap_event *event, void *arg)
         return 0;
 
     case BLE_GAP_EVENT_NOTIFY_RX:
-        if (event->notify_rx.attr_handle != sample_handle) {
+        if (event->notify_rx.conn_handle != connection_handle ||
+            event->notify_rx.attr_handle != sample_handle) {
             return 0;
         }
 
         length = (uint16_t)OS_MBUF_PKTLEN(event->notify_rx.om);
-        if (length != SAMPLE_SIZE) {
+        if (length != SAMPLE_SIZE && length != MPU_DIAGNOSTIC_SIZE) {
             ESP_LOGW(TAG, "Unexpected notify length: %u", length);
             return 0;
         }
 
         rc = os_mbuf_copydata(event->notify_rx.om, 0,
-                              sizeof(payload), payload);
+                              length, payload);
         if (rc == 0) {
             const uint8_t version = payload[0];
             const uint8_t state = payload[1];
+            if (version == MPU_DIAGNOSTIC_VERSION && length == MPU_DIAGNOSTIC_SIZE && state <= 4) {
+                portENTER_CRITICAL(&s_diagnostic_lock);
+                s_diagnostic.has_diagnostic = true;
+                s_diagnostic.has_sample = true;
+                s_diagnostic.state = state;
+                s_diagnostic.sequence = read_u16_le(&payload[2]);
+                s_diagnostic.sensor_age_ms = read_u16_le(&payload[4]);
+                for (int i = 0; i < 3; i++) {
+                    s_diagnostic.accel_raw[i] = (int16_t)read_u16_le(&payload[6 + 2 * i]);
+                    s_diagnostic.gyro_raw[i] = (int16_t)read_u16_le(&payload[12 + 2 * i]);
+                }
+                s_diagnostic.magnitude_x100 = read_u16_le(&payload[18]);
+                s_diagnostic.diagnostic_at_ms = esp_timer_get_time() / 1000ULL;
+                s_diagnostic.received_at_ms = s_diagnostic.diagnostic_at_ms;
+                portEXIT_CRITICAL(&s_diagnostic_lock);
+                return 0;
+            }
+            if (version != BLE_PAYLOAD_VERSION || length != SAMPLE_SIZE || state > 4) {
+                ESP_LOGW(TAG, "Unsupported BLE sample: version=0x%02X length=%u state=%u",
+                         version, length, state);
+                return 0;
+            }
             const uint16_t magnitude_x100 = read_u16_le(&payload[2]);
             const uint16_t peak1s_x100 = read_u16_le(&payload[4]);
             const uint8_t heart_rate = payload[6];
@@ -378,12 +421,15 @@ static int gap_event(struct ble_gap_event *event, void *arg)
             /* Update shared state — consumed by main task's alert evaluator */
             band_state_update(state, heart_rate, steps, battery,
                              magnitude_x100, peak1s_x100);
-
-            if (version != BLE_PAYLOAD_VERSION) {
-                ESP_LOGW(TAG, "Unsupported BLE payload version: 0x%02X",
-                         version);
-                return 0;
+            portENTER_CRITICAL(&s_diagnostic_lock);
+            s_diagnostic.has_sample = true;
+            if (!s_diagnostic.has_diagnostic) {
+                s_diagnostic.state = state;
+                s_diagnostic.magnitude_x100 = magnitude_x100;
             }
+            s_diagnostic.peak_x100 = peak1s_x100;
+            s_diagnostic.received_at_ms = esp_timer_get_time() / 1000ULL;
+            portEXIT_CRITICAL(&s_diagnostic_lock);
 
             /* Log level theo mức nghiêm trọng của state */
             switch (state) {

@@ -4,7 +4,6 @@ import json
 import logging
 import wave
 from concurrent.futures import ThreadPoolExecutor
-from datetime import datetime
 
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect, Query
 from google import genai
@@ -14,6 +13,7 @@ from groq import Groq
 
 from app.core.config import settings
 from app.websocket.manager import manager
+from app.utils.timezone import local_now
 
 # WAV format for ESP32 audio_stream
 # Gemini TTS: 24kHz mono 16-bit LINEAR16
@@ -83,7 +83,7 @@ def _search_web_text(query: str) -> str:
 
 
 def _build_lumo_prompt(text: str, search_result: str | None = None) -> str:
-    now = datetime.now().astimezone()
+    now = local_now()
     date_now = f"thời gian ngày {now.day} tháng {now.month} năm {now.year}"
     history = _get_lumo_history_string(settings.LUMO_LOG_PATH, limit=40)
     context = f"- {search_result}\n" if search_result else ""
